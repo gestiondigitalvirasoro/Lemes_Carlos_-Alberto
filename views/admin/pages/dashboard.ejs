@@ -1,0 +1,125 @@
+<div class="page-title">
+    <i class="bi bi-speedometer2"></i>
+    Dashboard
+</div>
+<p class="page-subtitle">Resumen general del sistema LEMES</p>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="stat-card primary">
+            <div class="stat-icon"><i class="bi bi-people"></i></div>
+            <div class="stat-number" id="total-pacientes">0</div>
+            <div class="stat-label">Pacientes</div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="stat-card success">
+            <div class="stat-icon"><i class="bi bi-calendar-check"></i></div>
+            <div class="stat-number" id="turnos-hoy">0</div>
+            <div class="stat-label">Turnos Hoy</div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="stat-card info">
+            <div class="stat-icon"><i class="bi bi-stethoscope"></i></div>
+            <div class="stat-number" id="medicos-activos">0</div>
+            <div class="stat-label">Médicos Activos</div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="stat-card warning">
+            <div class="stat-icon"><i class="bi bi-exclamation-circle"></i></div>
+            <div class="stat-number" id="turnos-pendientes">0</div>
+            <div class="stat-label">Turnos Pendientes</div>
+        </div>
+    </div>
+</div>
+
+<!-- Más estadísticas -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="stat-card primary">
+            <div class="stat-icon"><i class="bi bi-person-check"></i></div>
+            <div class="stat-number" id="secretarias-activas">0</div>
+            <div class="stat-label">Secretarias Activas</div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="stat-card success">
+            <div class="stat-icon"><i class="bi bi-file-medical"></i></div>
+            <div class="stat-number" id="historias-recientes">0</div>
+            <div class="stat-label">Historias Recientes</div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="stat-card info">
+            <div class="stat-icon"><i class="bi bi-graph-up"></i></div>
+            <div class="stat-number" id="total-turnos">0</div>
+            <div class="stat-label">Total Turnos</div>
+        </div>
+    </div>
+</div>
+
+<!-- Acciones rápidas -->
+<div class="row">
+    <div class="col-12">
+        <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <h5 style="margin-bottom: 20px; color: #333; font-weight: 600;">
+                <i class="bi bi-lightning"></i> Acciones Rápidas
+            </h5>
+            <div class="row">
+                <div class="col-md-3 mb-2">
+                    <a href="/admin/usuarios" class="btn btn-primary w-100">
+                        <i class="bi bi-plus-circle"></i> Nuevo Usuario
+                    </a>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <a href="/admin/pacientes" class="btn btn-primary w-100">
+                        <i class="bi bi-person-plus"></i> Nuevo Paciente
+                    </a>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <a href="/admin/turnos" class="btn btn-primary w-100">
+                        <i class="bi bi-calendar-plus"></i> Nuevo Turno
+                    </a>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <a href="/admin/estadisticas" class="btn btn-primary w-100">
+                        <i class="bi bi-bar-chart"></i> Ver Reportes
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Cargar estadísticas al abrir el dashboard
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const response = await fetch('/api/admin/estadisticas/dashboard');
+        const data = await response.json();
+        
+        if (data.success) {
+            const stats = data.data;
+            
+            // Actualizar elementos
+            document.getElementById('total-pacientes').textContent = stats.totalPacientes;
+            document.getElementById('turnos-hoy').textContent = stats.turnosHoy;
+            document.getElementById('medicos-activos').textContent = stats.medicosActivos;
+            document.getElementById('turnos-pendientes').textContent = stats.turnosPendientes;
+            document.getElementById('secretarias-activas').textContent = stats.secretariasActivas;
+            document.getElementById('historias-recientes').textContent = stats.historiasRecientes;
+            document.getElementById('total-turnos').textContent = stats.totalTurnos;
+        }
+    } catch (error) {
+        console.error('Error cargando estadísticas:', error);
+    }
+});
+</script>

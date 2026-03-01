@@ -1,0 +1,18 @@
+<div class="navbar-top">
+    <div>
+        <h6 style="margin: 0; color: #666;">
+            <i class="bi bi-house-door"></i>
+            <%= user ? user.nombre : 'Usuario' %>
+        </h6>
+    </div>
+    
+    <div class="user-info">
+        <div>
+            <small style="color: #999;">Rol:</small>
+            <span class="badge bg-info"><%= user && user.rol ? user.rol.charAt(0).toUpperCase() + user.rol.slice(1) : 'Admin' %></span>
+        </div>
+        <div class="user-avatar">
+            <%= user && user.nombre ? user.nombre.charAt(0).toUpperCase() : 'A' %>
+        </div>
+    </div>
+</div>

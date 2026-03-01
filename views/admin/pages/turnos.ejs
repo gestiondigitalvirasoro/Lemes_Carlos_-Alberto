@@ -1,0 +1,62 @@
+<div class="page-title">
+    <i class="bi bi-calendar-event"></i>
+    Gestión de Turnos
+</div>
+<p class="page-subtitle">Administración de citas y turnos médicos</p>
+
+<!-- Filtros -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <label class="form-label">Fecha</label>
+        <input type="date" class="form-control">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Médico</label>
+        <select class="form-select">
+            <option>Todos los médicos</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Estado</label>
+        <select class="form-select">
+            <option>Todos</option>
+            <option>Confirmado</option>
+            <option>Pendiente</option>
+            <option>Cancelado</option>
+        </select>
+    </div>
+    <div class="col-md-3 text-end">
+        <label class="form-label d-block"></label>
+        <button class="btn btn-primary w-100">
+            <i class="bi bi-plus-circle"></i> Nuevo Turno
+        </button>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Hora</th>
+                <th>Paciente</th>
+                <th>Médico</th>
+                <th>Especialidad</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                    Cargando turnos...
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .page-title { font-size: 2rem; font-weight: 700; color: #333; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+    .page-subtitle { color: #6c757d; margin-bottom: 30px; font-size: 0.95rem; }
+</style>

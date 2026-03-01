@@ -1,0 +1,375 @@
+<div class="page-title">
+    <i class="bi bi-people"></i>
+    Gestión de Usuarios
+</div>
+<p class="page-subtitle">Crear, editar y administrar usuarios del sistema</p>
+
+<!-- Filtros y botón crear -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="input-group">
+            <span class="input-group-text" style="background: white; border: 1px solid #e9ecef;">
+                <i class="bi bi-search"></i>
+            </span>
+            <input type="text" class="form-control" id="searchUsuarios" placeholder="Buscar por nombre o email...">
+        </div>
+    </div>
+    <div class="col-md-4 text-end">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCrearUsuario">
+            <i class="bi bi-plus-circle"></i> Nuevo Usuario
+        </button>
+    </div>
+</div>
+
+<!-- Tabla de usuarios -->
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="usuariosTable">
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    Cargando usuarios...
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Paginación -->
+<nav aria-label="Paginación" class="mt-4">
+    <ul class="pagination justify-content-center" id="paginacion">
+        <!-- Se llena con JavaScript -->
+    </ul>
+</nav>
+
+<!-- ===== MODAL: CREAR USUARIO ===== -->
+<div class="modal fade" id="modalCrearUsuario" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crear Nuevo Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCrearUsuario">
+                <div class="modal-body">
+                    <!-- Nombre -->
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <input type="text" class="form-control" name="nombre" required>
+                    </div>
+
+                    <!-- Apellido -->
+                    <div class="mb-3">
+                        <label class="form-label">Apellido</label>
+                        <input type="text" class="form-control" name="apellido" required>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email" required>
+                    </div>
+
+                    <!-- Contraseña -->
+                    <div class="mb-3">
+                        <label class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" name="password" required minlength="6">
+                        <small class="text-muted">Mínimo 6 caracteres</small>
+                    </div>
+
+                    <!-- Rol -->
+                    <div class="mb-3">
+                        <label class="form-label">Rol</label>
+                        <select class="form-select" name="role" id="roleSelect" required>
+                            <option value="">Seleccionar rol...</option>
+                            <option value="admin">Administrador</option>
+                            <option value="doctor">Médico</option>
+                            <option value="secretaria">Secretaria</option>
+                        </select>
+                    </div>
+
+                    <!-- Especialidad (solo para médicos) -->
+                    <div class="mb-3" id="especialidadGrupo" style="display: none;">
+                        <label class="form-label">Especialidad</label>
+                        <input type="text" class="form-control" name="especialidad" placeholder="ej: Cardiología">
+                    </div>
+
+                    <!-- Subespecialidad (solo para médicos) -->
+                    <div class="mb-3" id="subespecialidadGrupo" style="display: none;">
+                        <label class="form-label">Subespecialidad</label>
+                        <input type="text" class="form-control" name="subespecialidad" placeholder="ej: Cardiología Pediátrica">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Crear Usuario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL: EDITAR USUARIO ===== -->
+<div class="modal fade" id="modalEditarUsuario" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEditarUsuario">
+                <div class="modal-body">
+                    <input type="hidden" id="usuarioIdEdit" name="id">
+
+                    <!-- Nombre -->
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <input type="text" class="form-control" id="nombreEdit" required>
+                    </div>
+
+                    <!-- Apellido -->
+                    <div class="mb-3">
+                        <label class="form-label">Apellido</label>
+                        <input type="text" class="form-control" id="apellidoEdit" required>
+                    </div>
+
+                    <!-- Rol -->
+                    <div class="mb-3">
+                        <label class="form-label">Rol</label>
+                        <select class="form-select" id="roleEdit" required>
+                            <option value="admin">Administrador</option>
+                            <option value="doctor">Médico</option>
+                            <option value="secretaria">Secretaria</option>
+                        </select>
+                    </div>
+
+                    <!-- Especialidad (solo para médicos) -->
+                    <div class="mb-3" id="especialidadGrupoEdit" style="display: none;">
+                        <label class="form-label">Especialidad</label>
+                        <input type="text" class="form-control" id="especialidadEdit" placeholder="ej: Cardiología">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPage = 1;
+const usuariosModal = new bootstrap.Modal(document.getElementById('modalCrearUsuario'), {});
+const editarModal = new bootstrap.Modal(document.getElementById('modalEditarUsuario'), {});
+
+// Mostrar/ocultar especialidad según rol
+document.getElementById('roleSelect').addEventListener('change', (e) => {
+    const mostrar = e.target.value === 'doctor';
+    document.getElementById('especialidadGrupo').style.display = mostrar ? 'block' : 'none';
+    document.getElementById('subespecialidadGrupo').style.display = mostrar ? 'block' : 'none';
+});
+
+document.getElementById('roleEdit').addEventListener('change', (e) => {
+    const mostrar = e.target.value === 'doctor';
+    document.getElementById('especialidadGrupoEdit').style.display = mostrar ? 'block' : 'none';
+});
+
+// Cargar usuarios
+async function cargarUsuarios(page = 1) {
+    try {
+        const response = await fetch(`/api/admin/usuarios?page=${page}&limit=10`);
+        const data = await response.json();
+
+        if (data.success) {
+            renderizarUsuarios(data.data.usuarios);
+            renderizarPaginacion(data.data.pagination);
+            currentPage = page;
+        }
+    } catch (error) {
+        console.error('Error cargando usuarios:', error);
+        document.getElementById('usuariosTable').innerHTML = `
+            <tr><td colspan="6" class="text-center text-danger">Error al cargar usuarios</td></tr>
+        `;
+    }
+}
+
+function renderizarUsuarios(usuarios) {
+    if (!usuarios || usuarios.length === 0) {
+        document.getElementById('usuariosTable').innerHTML = `
+            <tr><td colspan="6" class="text-center text-muted">No hay usuarios registrados</td></tr>
+        `;
+        return;
+    }
+
+    const html = usuarios.map((u, idx) => {
+        const roleColor = u.role === 'admin' ? 'danger' : u.role === 'doctor' ? 'info' : 'success';
+        const roleNombre = u.role === 'admin' ? 'Administrador' : u.role === 'doctor' ? 'Médico' : 'Secretaria';
+        const estadoBadge = u.activo ? `<span class="badge badge-success">Activo</span>` : `<span class="badge badge-danger">Inactivo</span>`;
+
+        return `
+            <tr>
+                <td>${idx + 1}</td>
+                <td><strong>${u.nombre} ${u.apellido}</strong></td>
+                <td><code style="font-size: 0.85rem;">${u.email}</code></td>
+                <td><span class="badge bg-${roleColor}">${roleNombre}</span></td>
+                <td>${estadoBadge}</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="editarUsuario('${u.id}')">
+                        <i class="bi bi-pencil"></i> Editar
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="eliminarUsuario('${u.id}')">
+                        <i class="bi bi-trash"></i> Eliminar
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    document.getElementById('usuariosTable').innerHTML = html;
+}
+
+function renderizarPaginacion(pagination) {
+    const html = [];
+    
+    if (pagination.page > 1) {
+        html.push(`<li class="page-item"><a class="page-link" href="#" onclick="cargarUsuarios(${pagination.page - 1})">Anterior</a></li>`);
+    }
+
+    for (let i = 1; i <= pagination.pages; i++) {
+        const active = i === pagination.page ? 'active' : '';
+        html.push(`<li class="page-item ${active}"><a class="page-link" href="#" onclick="cargarUsuarios(${i})">${i}</a></li>`);
+    }
+
+    if (pagination.page < pagination.pages) {
+        html.push(`<li class="page-item"><a class="page-link" href="#" onclick="cargarUsuarios(${pagination.page + 1})">Siguiente</a></li>`);
+    }
+
+    document.getElementById('paginacion').innerHTML = html.join('');
+}
+
+// Crear usuario
+document.getElementById('formCrearUsuario').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+
+    try {
+        const response = await fetch('/api/admin/usuarios', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert('Usuario creado exitosamente');
+            e.target.reset();
+            usuariosModal.hide();
+            cargarUsuarios(currentPage);
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al crear usuario');
+    }
+});
+
+// Editar usuario
+async function editarUsuario(id) {
+    try {
+        const response = await fetch(`/api/admin/usuarios/${id}`);
+        const data = await response.json();
+
+        if (data.success) {
+            const u = data.data;
+            document.getElementById('usuarioIdEdit').value = u.id;
+            document.getElementById('nombreEdit').value = u.nombre;
+            document.getElementById('apellidoEdit').value = u.apellido;
+            document.getElementById('roleEdit').value = u.role;
+            document.getElementById('especialidadEdit').value = u.especialidad || '';
+            
+            if (u.role === 'doctor') {
+                document.getElementById('especialidadGrupoEdit').style.display = 'block';
+            }
+
+            editarModal.show();
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al cargar usuario');
+    }
+}
+
+document.getElementById('formEditarUsuario').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('usuarioIdEdit').value;
+    const data = {
+        nombre: document.getElementById('nombreEdit').value,
+        apellido: document.getElementById('apellidoEdit').value,
+        role: document.getElementById('roleEdit').value,
+        especialidad: document.getElementById('especialidadEdit').value
+    };
+
+    try {
+        const response = await fetch(`/api/admin/usuarios/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert('Usuario actualizado exitosamente');
+            editarModal.hide();
+            cargarUsuarios(currentPage);
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al actualizar usuario');
+    }
+});
+
+// Eliminar usuario
+async function eliminarUsuario(id) {
+    if (confirm('¿Estás seguro de que deseas eliminar este usuario?')) {
+        try {
+            const response = await fetch(`/api/admin/usuarios/${id}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert('Usuario eliminado exitosamente');
+                cargarUsuarios(currentPage);
+            } else {
+                alert('Error: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al eliminar usuario');
+        }
+    }
+}
+
+// Cargar usuarios al abrir la página
+document.addEventListener('DOMContentLoaded', () => cargarUsuarios());
+</script>

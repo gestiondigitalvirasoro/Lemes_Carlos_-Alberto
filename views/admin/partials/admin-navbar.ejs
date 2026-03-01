@@ -1,0 +1,22 @@
+<div class="navbar-wrapper">
+    <nav class="navbar-admin">
+        <h1 class="navbar-title"><%= title %></h1>
+        
+        <div class="navbar-right">
+            <div class="user-info">
+                <div class="user-avatar">
+                    <%= user.nombre.charAt(0).toUpperCase() %>
+                </div>
+                <div class="user-details">
+                    <p class="user-name"><%= user.nombre %> <%= user.apellido %></p>
+                    <p class="user-role" style="display: none;">
+                        <span class="role-badge">Administrador</span>
+                    </p>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="window.logout()" title="Cerrar sesión" type="button">
+                <i class="bi bi-box-arrow-right"></i>
+            </button>
+        </div>
+    </nav>
+</div>

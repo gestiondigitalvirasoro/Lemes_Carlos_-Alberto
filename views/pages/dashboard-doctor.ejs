@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - LEMES</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; }
+    .container-dashboard { display: flex; min-height: 100vh; }
+    
+    .sidebar {
+      width: 280px; background: linear-gradient(180deg, #1a3a3a 0%, #0d1f1f 100%); color: white; 
+      padding: 30px 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.1); position: fixed; height: 100vh; 
+      overflow-y: auto; z-index: 1000;
+    }
+    .sidebar-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 40px; font-size: 1.3rem; 
+      font-weight: 700; border-bottom: 2px solid #5CAEA3; padding-bottom: 20px; }
+    .sidebar-logo i { font-size: 1.8rem; }
+    .sidebar-nav { display: flex; flex-direction: column; gap: 15px; }
+    .sidebar-nav a { color: #bbb; text-decoration: none; padding: 10px 15px; border-radius: 6px; 
+      transition: all 0.3s; display: flex; align-items: center; gap: 10px; }
+    .sidebar-nav a:hover { background: rgba(217, 127, 127, 0.2); color: #D97F7F; }
+    .sidebar-nav a.active { background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; }
+    .sidebar-footer { margin-top: auto; padding-top: 20px; border-top: 1px solid #444; }
+    .user-info { margin-bottom: 15px; }
+    .user-info p { margin: 5px 0; font-size: 0.9rem; }
+    .user-info .username { font-weight: 600; color: #D97F7F; }
+    
+    .main-content { margin-left: 280px; flex: 1; padding: 30px; overflow-y: auto; }
+    .page-title h1 { font-size: 2.5rem; color: #1a3a3a; display: flex; align-items: center; gap: 12px; font-weight: 700; }
+    .page-title p { margin-top: 8px; color: #666; font-size: 1.1rem; }
+    
+    /* BLOQUE 1: PRÓXIMO PACIENTE */
+    .siguiente-paciente-card { background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; 
+      border-radius: 12px; padding: 30px; box-shadow: 0 8px 25px rgba(217, 127, 127, 0.3); margin: 30px 0; }
+    .siguiente-paciente-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
+    .siguiente-paciente-header h5 { margin: 0; font-size: 0.85rem; opacity: 0.85; text-transform: uppercase; 
+      letter-spacing: 1.5px; font-weight: 600; }
+    .siguiente-paciente-header .hora { font-size: 3rem; font-weight: 700; line-height: 1; }
+    .siguiente-paciente-body { display: flex; flex-direction: column; gap: 20px; }
+    .siguiente-paciente-body h2 { margin: 0; font-size: 1.9rem; font-weight: 700; }
+    .siguiente-paciente-info { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .siguiente-paciente-info p { margin: 0; font-size: 0.95rem; }
+    
+    /* BLOQUE 3: ACCIONES RÁPIDAS */
+    .acciones-rapidas { margin: 30px 0; }
+    .acciones-rapidas h5 { color: #1a3a3a; margin-bottom: 20px; font-weight: 700; 
+      display: flex; align-items: center; gap: 10px; font-size: 1.2rem; }
+    .acciones-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+    .accion-btn { background: white; border: 2px solid #ddd; border-radius: 10px; padding: 20px; 
+      text-align: center; cursor: pointer; transition: all 0.3s; }
+    .accion-btn:hover { border-color: #D97F7F; box-shadow: 0 4px 12px rgba(217, 127, 127, 0.2); transform: translateY(-2px); }
+    .accion-btn i { font-size: 1.8rem; color: #D97F7F; margin-bottom: 10px; display: block; }
+    .accion-btn p { margin: 10px 0 0; font-weight: 600; color: #333; }
+    
+    /* BLOQUE 4: ALERTAS CLÍNICAS */
+    .alertas-clinicas { margin: 30px 0; background: white; border-radius: 12px; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 25px; }
+    .alertas-clinicas h5 { color: #1a3a3a; margin: 0 0 20px 0; font-weight: 700; 
+      display: flex; align-items: center; gap: 10px; font-size: 1.2rem; }
+    .alerta-item { display: flex; align-items: center; gap: 15px; padding: 12px; 
+      border-left: 4px solid; border-radius: 4px; margin-bottom: 12px; background: #f9f9f9; }
+    .alerta-item.alerta-rojo { border-color: #DC3545; }
+    .alerta-item.alerta-amarillo { border-color: #FFC107; }
+    .alerta-item.alerta-azul { border-color: #0D6EFD; }
+    .alerta-icono { font-size: 1.5rem; min-width: 40px; text-align: center; }
+    .alerta-contenido { flex: 1; }
+    .alerta-contenido p { margin: 0; font-size: 0.9rem; }
+    .alerta-contenido .alerta-titulo { font-weight: 600; color: #1a3a3a; }
+    .alerta-contenido .alerta-valor { color: #666; font-size: 0.85rem; }
+    
+    /* TABLA DE TURNOS */
+    .tabla-turnos-wrapper { background: white; border-radius: 12px; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 25px; margin: 30px 0; }
+    .tabla-turnos-wrapper h5 { color: #1a3a3a; margin: 0 0 20px 0; font-weight: 700; 
+      display: flex; align-items: center; gap: 10px; font-size: 1.2rem; }
+    
+    .table thead { background: #f8f9fa; border-bottom: 2px solid #d97f7f; }
+    .table thead th { color: #1a3a3a; font-weight: 600; padding: 15px; border: none; }
+    .table tbody tr:hover { background: #f9f9f9; }
+    .table td { padding: 15px; vertical-align: middle; }
+    
+    .estado-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; 
+      font-weight: 600; text-transform: uppercase; }
+    .estado-PENDIENTE { background: #FFC107; color: #333; }
+    .estado-CONFIRMADO { background: #17A2B8; color: white; }
+    .estado-EN_CONSULTA { background: #007BFF; color: white; }
+    .estado-ATENDIDO { background: #28A745; color: white; }
+    .estado-AUSENTE { background: #6C757D; color: white; }
+    .estado-CANCELADO { background: #DC3545; color: white; }
+    
+    .btn-primary { background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); border: none; }
+    .btn-primary:hover { background: linear-gradient(135deg, #c56b6b 0%, #4d9392 100%); }
+    
+    .empty-state { text-align: center; padding: 40px 20px; color: #999; }
+    .empty-state i { font-size: 2.5rem; color: #d97f7f; margin-bottom: 10px; display: block; }
+    
+    .tabs-nav { display: flex; gap: 10px; border-bottom: 2px solid #ddd; margin-bottom: 20px; }
+    .tabs-nav button { background: none; border: none; padding: 10px 20px; cursor: pointer; 
+      border-bottom: 3px solid transparent; color: #666; font-weight: 600; transition: all 0.3s; }
+    .tabs-nav button.active { color: #D97F7F; border-bottom-color: #D97F7F; }
+    
+    @media (max-width: 1200px) {
+      .acciones-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; height: auto; position: static; }
+      .main-content { margin-left: 0; }
+      .page-title h1 { font-size: 1.8rem; }
+      .acciones-grid { grid-template-columns: 1fr; }
+    }
+
+    /* SPINNER DE CARGA */
+    .loader-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .loader-overlay.active {
+      display: flex;
+    }
+
+    .loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(217, 127, 127, 0.3);
+      border-top: 5px solid #D97F7F;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .loader-text {
+      color: white;
+      margin-top: 15px;
+      font-size: 1rem;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-dashboard">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <i class="bi bi-capsule"></i>
+        LEMES
+      </div>
+      
+      <nav class="sidebar-nav">
+        <a href="/doctor/pacientes" class="active">
+          <i class="bi bi-people"></i>
+          Pacientes
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <p class="username">Dr. <%= user.nombre %> <%= user.apellido %></p>
+          <p><%= user.email %></p>
+          <p>
+            <span class="badge" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%);">
+              <%= user.rol.toUpperCase() %>
+            </span>
+          </p>
+        </div>
+        <a href="javascript:void(0)" onclick="logout()" class="btn btn-outline-light btn-sm w-100">
+          <i class="bi bi-box-arrow-right"></i>
+          Cerrar Sesión
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Título -->
+      <div class="page-title">
+        <h1>
+          <i class="bi bi-calendar-day"></i>
+          Mi Agenda
+        </h1>
+        <p>Gestiona tus consultas y pacientes del día</p>
+      </div>
+
+      <!-- BLOQUE 1: PRÓXIMO PACIENTE -->
+      <div class="siguiente-paciente-card" id="siguiente-card">
+        <div class="siguiente-paciente-header">
+          <div>
+            <h5>Próximo Paciente</h5>
+            <p style="margin: 8px 0 0 0; font-size: 0.95rem; opacity: 0.9;"><i class="bi bi-calendar-event"></i> <span id="siguiente-fecha">--/--/----</span></p>
+          </div>
+          <div class="hora" id="siguiente-hora">--:--</div>
+        </div>
+        <div class="siguiente-paciente-body">
+          <h2 id="siguiente-nombre">Cargando...</h2>
+          <div class="siguiente-paciente-info">
+            <div>
+              <p><strong>DNI:</strong> <span id="siguiente-dni">-</span></p>
+            </div>
+            <div>
+              <p><strong>Teléfono:</strong> <span id="siguiente-telefono">-</span></p>
+            </div>
+            <div>
+              <p><strong>Edad:</strong> <span id="siguiente-edad">-</span> años</p>
+            </div>
+            <div>
+              <p><strong>Obra Social:</strong> <span id="siguiente-obra">-</span></p>
+            </div>
+          </div>
+          <div>
+            <p><strong>Estado:</strong></p>
+            <span id="siguiente-estado" class="estado-badge">-</span>
+          </div>
+          <div id="siguiente-botones" style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
+        </div>
+      </div>
+
+      <!-- BLOQUE 3: ACCIONES RÁPIDAS -->
+      <div class="acciones-rapidas">
+        <h5>
+          <i class="bi bi-lightning-fill"></i>
+          Acciones Rápidas
+        </h5>
+        <div class="acciones-grid">
+          <div class="accion-btn" data-bs-toggle="modal" data-bs-target="#modalNuevoTurno">
+            <i class="bi bi-calendar-plus"></i>
+            <p>Nuevo Turno</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- BLOQUE 4: ALERTAS CLÍNICAS -->
+      <div class="alertas-clinicas">
+        <h5>
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          Alertas Clínicas
+        </h5>
+        <div id="contenedor-alertas">
+          <div class="empty-state">
+            <i class="bi bi-check-circle"></i>
+            <p>Cargando alertas...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de Turnos de Hoy -->
+      <div class="tabla-turnos-wrapper">
+        <h5>
+          <i class="bi bi-table"></i>
+          Turnos de Hoy
+        </h5>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Paciente</th>
+                <th>Edad</th>
+                <th>Obra Social</th>
+                <th>Estado</th>
+                <th>Consulta</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="turnos-tabla-body">
+              <tr>
+                <td colspan="7" class="text-center text-muted py-4">
+                  <i class="bi bi-hourglass-split"></i> Cargando turnos...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL: HISTORIA CLÍNICA COMPLETA -->
+  <div class="modal fade" id="modalHistoriaClinica" tabindex="-1" size="lg">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; border: none;">
+          <h5 class="modal-title">
+            <i class="bi bi-file-medical"></i>
+            Historia Clínica - <span id="modal-hc-paciente">-</span>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter: brightness(0) invert(1);"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Tabs -->
+          <div class="tabs-nav">
+            <button class="tab-button active" onclick="switchTab('anamnesis')">
+              <i class="bi bi-chat-left-text"></i> Anamnesis
+            </button>
+            <button class="tab-button" onclick="switchTab('signos')">
+              <i class="bi bi-heart-pulse"></i> Signos Vitales
+            </button>
+            <button class="tab-button" onclick="switchTab('diagnosticos')">
+              <i class="bi bi-prescription2"></i> Diagnósticos
+            </button>
+            <button class="tab-button" onclick="switchTab('tratamientos')">
+              <i class="bi bi-capsule"></i> Tratamientos
+            </button>
+            <button class="tab-button" onclick="switchTab('estudios')">
+              <i class="bi bi-microscope"></i> Estudios
+            </button>
+            <button class="tab-button" onclick="switchTab('adjuntos')">
+              <i class="bi bi-paperclip"></i> Adjuntos
+            </button>
+            <button class="tab-button" onclick="switchTab('antecedentes')">
+              <i class="bi bi-book"></i> Antecedentes
+            </button>
+          </div>
+
+          <!-- Contenido de Tabs -->
+          <div id="tab-anamnesis" class="tab-content">
+            <p><strong>Anamnesis:</strong></p>
+            <p id="anamnesis-text">Cargando...</p>
+          </div>
+          <div id="tab-signos" class="tab-content" style="display:none;">
+            <div id="signos-vitales-content">Cargando...</div>
+          </div>
+          <div id="tab-diagnosticos" class="tab-content" style="display:none;">
+            <div id="diagnosticos-content">Cargando...</div>
+          </div>
+          <div id="tab-tratamientos" class="tab-content" style="display:none;">
+            <div id="tratamientos-content">Cargando...</div>
+          </div>
+          <div id="tab-estudios" class="tab-content" style="display:none;">
+            <div id="estudios-content">Cargando...</div>
+          </div>
+          <div id="tab-adjuntos" class="tab-content" style="display:none;">
+            <div id="adjuntos-content">Cargando...</div>
+          </div>
+          <div id="tab-antecedentes" class="tab-content" style="display:none;">
+            <div id="antecedentes-content">Cargando...</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NUEVO TURNO -->
+  <div class="modal fade" id="modalNuevoTurno" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header" style="background: #D97F7F; color: white; border: none;">
+          <h5 class="modal-title"><i class="bi bi-calendar-plus"></i> Crear Nuevo Turno</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter: brightness(0) invert(1);"></button>
+        </div>
+        <div class="modal-body">
+          <!-- SELECTOR: Buscar o Crear Paciente -->
+          <div class="row mb-3">
+            <div class="col-12">
+              <div class="btn-group w-100" role="group">
+                <input type="radio" class="btn-check" name="opcion-paciente" id="opcion-buscar" value="buscar" checked>
+                <label class="btn btn-outline-primary" for="opcion-buscar">
+                  <i class="bi bi-search"></i> Buscar Existente
+                </label>
+                
+                <input type="radio" class="btn-check" name="opcion-paciente" id="opcion-crear" value="crear">
+                <label class="btn btn-outline-primary" for="opcion-crear">
+                  <i class="bi bi-person-plus"></i> Crear Nuevo
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <form id="formNuevoTurno">
+            <!-- OPCIÓN 1: Buscar Paciente Existente -->
+            <div id="seccion-buscar" style="display: block;">
+              <div class="mb-3">
+                <label for="turno-paciente-input" class="form-label">Buscar Paciente</label>
+                <input type="text" class="form-control" id="turno-paciente-input" placeholder="Buscar por nombre o DNI..." 
+                  oninput="filtrarPacientes(this, 'turno-suggestions')">
+                <input type="hidden" id="turno-paciente-id">
+                <div id="turno-suggestions" style="position: absolute; background: white; border: 1px solid #ddd; border-radius: 4px; max-height: 200px; overflow-y: auto; width: 48%; z-index: 1000; display: block;"></div>
+              </div>
+            </div>
+
+            <!-- OPCIÓN 2: Crear Nuevo Paciente -->
+            <div id="seccion-crear" style="display: none;">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="turno-nombre" class="form-label">Nombre *</label>
+                  <input type="text" class="form-control" id="turno-nombre" placeholder="Nombre">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="turno-apellido" class="form-label">Apellido *</label>
+                  <input type="text" class="form-control" id="turno-apellido" placeholder="Apellido">
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="turno-dni" class="form-label">DNI *</label>
+                  <input type="number" class="form-control" id="turno-dni" placeholder="DNI">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="turno-telefono" class="form-label">Teléfono</label>
+                  <input type="tel" class="form-control" id="turno-telefono" placeholder="Teléfono">
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="turno-fecha-nac" class="form-label">Fecha de Nacimiento</label>
+                  <input type="date" class="form-control" id="turno-fecha-nac">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="turno-obra-social" class="form-label">Obra Social</label>
+                  <input type="text" class="form-control" id="turno-obra-social" placeholder="OSDE, PAMI, etc.">
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="turno-numero-afiliado" class="form-label">Número de Afiliado</label>
+                <input type="text" class="form-control" id="turno-numero-afiliado" placeholder="Número de afiliado">
+              </div>
+            </div>
+
+            <!-- Campos comunes -->
+            <hr>
+            <div class="mb-3">
+              <label for="turno-fecha" class="form-label">Fecha *</label>
+              <input type="date" class="form-control" id="turno-fecha" required>
+            </div>
+            <div class="mb-3">
+              <label for="turno-hora" class="form-label">Hora *</label>
+              <input type="time" class="form-control" id="turno-hora" required>
+            </div>
+            <div class="mb-3">
+              <label for="turno-obs" class="form-label">Observaciones</label>
+              <textarea class="form-control" id="turno-obs" rows="2"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="guardarNuevoTurno()">Guardar Turno</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NUEVA CONSULTA -->
+  <div class="modal fade" id="modalNuevaConsulta" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header" style="background: #5CAEA3; color: white; border: none;">
+          <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Nueva Consulta</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter: brightness(0) invert(1);"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formNuevaConsulta">
+            <div class="mb-3">
+              <label for="consulta-paciente-input" class="form-label">Paciente</label>
+              <input type="text" class="form-control" id="consulta-paciente-input" placeholder="Buscar por nombre o DNI..." 
+                oninput="filtrarPacientes(this, 'consulta-suggestions')">
+              <input type="hidden" id="consulta-paciente-id">
+              <div id="consulta-suggestions" style="position: absolute; background: white; border: 1px solid #ddd; border-radius: 4px; max-height: 200px; overflow-y: auto; width: 95%; z-index: 1000;"></div>
+            </div>
+            <div class="alert alert-info" id="historia-check" style="display:none;">
+              <i class="bi bi-info-circle"></i> Este paciente no tiene historia clínica activa. Se creará una al iniciar la consulta.
+            </div>
+            <div class="mb-3">
+              <label for="consulta-motivo" class="form-label">Motivo de Consulta</label>
+              <textarea class="form-control" id="consulta-motivo" rows="3" required></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="guardarNuevaConsulta()">Crear Consulta</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADJUNTO -->
+  <div class="modal fade" id="modalAdjunto" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header" style="background: #007BFF; color: white; border: none;">
+          <h5 class="modal-title"><i class="bi bi-paperclip"></i> Adjuntar Documento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter: brightness(0) invert(1);"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formAdjunto">
+            <div class="mb-3">
+              <label for="adjunto-paciente-input" class="form-label">Paciente</label>
+              <input type="text" class="form-control" id="adjunto-paciente-input" placeholder="Buscar por nombre o DNI..." 
+                oninput="filtrarPacientes(this, 'adjunto-suggestions')">
+              <input type="hidden" id="adjunto-paciente-id">
+              <div id="adjunto-suggestions" style="position: absolute; background: white; border: 1px solid #ddd; border-radius: 4px; max-height: 200px; overflow-y: auto; width: 95%; z-index: 1000;"></div>
+            </div>
+            <div class="mb-3">
+              <label for="adjunto-tipo" class="form-label">Tipo Documento</label>
+              <input type="text" class="form-control" id="adjunto-tipo" placeholder="Ej: Resonancia, Radiografía..." required>
+            </div>
+            <div class="mb-3">
+              <label for="adjunto-archivo" class="form-label">Archivo</label>
+              <input type="file" class="form-control" id="adjunto-archivo" required>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="guardarAdjunto()">Cargar Documento</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ESTUDIO COMPLEMENTARIO -->
+  <div class="modal fade" id="modalEstudio" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header" style="background: #28A745; color: white; border: none;">
+          <h5 class="modal-title"><i class="bi bi-microscope"></i> Estudio Complementario</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter: brightness(0) invert(1);"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formEstudio">
+            <div class="mb-3">
+              <label for="estudio-paciente-input" class="form-label">Paciente</label>
+              <input type="text" class="form-control" id="estudio-paciente-input" placeholder="Buscar por nombre o DNI..." 
+                oninput="filtrarPacientes(this, 'estudio-suggestions')">
+              <input type="hidden" id="estudio-paciente-id">
+              <div id="estudio-suggestions" style="position: absolute; background: white; border: 1px solid #ddd; border-radius: 4px; max-height: 200px; overflow-y: auto; width: 95%; z-index: 1000;"></div>
+            </div>
+            <div class="mb-3">
+              <label for="estudio-tipo" class="form-label">Tipo Estudio</label>
+              <select class="form-control" id="estudio-tipo" required>
+                <option value="">Seleccionar...</option>
+                <option value="Análisis de Sangre">Análisis de Sangre</option>
+                <option value="Radiografía">Radiografía</option>
+                <option value="Ecografía">Ecografía</option>
+                <option value="Resonancia">Resonancia Magnética</option>
+                <option value="TAC">TAC</option>
+                <option value="Electrocardiograma">Electrocardiograma</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="estudio-obs" class="form-label">Observaciones</label>
+              <textarea class="form-control" id="estudio-obs" rows="2"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="guardarEstudio()">Crear Estudio</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AGENDA SEMANAL (TIMELINE) -->
+  <div class="modal fade" id="modalAgendaSemanal" tabindex="-1" size="xl">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; border: none;">
+          <h5 class="modal-title">
+            <i class="bi bi-calendar-week"></i>
+            Agenda Semanal
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter: brightness(0) invert(1);"></button>
+        </div>
+        <div class="modal-body" style="padding: 0; overflow: auto;">
+          <!-- Calendario tipo timeline -->
+          <div id="calendario-timeline" style="
+            display: grid;
+            grid-template-columns: 80px 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+            gap: 1px;
+            background: #ddd;
+            padding: 1px;
+            min-height: 600px;
+          ">
+            <!-- Se llena dinámicamente con JavaScript -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONSULTA ACTIVA DETECTADA -->
+  <div class="modal fade" id="modalConsultaActiva" tabindex="-1" backdrop="static" keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header" style="background: #DC3545; color: white; border: none;">
+          <h5 class="modal-title">
+            <i class="bi bi-exclamation-circle"></i> Consulta Activa Detectada
+          </h5>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning mb-3">
+            <strong>⚠️ Ya hay una consulta en curso</strong>
+            <p class="mb-0 mt-2">Paciente: <strong id="consulta-activa-paciente">-</strong></p>
+            <p class="mb-0">Hora: <strong id="consulta-activa-hora">--:--</strong></p>
+          </div>
+          <p>Debe terminar la consulta actual antes de iniciar una nueva.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-danger" onclick="terminarConsultaActivaDashboard()">
+            <i class="bi bi-check-circle"></i> Terminar Consulta Actual
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADER OVERLAY -->
+  <div class="loader-overlay" id="loaderOverlay">
+    <div class="loader-container">
+      <div class="spinner"></div>
+      <div class="loader-text" id="loaderText">Procesando...</div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // 🔐 TOKEN PASADO POR EL SERVIDOR
+    const TOKEN_FROM_SERVER = '<%= token %>';
+    console.log('🔐 Token recibido del servidor:', TOKEN_FROM_SERVER.substring(0, 50) + '...');
+    
+    // Guardar en localStorage
+    if (TOKEN_FROM_SERVER && TOKEN_FROM_SERVER.trim().length > 10) {
+      localStorage.setItem('auth_token', TOKEN_FROM_SERVER);
+      console.log('✅ Token guardado en localStorage');
+    }
+    
+    let turnosHoy = [];
+    let historiasData = {};
+    let pacientesList = [];
+    let consultaActivaData = null;
+    let turnoEnIntento = null;
+
+    // Funciones para el loader
+    function showLoading(mensaje = 'Procesando...') {
+      document.getElementById('loaderText').textContent = mensaje;
+      document.getElementById('loaderOverlay').classList.add('active');
+    }
+
+    function hideLoading() {
+      document.getElementById('loaderOverlay').classList.remove('active');
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      cargarTurnos();
+      cargarAlertas();
+      cargarPacientes();
+      setInterval(() => { cargarTurnos(); cargarAlertas(); }, 15000);
+    });
+
+    // ============================================================
+    // CARGAR LISTA DE PACIENTES (para autocomplete)
+    // ============================================================
+    function cargarPacientes() {
+      fetch('/api/pacientes-lista', {
+        method: 'GET',
+        credentials: 'include'
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            pacientesList = data.data;
+            console.log('👥 Pacientes cargados:', pacientesList.length);
+          }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // ============================================================
+    // CARGAR TURNOS DE HOY
+    // ============================================================
+    function cargarTurnos() {
+      fetch('/api/dashboard-turnos', {
+        method: 'GET',
+        credentials: 'include'
+      })
+        .then(res => {
+          console.log('📡 Response status:', res.status);
+          return res.json();
+        })
+        .then(data => {
+          console.log('📊 Turnos cargados:', data);
+          if (data.success && data.data) {
+            // 🔄 Ordenar por PRIORIDAD de estado + hora
+            turnosHoy = data.data.sort((a, b) => {
+              // Prioridad de estados: PENDIENTE/CONFIRMADO > EN_CONSULTA > otros
+              const prioridad = {
+                'PENDIENTE': 1,
+                'CONFIRMADO': 1,
+                'EN_CONSULTA': 2,
+                'COMPLETA': 3,
+                'CANCELADA': 4,
+                'NO_PRESENTADO': 4,
+                'SUSPENDIDA': 5
+              };
+              
+              const prioA = prioridad[a.estado] || 99;
+              const prioB = prioridad[b.estado] || 99;
+              
+              // Primero comparar por prioridad
+              if (prioA !== prioB) {
+                return prioA - prioB;
+              }
+              
+              // Si tienen la misma prioridad, ordenar por hora
+              return a.hora.localeCompare(b.hora);
+            });
+            
+            console.log('✅ Turnos ordenados por prioridad:', turnosHoy.length);
+            console.log('   Próximo:', turnosHoy[0]?.estado, turnosHoy[0]?.hora);
+            mostrarSiguientePaciente();
+            mostrarTablaTurnos();
+          } else {
+            console.error('❌ Error en respuesta:', data);
+          }
+        })
+        .catch(error => {
+          console.error('❌ Error en fetch:', error);
+        });
+    }
+
+    // ============================================================
+    // MOSTRAR SIGUIENTE PACIENTE
+    // ============================================================
+    function mostrarSiguientePaciente() {
+      if (turnosHoy.length === 0) {
+        document.getElementById('siguiente-nombre').textContent = 'Sin turnos próximos';
+        document.getElementById('siguiente-hora').textContent = '--:--';
+        document.getElementById('siguiente-fecha').textContent = '--/--/----';
+        return;
+      }
+
+      // 🔥 LÓGICA: Si hay EN_CONSULTA, mostrar ESE. Si no, mostrar primer PENDIENTE/CONFIRMADO
+      let siguiente = turnosHoy.find(t => t.estado === 'EN_CONSULTA');
+      if (!siguiente) {
+        siguiente = turnosHoy.find(t => t.estado === 'PENDIENTE' || t.estado === 'CONFIRMADO');
+      }
+      
+      if (!siguiente) {
+        siguiente = turnosHoy[0]; // Fallback por si acaso
+      }
+
+      const paciente = siguiente.paciente;
+
+      // Formatear fecha
+      const fechaObj = new Date(siguiente.hora.split(':')[0] === '0' ? new Date() : new Date());
+      const [year, month, day] = [fechaObj.getFullYear(), String(fechaObj.getMonth() + 1).padStart(2, '0'), String(fechaObj.getDate()).padStart(2, '0')];
+      const fechaFormato = `${day}/${month}/${year}`;
+
+      document.getElementById('siguiente-nombre').textContent = `${paciente.nombre} ${paciente.apellido}`;
+      document.getElementById('siguiente-hora').textContent = siguiente.hora;
+      document.getElementById('siguiente-fecha').textContent = fechaFormato;
+      document.getElementById('siguiente-dni').textContent = paciente.dni;
+      document.getElementById('siguiente-telefono').textContent = paciente.telefono || '-';
+      document.getElementById('siguiente-edad').textContent = paciente.edad;
+      document.getElementById('siguiente-obra').textContent = paciente.obraSocial || '-';
+
+      const estadoBadge = document.getElementById('siguiente-estado');
+      estadoBadge.textContent = siguiente.estado;
+      estadoBadge.className = `estado-badge estado-${siguiente.estado}`;
+
+      // Crear botones dinámicos según estado
+      const botonesDiv = document.getElementById('siguiente-botones');
+      botonesDiv.innerHTML = '';
+
+      if (siguiente.estado === 'PENDIENTE' || siguiente.estado === 'CONFIRMADO') {
+        botonesDiv.innerHTML = `
+          <button class="btn btn-primary" onclick="iniciarConsultaTurno(${siguiente.id})">
+            <i class="bi bi-play-circle"></i> Iniciar Consulta
+          </button>
+          <button class="btn btn-outline-secondary" onclick="abrirAgendaSemanal()">
+            <i class="bi bi-calendar-week"></i> Agenda Semanal
+          </button>
+        `;
+      } else if (siguiente.estado === 'EN_CONSULTA') {
+        botonesDiv.innerHTML = `
+          <button class="btn btn-success" onclick="finalizarConsultaTurno(${siguiente.id})">
+            <i class="bi bi-check-circle"></i> Finalizar
+          </button>
+          <button class="btn btn-outline-secondary" onclick="abrirAgendaSemanal()">
+            <i class="bi bi-calendar-week"></i> Agenda Semanal
+          </button>
+        `;
+      } else if (siguiente.estado === 'COMPLETA') {
+        botonesDiv.innerHTML = `
+          <button class="btn btn-info" onclick="window.location.href='/doctor/paciente/${paciente.id}'">
+            <i class="bi bi-eye"></i> Ver Consulta
+          </button>
+          <button class="btn btn-outline-secondary" onclick="cargarDatos()">
+            <i class="bi bi-arrow-clockwise"></i> Siguiente
+          </button>
+        `;
+      } else {
+        botonesDiv.innerHTML = `
+          <button class="btn btn-outline-secondary" disabled>
+            <i class="bi bi-lock"></i> ${siguiente.estado}
+          </button>
+        `;
+      }
+    }
+
+    // ============================================================
+    // CAMBIAR ESTADO DEL TURNO
+    // ============================================================
+    async function iniciarConsultaTurno(turnoId) {
+      try {
+        showLoading('Iniciando consulta...');
+        console.log('🔄 Iniciando consulta para turno:', turnoId);
+        const token = localStorage.getItem('auth_token');
+        console.log('🔑 Token en localStorage:', token ? '✅ Presente' : '❌ No presente');
+        
+        const response = await fetch(`/api/turnos/${turnoId}/estado`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          },
+          credentials: 'include',  // 👈 ENVIAR COOKIES AUTOMÁTICAMENTE
+          body: JSON.stringify({ estado: 'EN_CONSULTA' })
+        });
+
+        console.log('📡 Response status:', response.status);
+        const data = await response.json();
+        console.log('📊 Response data:', data);
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            console.error('❌ AUTHENTICATION ERROR');
+            hideLoading();
+            throw new Error('🔐 AUTENTICACIÓN: Token inválido o expirado. Contacta al administrador.');
+          }
+          
+          if (response.status === 403) {
+            console.error('❌ PERMISSION ERROR');
+            hideLoading();
+            throw new Error('❌ PERMISO: Solo doctor o secretaria pueden cambiar el estado del turno');
+          }
+          
+          if (response.status === 409) {
+            console.warn('⚠️ CONFLICT: Ya hay una consulta activa');
+            hideLoading();
+            // Guardar datos para gestión de conflicto
+            consultaActivaData = data.consultaActiva || {};
+            turnoEnIntento = turnoId;
+            // Mostrar modal en lugar de alert
+            mostrarModalConsultaActiva(data);
+            return;
+          }
+          
+          hideLoading();
+          throw new Error(data.message || 'Error al cambiar el estado');
+        }
+
+        console.log('✅ Consulta iniciada:', data);
+        hideLoading();
+        alert('✅ Consulta iniciada correctamente');
+        cargarTurnos(); // Recargar datos
+      } catch (error) {
+        hideLoading();
+        console.error('❌ Error:', error);
+        alert('Error: ' + error.message);
+      }
+    }
+
+    async function finalizarConsultaTurno(turnoId) {
+      try {
+        showLoading('Finalizando consulta...');
+        console.log('🔄 Finalizando consulta para turno:', turnoId);
+        const token = localStorage.getItem('auth_token');
+        console.log('🔑 Token en localStorage:', token ? '✅ Presente' : '❌ No presente');
+        
+        const response = await fetch(`/api/turnos/${turnoId}/estado`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          },
+          credentials: 'include',  // 👈 ENVIAR COOKIES AUTOMÁTICAMENTE
+          body: JSON.stringify({ estado: 'COMPLETA' })
+        });
+
+        console.log('📡 Response status:', response.status);
+        const data = await response.json();
+        console.log('📊 Response data:', data);
+
+        if (!response.ok) {
+          hideLoading();
+          if (response.status === 401) {
+            console.error('❌ AUTHENTICATION ERROR');
+            throw new Error('🔐 AUTENTICACIÓN: Token inválido o expirado');
+          }
+          if (response.status === 403) {
+            console.error('❌ PERMISSION ERROR');
+            throw new Error('❌ PERMISO: Solo doctor o secretaria pueden finalizar turnos');
+          }
+          throw new Error(data.message || 'Error al finalizar la consulta');
+        }
+
+        console.log('✅ Consulta finalizada:', data);
+        hideLoading();
+        alert('✅ Consulta finalizada correctamente');
+        cargarTurnos(); // Recargar datos
+      } catch (error) {
+        hideLoading();
+        console.error('❌ Error:', error);
+        alert('Error: ' + error.message);
+      }
+    }
+
+    // ============================================================
+    // MOSTRAR TABLA DE TURNOS
+    // ============================================================
+    function mostrarTablaTurnos() {
+      const tbody = document.getElementById('turnos-tabla-body');
+      
+      if (turnosHoy.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No hay turnos hoy</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = turnosHoy.map(turno => {
+        const paciente = turno.paciente;
+        const consultaEstado = turno.consulta ? turno.consulta.estado : 'No iniciada';
+        const consultaColores = {
+          'INICIADA': '#007BFF',
+          'EN_CONSULTA': '#17A2B8',
+          'ATENDIDA': '#28A745',
+          'CANCELADA': '#DC3545',
+          'No iniciada': '#ccc'
+        };
+
+        // Determinar botón dinámico según estado
+        let botonAccion = '';
+        if (turno.estado === 'PENDIENTE' || turno.estado === 'CONFIRMADO') {
+          botonAccion = `<button class="btn btn-sm btn-primary" onclick="iniciarConsultaTurno(${turno.id})">Iniciar</button>`;
+        } else if (turno.estado === 'EN_CONSULTA') {
+          botonAccion = `<button class="btn btn-sm btn-success" onclick="finalizarConsultaTurno(${turno.id})">Finalizar</button>`;
+        } else if (turno.estado === 'COMPLETA') {
+          botonAccion = `<button class="btn btn-sm btn-info" onclick="abrirHistoriaClinica(${paciente.paciente_id || 'null'}, '${paciente.dni}', '${paciente.nombre}', '${paciente.apellido}')">Ver</button>`;
+        } else {
+          botonAccion = `<button class="btn btn-sm btn-secondary" disabled>${turno.estado}</button>`;
+        }
+        
+        return `<tr>
+          <td><small class="text-muted">${turno.fecha}</small></td>
+          <td><strong>${turno.hora}</strong></td>
+          <td>${paciente.nombre} ${paciente.apellido}</td>
+          <td>${paciente.edad}</td>
+          <td>${paciente.obraSocial}</td>
+          <td><span class="estado-badge estado-${turno.estado}">${turno.estado}</span></td>
+          <td>
+            <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background: ${consultaColores[consultaEstado] || '#ccc'}; color: white; font-size: 0.85rem; font-weight: 500;">
+              ${consultaEstado}
+            </span>
+          </td>
+          <td>
+            ${botonAccion}
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ============================================================
+    // CARGAR ALERTAS CLÍNICAS
+    // ============================================================
+    function cargarAlertas() {
+      fetch('/api/alertas-clinicas', {
+        method: 'GET',
+        credentials: 'include'
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('🚨 Alertas:', data);
+          if (data.success && data.alertas) {
+            mostrarAlertas(data.alertas);
+          }
+        })
+        .catch(error => console.error('Error alertas:', error));
+    }
+
+    function mostrarAlertas(alertas) {
+      const contenedor = document.getElementById('contenedor-alertas');
+      
+      if (alertas.length === 0) {
+        contenedor.innerHTML = `
+          <div class="empty-state">
+            <i class="bi bi-check-circle"></i>
+            <p>Sin alertas críticas</p>
+          </div>
+        `;
+        return;
+      }
+
+      contenedor.innerHTML = alertas.map(alerta => {
+        const clases = alerta.color === '#DC3545' ? 'alerta-rojo' : 
+                       alerta.color === '#FFC107' ? 'alerta-amarillo' : 'alerta-azul';
+        return `
+          <div class="alerta-item ${clases}">
+            <div class="alerta-icono">
+              <i class="bi ${alerta.tipo === 'glucemia' ? 'bi-droplet-fill' : alerta.tipo === 'imc' ? 'bi-speedometer' : 'bi-calendar-check'}"></i>
+            </div>
+            <div class="alerta-contenido">
+              <p class="alerta-titulo">${alerta.titulo}</p>
+              <p class="alerta-valor"><strong>${alerta.paciente}</strong> - ${alerta.valor}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ============================================================
+    // ABRIR HISTORIA CLÍNICA
+    // ============================================================
+    function abrirHistoriaClinica(pacienteId, dni, nombre, apellido) {
+      if (!pacienteId) {
+        alert('Paciente sin historia clínica');
+        return;
+      }
+
+      document.getElementById('modal-hc-paciente').textContent = `${nombre} ${apellido}`;
+
+      fetch(`/api/historia-clinica/${pacienteId}`, {
+        method: 'GET',
+        credentials: 'include'
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('📋 Historia cargada:', data);
+          historiasData = data.data || {};
+          new bootstrap.Modal(document.getElementById('modalHistoriaClinica')).show();
+          switchTab('anamnesis');
+        })
+        .catch(error => console.error('Error historia:', error));
+    }
+
+    function switchTab(tabName) {
+      // Ocultar todos los tabs
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = 'none';
+      });
+      document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      // Mostrar tab seleccionado
+      document.getElementById(`tab-${tabName}`).style.display = 'block';
+      event.target.classList.add('active');
+
+      // Cargar contenido según tab
+      if (tabName === 'anamnesis' && historiasData.anamnesis !== undefined) {
+        document.getElementById('anamnesis-text').textContent = historiasData.anamnesis || 'Sin anamnesis registrada';
+      }
+      // Aquí agregarías más lógica para otros tabs...
+    }
+
+    // ============================================================
+    // FUNCIONES PARA BUSCAR PACIENTES (AUTOCOMPLETE)
+    // ============================================================
+    function filtrarPacientes(input, containerId) {
+      const valor = input.value.toLowerCase();
+      const container = document.getElementById(containerId);
+
+      if (valor.length < 2) {
+        container.innerHTML = '';
+        return;
+      }
+
+      const filtrados = pacientesList.filter(p =>
+        p.nombre.toLowerCase().includes(valor) ||
+        p.apellido.toLowerCase().includes(valor) ||
+        p.dni.toString().includes(valor)
+      ).slice(0, 10);
+
+      container.innerHTML = filtrados.map(p =>
+        `<div class="autocomplete-item" onclick="seleccionarPaciente(${p.id}, '${p.nombre}', '${p.apellido}', '${input.id}', '${containerId}')" style="padding:8px; cursor:pointer; border-bottom:1px solid #eee; hover:background:#f0f0f0;">
+          ${p.nombre} ${p.apellido} (DNI: ${p.dni}) - ${p.obra_social || 'Sin obra social'}
+        </div>`
+      ).join('');
+    }
+
+    function seleccionarPaciente(id, nombre, apellido, inputId, containerId) {
+      document.getElementById(inputId).value = `${nombre} ${apellido}`;
+      document.getElementById(inputId.replace('-input', '-id')).value = id;
+      document.getElementById(containerId).innerHTML = '';
+    }
+
+    // ============================================================
+    // FUNCIONES PARA GUARDAR
+    // ============================================================
+    // ==== MANEJO DE OPCIONES: Buscar vs Crear Paciente ====
+    function initOpcionesTurno() {
+      const opcionBuscar = document.getElementById('opcion-buscar');
+      const opcionCrear = document.getElementById('opcion-crear');
+      const seccionBuscar = document.getElementById('seccion-buscar');
+      const seccionCrear = document.getElementById('seccion-crear');
+
+      if (!opcionBuscar || !opcionCrear) {
+        console.log('⚠️ Elementos no encontrados, reintentando...');
+        setTimeout(initOpcionesTurno, 100);
+        return;
+      }
+
+      opcionBuscar.addEventListener('change', () => {
+        if (seccionBuscar) seccionBuscar.style.display = 'block';
+        if (seccionCrear) seccionCrear.style.display = 'none';
+      });
+
+      opcionCrear.addEventListener('change', () => {
+        if (seccionBuscar) seccionBuscar.style.display = 'none';
+        if (seccionCrear) seccionCrear.style.display = 'block';
+      });
+    }
+
+    // Ejecutar cuando el modal se abre
+    const modalNuevoTurno = document.getElementById('modalNuevoTurno');
+    if (modalNuevoTurno) {
+      modalNuevoTurno.addEventListener('show.bs.modal', () => {
+        initOpcionesTurno();
+      });
+    }
+
+    function guardarNuevoTurno() {
+      const opcionElement = document.querySelector('input[name="opcion-paciente"]:checked');
+      if (!opcionElement) {
+        alert('⚠️ Selecciona una opción');
+        return;
+      }
+
+      const opcion = opcionElement.value;
+      const fecha = document.getElementById('turno-fecha').value;
+      const hora = document.getElementById('turno-hora').value;
+
+      if (!fecha || !hora) {
+        alert('⚠️ Falta Fecha y/o Hora');
+        return;
+      }
+
+      if (opcion === 'buscar') {
+        // Opción: Buscar PERSONA existente CON TURNO
+        const personaId = document.getElementById('turno-paciente-id').value;
+        if (!personaId) {
+          alert('⚠️ Selecciona una persona con turno');
+          return;
+        }
+        const obs = document.getElementById('turno-obs').value;
+
+        showLoading('Creando turno...');
+        fetch('/api/turnos/crear', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            persona_id: personaId,
+            fecha: fecha,
+            hora: hora,
+            observaciones: obs
+          })
+        })
+          .then(res => res.json())
+          .then(data => {
+            hideLoading();
+            if (data.success) {
+              alert('✅ Turno creado exitosamente');
+              const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevoTurno'));
+              if (modal) modal.hide();
+              document.getElementById('formNuevoTurno').reset();
+              cargarTurnos();
+            } else {
+              alert('❌ Error: ' + (data.message || data.error));
+            }
+          })
+          .catch(err => {
+            hideLoading();
+            console.error('Error:', err);
+            alert('❌ Error al crear turno');
+          });
+      } else {
+        // Opción: Crear nuevo paciente
+        const nombre = document.getElementById('turno-nombre').value.trim();
+        const apellido = document.getElementById('turno-apellido').value.trim();
+        const dni = document.getElementById('turno-dni').value.trim();
+
+        if (!nombre || !apellido || !dni) {
+          alert('⚠️ Completa Nombre, Apellido y DNI');
+          return;
+        }
+
+        const telefono = document.getElementById('turno-telefono').value?.trim() || null;
+        const fecha_nacimiento = document.getElementById('turno-fecha-nac').value || null;
+        const obra_social = document.getElementById('turno-obra-social').value?.trim() || null;
+        const numero_afiliado = document.getElementById('turno-numero-afiliado').value?.trim() || null;
+        const obs = document.getElementById('turno-obs').value;
+
+        showLoading('Creando paciente y turno...');
+        fetch('/api/turnos/crear-con-paciente', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nombre,
+            apellido,
+            dni,
+            telefono,
+            fecha_nacimiento,
+            obra_social,
+            numero_afiliado,
+            fecha,
+            hora,
+            observaciones: obs
+          })
+        })
+          .then(res => res.json())
+          .then(data => {
+            hideLoading();
+            if (data.success) {
+              alert('✅ Paciente y Turno creados');
+              const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevoTurno'));
+              if (modal) modal.hide();
+              document.getElementById('formNuevoTurno').reset();
+              document.getElementById('opcion-buscar').checked = true;
+              cargarTurnos();
+            } else {
+              alert('❌ Error: ' + (data.message || data.error));
+            }
+          })
+          .catch(err => {
+            hideLoading();
+            console.error('Error:', err);
+            alert('❌ Error al crear paciente y turno');
+          });
+      }
+    }
+
+    function guardarNuevaConsulta() {
+      const pacienteId = document.getElementById('consulta-paciente-id').value;
+      const motivo = document.getElementById('consulta-motivo').value;
+
+      if (!pacienteId || !motivo) {
+        alert('Completa todos los campos');
+        return;
+      }
+
+      fetch('/api/consultas/crear', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paciente_id: pacienteId, motivo_consulta: motivo })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            alert('✅ Consulta iniciada');
+            document.getElementById('formNuevaConsulta').reset();
+            bootstrap.Modal.getInstance(document.getElementById('modalNuevaConsulta')).hide();
+          } else {
+            alert('❌ Error: ' + data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error: ' + error.message);
+        });
+    }
+
+    function guardarAdjunto() {
+      alert('Funcionali​dad próximamente');
+    }
+
+    function guardarEstudio() {
+      alert('Funcionalidad próximamente');
+    }
+
+    // ============================================================
+    // GESTIONAR CONSULTA ACTIVA
+    // ============================================================
+    function mostrarModalConsultaActiva(data) {
+      const modal = new bootstrap.Modal(document.getElementById('modalConsultaActiva'));
+      document.getElementById('consulta-activa-paciente').textContent = data.consultaActiva?.paciente || 'Desconocido';
+      document.getElementById('consulta-activa-hora').textContent = data.consultaActiva?.hora || '--:--';
+      modal.show();
+    }
+
+    async function terminarConsultaActivaDashboard() {
+      const turnoId = consultaActivaData?.id;
+      if (!turnoId) {
+        alert('Error: No se encontró ID de consulta activa');
+        return;
+      }
+
+      try {
+        showLoading('Terminando consulta...');
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`/api/turnos/${turnoId}/estado`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          },
+          credentials: 'include',
+          body: JSON.stringify({ estado: 'COMPLETA' })
+        });
+
+        if (!response.ok) {
+          hideLoading();
+          throw new Error('Error al terminar consulta');
+        }
+
+        hideLoading();
+        alert('✅ Consulta terminada');
+        
+        // Cerrar modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalConsultaActiva'));
+        if (modal) modal.hide();
+
+        // Limpiar datos
+        consultaActivaData = null;
+
+        // Recargar y reintentar iniciar nueva consulta
+        await new Promise(r => setTimeout(r, 500));
+        if (turnoEnIntento) {
+          iniciarConsultaTurno(turnoEnIntento);
+        }
+      } catch (error) {
+        hideLoading();
+        console.error('Error:', error);
+        alert('Error al terminar consulta: ' + error.message);
+      }
+    }
+
+    function abrirAgendaSemanal() {
+      // Mostrar modal
+      const modal = new bootstrap.Modal(document.getElementById('modalAgendaSemanal'));
+      modal.show();
+
+      // Cargar turnos de la semana
+      console.log('📅 Abriendo Agenda Semanal...');
+      
+      fetch('/api/agenda-semanal', {
+        method: 'GET',
+        credentials: 'include'
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data) {
+            console.log('📊 Turnos cargados para agenda:', data.data.length);
+            mostraAgendaSemanal(data.data);
+          } else {
+            console.warn('⚠️ No hay datos en la agenda:', data);
+          }
+        })
+        .catch(error => console.error('❌ Error al cargar agenda:', error));
+    }
+
+    function mostraAgendaSemanal(turnos) {
+      // Crear vista tipo timeline
+      const container = document.getElementById('calendario-timeline');
+      container.innerHTML = '';
+
+      // Agrupar turnos por día y por hora
+      const hoy = new Date();
+      const diasNombre = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      const horasDisponibles = [];
+      for (let h = 8; h <= 18; h++) {
+        horasDisponibles.push(`${String(h).padStart(2, '0')}:00`);
+      }
+
+      // Agrupar turnos por fecha
+      const turnoPorFechaYHora = {};
+      turnos.forEach(turno => {
+        // Extraer solo la parte de fecha (YYYY-MM-DD)
+        let fechaStr = turno.fecha;
+        if (typeof fechaStr === 'string' && fechaStr.includes('T')) {
+          fechaStr = fechaStr.split('T')[0];  // "2026-02-27T00:00:00Z" → "2026-02-27"
+        }
+        
+        if (!turnoPorFechaYHora[fechaStr]) {
+          turnoPorFechaYHora[fechaStr] = {};
+        }
+        if (!turnoPorFechaYHora[fechaStr][turno.hora]) {
+          turnoPorFechaYHora[fechaStr][turno.hora] = [];
+        }
+        turnoPorFechaYHora[fechaStr][turno.hora].push(turno);
+      });
+
+      console.log('📊 Turnos agrupados por fecha:', Object.keys(turnoPorFechaYHora));
+
+      // Crear encabezado con días de la semana
+      const headerImg = document.createElement('div');
+      headerImg.style.cssText = 'background: #f8f9fa; font-weight: 700; padding: 10px; border-right: 1px solid #ddd;';
+      headerImg.textContent = 'Hora';
+      container.appendChild(headerImg);
+
+      // Encabezado: Días de la semana
+      for (let i = 0; i < 7; i++) {
+        const fecha = new Date(hoy);
+        fecha.setDate(hoy.getDate() + i);
+        const dd = String(fecha.getDate()).padStart(2, '0');
+        const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+        const yyyy = fecha.getFullYear();
+        const fechaKey = `${yyyy}-${mm}-${dd}`;
+        const diaLabel = diasNombre[fecha.getDay()];
+
+        const headerCell = document.createElement('div');
+        headerCell.style.cssText = 'background: #f8f9fa; font-weight: 700; padding: 10px; text-align: center; border-right: 1px solid #ddd;';
+        headerCell.innerHTML = `<div style="font-size: 1.1rem;">${dd}</div><div style="font-size: 0.85rem; color: #666;">${diaLabel}</div>`;
+        container.appendChild(headerCell);
+      }
+
+      // Filas de horas
+      horasDisponibles.forEach(hora => {
+        // Celda de hora
+        const horCell = document.createElement('div');
+        horCell.style.cssText = 'background: #f8f9fa; font-weight: 600; padding: 10px; border-right: 1px solid #ddd; text-align: center; font-size: 0.9rem;';
+        horCell.textContent = hora;
+        container.appendChild(horCell);
+
+        // Celdas para cada día
+        for (let i = 0; i < 7; i++) {
+          const fecha = new Date(hoy);
+          fecha.setDate(hoy.getDate() + i);
+          const dd = String(fecha.getDate()).padStart(2, '0');
+          const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+          const yyyy = fecha.getFullYear();
+          const fechaKey = `${yyyy}-${mm}-${dd}`;
+
+          const cell = document.createElement('div');
+          cell.style.cssText = `
+            background: white;
+            min-height: 60px;
+            border-right: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+            padding: 4px;
+            position: relative;
+            overflow: hidden;
+          `;
+
+          // Buscar turnos en esta hora y día
+          const turnosenHora = turnoPorFechaYHora[fechaKey]?.[hora] || [];
+          
+          if (turnosenHora.length > 0) {
+            const colores = {
+              'PENDIENTE': '#FFC107',
+              'CONFIRMADO': '#17A2B8',
+              'EN_CONSULTA': '#007BFF',
+              'COMPLETA': '#28A745',
+              'CANCELADA': '#DC3545',
+              'NO_PRESENTADO': '#6C757D'
+            };
+
+            turnosenHora.forEach(turno => {
+              const block = document.createElement('div');
+              const color = colores[turno.estado] || '#ccc';
+              
+              block.style.cssText = `
+                background: ${color};
+                color: white;
+                padding: 6px;
+                border-radius: 4px;
+                font-size: 0.8rem;
+                margin-bottom: 2px;
+                cursor: ${turno.estado === 'PENDIENTE' ? 'pointer' : 'default'};
+                font-weight: 600;
+                word-wrap: break-word;
+              `;
+
+              const persona = turno.persona || turno.paciente; // Soportar ambos formatos
+              const nombreCorto = persona.nombre.split(' ')[0];
+              block.innerHTML = `
+                <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${nombreCorto}
+                </div>
+                <div style="font-size: 0.75rem; opacity: 0.9;">${turno.hora}</div>
+              `;
+
+              block.title = `${persona.nombre} ${persona.apellido} - ${turno.estado}`;
+              
+              if (turno.estado === 'PENDIENTE') {
+                block.onclick = () => iniciarConsultaTurno(turno.id);
+                block.style.cursor = 'pointer';
+              }
+
+              cell.appendChild(block);
+            });
+          }
+
+          container.appendChild(cell);
+        }
+      });
+    }
+
+    function mostraDetalleDay(fecha, pacientes, dia, numero) {
+      // Ya no se utiliza en la nueva versión
+    }
+
+    async function logout() {
+      if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+        return;
+      }
+      
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      try {
+        const response = await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+        console.log('Logout response:', response.status);
+      } catch (error) {
+        console.error('Error en logout:', error);
+      }
+      
+      // Redirigir a login
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 500);
+    }
+
+    window.logout = logout;
+  </script>
+</body>
+</html>

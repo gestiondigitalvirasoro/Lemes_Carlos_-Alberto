@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - LEMES Sistema Médico</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <style>
+        :root {
+            --primary-color: #D97F7F;
+            --primary-light: #E5A0A0;
+            --primary-dark: #C45F5F;
+            --secondary-color: #5CAEA3;
+            --secondary-light: #7BC4BA;
+            --secondary-dark: #3D8D84;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #0dcaf0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%);
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .brand {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
+        
+        .sidebar .brand i {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 10px;
+        }
+        
+        .sidebar .brand h5 {
+            margin: 0;
+            font-weight: 700;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .sidebar .nav-link:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            border-left: 4px solid white;
+            padding-left: 16px;
+        }
+        
+        .sidebar .nav-link.active {
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+            border-left: 4px solid white;
+            padding-left: 16px;
+        }
+        
+        .content-wrapper {
+            margin-left: 280px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .navbar-top {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .navbar-top .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .navbar-top .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        .page-title {
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .page-title h1 {
+            margin: 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+        
+        .btn {
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0b5ed7 0%, #0a58ca 100%);
+            transform: translateY(-2px);
+        }
+        
+        .badge {
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        
+        .table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .table thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .table th {
+            font-weight: 600;
+            color: #495057;
+            padding: 15px;
+        }
+        
+        .table td {
+            padding: 12px 15px;
+            vertical-align: middle;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Sidebar -->
+        <%- include('../partials/sidebar') %>
+        
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Navbar Top -->
+            <%- include('../partials/navbar') %>
+            
+            <!-- Main Content -->
+            <div class="main-content">
+                <%- body %>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    
+    <!-- Logout Function Global -->
+    <script>
+        async function logout() {
+            if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+                return;
+            }
+            
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            try {
+                await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+            } catch (error) {
+                console.error('Error en logout:', error);
+            }
+            
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 300);
+        }
+        
+        window.logout = logout;
+    </script>
+    
+    <!-- Custom JS -->
+    <script src="/js/main.js"></script>
+</body>
+</html>

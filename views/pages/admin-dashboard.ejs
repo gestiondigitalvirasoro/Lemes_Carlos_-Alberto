@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - LEMES</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .admin-container {
+            max-width: 600px;
+            width: 100%;
+            padding: 20px;
+        }
+        
+        .admin-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 60px 40px;
+            text-align: center;
+        }
+        
+        .admin-card i {
+            font-size: 4rem;
+            color: #D97F7F;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .admin-card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        .admin-card p {
+            color: #666;
+            font-size: 1.05rem;
+            margin-bottom: 30px;
+        }
+        
+        .btn-back {
+            background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-back:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(217, 127, 127, 0.3);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-card">
+            <i class="bi bi-shield-check"></i>
+            <h2>Panel Administrativo</h2>
+            <p>
+                Bienvenido, <strong><%= user.nombre %> <%= user.apellido %></strong>
+            </p>
+            <p style="font-size: 0.95rem; color: #999;">
+                Este es el panel administrativo del sistema LEMES.
+            </p>
+            <a href="/logout" class="btn-back">
+                <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

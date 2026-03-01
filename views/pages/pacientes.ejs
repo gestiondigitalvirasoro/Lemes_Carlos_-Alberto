@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - LEMES</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; }
+    .container-dashboard { display: flex; min-height: 100vh; }
+    
+    .sidebar {
+      width: 280px; background: linear-gradient(180deg, #1a3a3a 0%, #0d1f1f 100%); color: white; 
+      padding: 30px 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.1); position: fixed; height: 100vh; 
+      overflow-y: auto; z-index: 1000;
+    }
+    .sidebar-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 40px; font-size: 1.3rem; 
+      font-weight: 700; border-bottom: 2px solid #5CAEA3; padding-bottom: 20px; }
+    .sidebar-logo i { font-size: 1.8rem; }
+    .sidebar-nav { display: flex; flex-direction: column; gap: 15px; }
+    .sidebar-nav a { color: #bbb; text-decoration: none; padding: 10px 15px; border-radius: 6px; 
+      transition: all 0.3s; display: flex; align-items: center; gap: 10px; }
+    .sidebar-nav a:hover { background: rgba(217, 127, 127, 0.2); color: #D97F7F; }
+    .sidebar-nav a.active { background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; }
+    .sidebar-footer { margin-top: auto; padding-top: 20px; border-top: 1px solid #444; }
+    .user-info { margin-bottom: 15px; }
+    .user-info p { margin: 5px 0; font-size: 0.9rem; }
+    .user-info .username { font-weight: 600; color: #D97F7F; }
+    
+    .main-content { margin-left: 280px; flex: 1; padding: 30px; overflow-y: auto; }
+    .page-title h1 { font-size: 2.5rem; color: #1a3a3a; display: flex; align-items: center; gap: 12px; font-weight: 700; }
+    .page-title p { margin-top: 8px; color: #666; font-size: 1.1rem; }
+
+    /* Tabla de pacientes */
+    .tabla-pacientes-wrapper { background: white; border-radius: 12px; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 25px; margin: 30px 0; }
+    .tabla-pacientes-wrapper h5 { color: #1a3a3a; margin: 0 0 20px 0; font-weight: 700; 
+      display: flex; align-items: center; gap: 10px; font-size: 1.2rem; }
+    
+    .filtros { background: white; border-radius: 12px; padding: 20px; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 30px; }
+    .filtros .form-label { margin-bottom: 8px; color: #495057; font-weight: 500; }
+    .filtros .form-control, .filtros .form-select { border-radius: 8px; border: 1px solid #dee2e6; }
+    .filtros .form-control:focus, .filtros .form-select:focus { border-color: #D97F7F; box-shadow: 0 0 0 0.2rem rgba(217, 127, 127, 0.25); }
+    
+    .table thead { background: #f8f9fa; border-bottom: 2px solid #d97f7f; }
+    .table thead th { color: #1a3a3a; font-weight: 600; padding: 15px; border: none; }
+    .table tbody tr:hover { background: #f9f9f9; }
+    .table td { padding: 15px; vertical-align: middle; }
+    
+    .estado-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; 
+      font-weight: 600; text-transform: uppercase; }
+    .estado-Activo { background: #28A745; color: white; }
+    .estado-Inactivo { background: #6C757D; color: white; }
+    
+    .btn-visualizar { background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); 
+      border: none; color: white; padding: 8px 16px; border-radius: 6px; font-weight: 600;
+      transition: all 0.3s; cursor: pointer; }
+    .btn-visualizar:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(217, 127, 127, 0.3); }
+    
+    .empty-state { text-align: center; padding: 40px 20px; color: #999; }
+    .empty-state i { font-size: 2.5rem; color: #d97f7f; margin-bottom: 10px; display: block; }
+
+    /* Modal de detalles */
+    .modal-header-custom { background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; }
+    .patient-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
+    .patient-info-item { padding: 15px; background: #f8f9fa; border-radius: 8px; }
+    .patient-info-item strong { color: #1a3a3a; display: block; margin-bottom: 5px; }
+    .patient-info-item span { color: #666; font-size: 0.95rem; }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; height: auto; position: static; }
+      .main-content { margin-left: 0; }
+      .page-title h1 { font-size: 1.8rem; }
+      .patient-info-grid { grid-template-columns: 1fr; }
+    }
+
+    /* SPINNER DE CARGA */
+    .loader-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .loader-overlay.active {
+      display: flex;
+    }
+
+    .loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(217, 127, 127, 0.3);
+      border-top: 5px solid #D97F7F;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .loader-text {
+      color: white;
+      margin-top: 15px;
+      font-size: 1rem;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-dashboard">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <i class="bi bi-capsule"></i>
+        LEMES
+      </div>
+      
+      <nav class="sidebar-nav">
+        <a href="/doctor/dashboard">
+          <i class="bi bi-speedometer2"></i>
+          Dashboard
+        </a>
+        <a href="/doctor/pacientes" class="active">
+          <i class="bi bi-people"></i>
+          Pacientes
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <p class="username">Dr. <%= user.nombre %> <%= user.apellido %></p>
+          <p><%= user.email %></p>
+          <p>
+            <span class="badge" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%);">
+              <%= user.rol.toUpperCase() %>
+            </span>
+          </p>
+        </div>
+        <a href="javascript:void(0)" onclick="logout()" class="btn btn-outline-light btn-sm w-100">
+          <i class="bi bi-box-arrow-right"></i>
+          Cerrar Sesión
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Título -->
+      <div class="page-title">
+        <h1>
+          <i class="bi bi-people"></i>
+          Pacientes
+        </h1>
+        <p>Gestiona el historial de tus pacientes</p>
+      </div>
+
+      <!-- Botón Dar de Alta de Consulta -->
+      <div style="margin-bottom: 30px;">
+        <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#modalDarAltaConsulta" onclick="verificarConsultaActiva()" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); border: none; padding: 12px 30px; font-weight: 600;">
+          <i class="bi bi-plus-circle"></i>
+          Dar de Alta de Consulta
+        </button>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filtros">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Buscar por nombre o DNI</label>
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="bi bi-search"></i>
+              </span>
+              <input type="text" class="form-control" placeholder="Buscar..." id="searchInput" onkeyup="filtrarTabla()">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Estado</label>
+            <select class="form-select" id="estadoFilter" onchange="filtrarTabla()">
+              <option value="">Todos</option>
+              <option value="Activo">Activo</option>
+              <option value="Inactivo">Inactivo</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button class="btn btn-outline-primary w-100" onclick="filtrarTabla()">
+              <i class="bi bi-funnel"></i>
+              Filtrar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de Pacientes -->
+      <div class="tabla-pacientes-wrapper">
+        <h5>
+          <i class="bi bi-list-ul"></i>
+          Listado de Pacientes
+        </h5>
+        <div class="table-responsive">
+          <table class="table table-hover" id="pacientesTable">
+            <thead>
+              <tr>
+                <th>DNI</th>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Teléfono</th>
+                <th>Edad</th>
+                <th>Obra Social</th>
+                <th>Estado</th>
+                <th style="text-align: center; width: 60px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (pacientes && pacientes.length > 0) { %>
+                <% pacientes.forEach(function(p) { %>
+                  <tr>
+                    <td><strong><%= p.dni %></strong></td>
+                    <td><%= p.nombre %> <%= p.apellido || '' %></td>
+                    <td><%= p.email || '-' %></td>
+                    <td><%= p.telefono || '-' %></td>
+                    <td><%= p.edad %></td>
+                    <td><%= p.obra_social || '-' %></td>
+                    <td>
+                      <span class="estado-badge <%= 'estado-' + (p.estado || 'Activo') %>">
+                        <%= p.estado || 'Activo' %>
+                      </span>
+                    </td>
+                    <td style="text-align: center;">
+                      <a href="/doctor/pacientes/<%= p.id %>" title="Ver Historia Clínica" style="font-size: 1.3rem; color: #D97F7F; text-decoration: none; transition: all 0.3s;">
+                        <i class="bi bi-file-earmark-text" style="hover: color: #5CAEA3;"></i>
+                      </a>
+                    </td>
+                  </tr>
+                <% }); %>
+              <% } else { %>
+                <tr>
+                  <td colspan="8" class="text-center text-muted py-4">
+                    <i class="bi bi-inbox"></i>
+                    <p>No hay pacientes en el sistema</p>
+                  </td>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/doctor.js"></script>
+
+  <!-- MODAL: DAR DE ALTA DE CONSULTA -->
+  <div class="modal fade" id="modalDarAltaConsulta" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; border: none;">
+          <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Dar de Alta de Consulta</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter: brightness(0) invert(1);"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Formulario de nueva consulta -->
+          <form id="formDarAltaConsulta" style="display: block;">
+            <div id="alertaConsultaActiva" style="display: none; margin-bottom: 20px;">
+              <div class="alert alert-warning" role="alert">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Consulta Activa Detectada</strong>
+                <p style="margin: 10px 0 0 0; font-size: 0.9rem;">Ya hay una consulta en curso. Para iniciar una nueva, debes terminar la actual primero.</p>
+              </div>
+              <button type="button" class="btn btn-outline-danger w-100" onclick="terminarConsultaActiva()">
+                <i class="bi bi-check2-circle"></i> Terminar Consulta Actual
+              </button>
+              <hr style="margin: 20px 0;">
+            </div>
+
+            <div class="mb-3">
+              <label for="alta-paciente-select" class="form-label">Seleccionar Paciente</label>
+              <select class="form-select" id="alta-paciente-select" required>
+                <option value="">-- Seleccionar paciente --</option>
+                <% if (pacientes && pacientes.length > 0) { %>
+                  <% pacientes.forEach(function(p) { %>
+                    <option value="<%= p.id %>" data-nombre="<%= p.nombre %>" data-dni="<%= p.dni %>">
+                      <%= p.nombre %> (DNI: <%= p.dni %>)
+                    </option>
+                  <% }); %>
+                <% } %>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="alta-motivo" class="form-label">Motivo de Consulta</label>
+              <textarea class="form-control" id="alta-motivo" rows="3" placeholder="Describe el motivo de la consulta..." required></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btnIniciarConsulta" onclick="iniciarConsultaAlta()">Iniciar Consulta</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADER OVERLAY -->
+  <div class="loader-overlay" id="loaderOverlay">
+    <div class="loader-container">
+      <div class="spinner"></div>
+      <div class="loader-text" id="loaderText">Procesando...</div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/doctor.js"></script>
+
+  <script>
+    // Funciones para el loader
+    function showLoading(mensaje = 'Procesando...') {
+      document.getElementById('loaderText').textContent = mensaje;
+      document.getElementById('loaderOverlay').classList.add('active');
+    }
+
+    function hideLoading() {
+      document.getElementById('loaderOverlay').classList.remove('active');
+    }
+
+    function filtrarTabla() {
+      const searchInput = document.getElementById('searchInput').value.toLowerCase();
+      const estadoFilter = document.getElementById('estadoFilter').value;
+      const tabla = document.getElementById('pacientesTable');
+      const filas = tabla.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+      for (let fila of filas) {
+        const dni = fila.cells[0].textContent.toLowerCase();
+        const nombre = fila.cells[1].textContent.toLowerCase();
+        const estado = fila.cells[6].textContent.trim();
+
+        const cumpleNombre = nombre.includes(searchInput) || dni.includes(searchInput);
+        const cumpleEstado = !estadoFilter || estado.includes(estadoFilter);
+
+        fila.style.display = (cumpleNombre && cumpleEstado) ? '' : 'none';
+      }
+    }
+
+    async function logout() {
+      if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+        return;
+      }
+      
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      try {
+        const response = await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+        console.log('Logout response:', response.status);
+      } catch (error) {
+        console.error('Error en logout:', error);
+      }
+      
+      // Redirigir a login
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 500);
+    }
+
+    async function iniciarConsultaAlta() {
+      const pacienteId = document.getElementById('alta-paciente-select').value;
+      const motivo = document.getElementById('alta-motivo').value;
+
+      if (!pacienteId) {
+        alert('Por favor selecciona un paciente');
+        return;
+      }
+
+      if (!motivo.trim()) {
+        alert('Por favor indica el motivo de consulta');
+        return;
+      }
+
+      try {
+        showLoading('Iniciando consulta...');
+        // Buscar el turno del paciente
+        const turnoResponse = await fetch(`/api/pacientes-lista?paciente_id=${pacienteId}`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        // Obtener un turno pendiente/confirmado para el paciente
+        const turnosResponse = await fetch(`/api/turnos?paciente_id=${pacienteId}`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        const turnosData = await turnosResponse.json();
+        let turnoId = null;
+
+        // Buscar un turno en estado PENDIENTE, CONFIRMADO o hoy
+        if (turnosData.data && turnosData.data.length > 0) {
+          const turnoProximo = turnosData.data.find(t => ['PENDIENTE', 'CONFIRMADO'].includes(t.estado));
+          if (turnoProximo) {
+            turnoId = turnoProximo.id;
+          } else {
+            turnoId = turnosData.data[0].id;
+          }
+        }
+
+        if (!turnoId) {
+          hideLoading();
+          alert('No se encontró un turno para este paciente');
+          return;
+        }
+
+        // Cambiar estado a EN_CONSULTA
+        const response = await fetch(`/api/turnos/${turnoId}/estado`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            estado: 'EN_CONSULTA',
+            motivo_consulta: motivo
+          }),
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          hideLoading();
+          // Cerrar modal
+          const modal = bootstrap.Modal.getInstance(document.getElementById('modalDarAltaConsulta'));
+          modal.hide();
+
+          // Redirigir al detalle de historia clínica
+          setTimeout(() => {
+            window.location.href = `/doctor/pacientes/${pacienteId}`;
+          }, 500);
+        } else {
+          hideLoading();
+          alert(data.message || 'Error al iniciar la consulta');
+        }
+      } catch (error) {
+        hideLoading();
+        console.error('Error:', error);
+        alert('Error al iniciar la consulta');
+      }
+    }
+
+    async function verificarConsultaActiva() {
+      try {
+        showLoading('Verificando consulta activa...');
+        const response = await fetch('/api/turnos/consulta-activa', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+        hideLoading();
+        
+        // Si hay una consulta activa, mostrar alerta
+        if (data.hay_activa) {
+          document.getElementById('alertaConsultaActiva').style.display = 'block';
+          document.getElementById('alta-paciente-select').disabled = true;
+          document.getElementById('alta-motivo').disabled = true;
+          document.getElementById('btnIniciarConsulta').disabled = true;
+          
+          // Guardar el ID de la consulta activa para terminarla después
+          window.consultaActivaId = data.turno_id;
+        } else {
+          document.getElementById('alertaConsultaActiva').style.display = 'none';
+          document.getElementById('alta-paciente-select').disabled = false;
+          document.getElementById('alta-motivo').disabled = false;
+          document.getElementById('btnIniciarConsulta').disabled = false;
+        }
+      } catch (error) {
+        hideLoading();
+        console.error('Error verificando consulta activa:', error);
+      }
+    }
+
+    async function terminarConsultaActiva() {
+      if (!window.consultaActivaId) {
+        alert('No se encontró la consulta activa');
+        return;
+      }
+
+      try {
+        showLoading('Terminando consulta activa...');
+        const response = await fetch(`/api/turnos/${window.consultaActivaId}/estado`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            estado: 'COMPLETA'
+          }),
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          hideLoading();
+          alert('Consulta finalizada correctamente');
+          // Limpiar y recargar el modal
+          document.getElementById('formDarAltaConsulta').reset();
+          verificarConsultaActiva();
+        } else {
+          hideLoading();
+          alert(data.message || 'Error al finalizar la consulta');
+        }
+      } catch (error) {
+        hideLoading();
+        console.error('Error:', error);
+        alert('Error al finalizar la consulta');
+      }
+    }
+
+    window.terminarConsultaActiva = terminarConsultaActiva;
+    window.verificarConsultaActiva = verificarConsultaActiva;
+    window.iniciarConsultaAlta = iniciarConsultaAlta;
+    window.logout = logout;
+  </script>
+</body>
+</html>

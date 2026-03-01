@@ -1,0 +1,376 @@
+/* ============================================
+   ESTILOS DOCTOR PANEL
+   ============================================ */
+
+:root {
+  --clinic-primary: #0056b3;
+  --clinic-secondary: #6c757d;
+  --clinic-success: #28a745;
+  --clinic-danger: #dc3545;
+  --clinic-warning: #ffc107;
+}
+
+/* LAYOUT */
+.doctor-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.sidebar {
+  width: 250px;
+  background-color: #fff;
+  border-right: 1px solid #ddd;
+  padding: 20px;
+  height: 100vh;
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+/* CARDS */
+.card-clinic {
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-left: 4px solid var(--clinic-primary);
+  transition: all 0.3s ease;
+}
+
+.card-clinic:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.card-clinic.warning {
+  border-left-color: var(--clinic-warning);
+}
+
+.card-clinic.success {
+  border-left-color: var(--clinic-success);
+}
+
+.card-clinic.danger {
+  border-left-color: var(--clinic-danger);
+}
+
+/* BOTONES */
+.btn-clinic-primary {
+  background-color: var(--clinic-primary);
+  border: none;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-clinic-primary:hover {
+  background-color: #004085;
+  color: white;
+  box-shadow: 0 4px 8px rgba(0, 86, 179, 0.3);
+}
+
+.btn-clinic {
+  border: 1px solid #ddd;
+  background-color: white;
+  color: #333;
+}
+
+.btn-clinic:hover {
+  background-color: #f5f5f5;
+}
+
+/* TABS */
+.tabs-clinic {
+  border-bottom: 2px solid #eee;
+}
+
+.tabs-clinic .nav-link {
+  color: #666 !important;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 12px 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.tabs-clinic .nav-link:hover {
+  color: var(--clinic-primary) !important;
+  border-bottom-color: var(--clinic-primary);
+}
+
+.tabs-clinic .nav-link.active {
+  color: var(--clinic-primary) !important;
+  border-bottom-color: var(--clinic-primary);
+  background-color: transparent;
+}
+
+/* PÁGINA HEADER */
+.page-header {
+  margin-bottom: 30px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 15px;
+}
+
+.page-header h1 {
+  color: var(--clinic-primary);
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.page-header p {
+  color: #666;
+  margin: 0;
+}
+
+/* CONSULTORIO INFO */
+.consultorio-info {
+  background: linear-gradient(135deg, var(--clinic-primary), #0047a6);
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(0, 86, 179, 0.2);
+}
+
+.consultorio-info h4 {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* ESTADÍSTICAS */
+.stat-card {
+  text-align: center;
+  padding: 20px;
+}
+
+.stat-card h2 {
+  font-size: 2.5em;
+  font-weight: 700;
+  color: var(--clinic-primary);
+  margin: 10px 0;
+}
+
+.stat-card h6 {
+  color: #999;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+/* STATUS BADGE */
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-pendiente {
+  background-color: rgba(255, 193, 7, 0.15);
+  color: #FFC107;
+}
+
+.status-confirmado {
+  background-color: rgba(40, 167, 69, 0.15);
+  color: #28A745;
+}
+
+.status-en_consulta {
+  background-color: rgba(0, 123, 255, 0.15);
+  color: #007BFF;
+}
+
+.status-atendido {
+  background-color: rgba(108, 117, 125, 0.15);
+  color: #6C757D;
+}
+
+.status-ausente,
+.status-cancelado {
+  background-color: rgba(220, 53, 69, 0.15);
+  color: #DC3545;
+}
+
+/* TIMELINE */
+.timeline {
+  position: relative;
+  padding: 0;
+}
+
+.timeline-item {
+  position: relative;
+  padding-left: 40px;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 0;
+  bottom: -20px;
+  width: 2px;
+  background-color: #ddd;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -33px;
+  top: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 0 0 2px #ddd;
+}
+
+.timeline-item:last-child::before {
+  display: none;
+}
+
+.timeline-content {
+  border-left: 2px solid #ddd;
+  padding-left: 16px !important;
+}
+
+/* GRÁFICOS */
+.chart-container {
+  position: relative;
+  height: 300px;
+  margin: 20px 0;
+}
+
+canvas {
+  max-height: 300px;
+}
+
+/* FORMULARIOS */
+.form-label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.form-control {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px 12px;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus {
+  border-color: var(--clinic-primary);
+  box-shadow: 0 0 0 0.2rem rgba(0, 86, 179, 0.15);
+}
+
+/* LISTA MEDICAMENTOS/ESTUDIOS */
+.med-card {
+  background: white;
+  border-left: 4px solid var(--clinic-primary);
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+}
+
+.med-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.med-card strong {
+  color: var(--clinic-primary);
+}
+
+.med-card small {
+  color: #999;
+}
+
+/* RECETA/IMPRIMIBLES */
+#previewImprimible {
+  font-family: 'Georgia', serif;
+  line-height: 1.6;
+}
+
+#previewImprimible h3 {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 5px;
+}
+
+#previewImprimible h5 {
+  font-weight: 600;
+  color: var(--clinic-primary);
+  margin-top: 20px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    border-right: none;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .doctor-layout {
+    flex-direction: column;
+  }
+
+  .main-content {
+    padding: 15px;
+  }
+
+  .tabs-clinic .nav-link {
+    padding: 8px 12px;
+    font-size: 0.9em;
+  }
+
+  .stat-card h2 {
+    font-size: 2em;
+  }
+
+  .timeline {
+    padding-left: 10px;
+  }
+
+  .timeline-item {
+    padding-left: 30px;
+  }
+
+  .timeline-marker {
+    left: -23px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* IMPRESIÓN */
+@media print {
+  .btn-clinic-primary,
+  .btn-outline-secondary,
+  #previewImprimible .float-end {
+    display: none !important;
+  }
+
+  #previewImprimible {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  body {
+    background: white;
+  }
+}

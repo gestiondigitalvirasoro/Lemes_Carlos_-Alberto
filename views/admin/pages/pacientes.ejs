@@ -1,0 +1,222 @@
+<div class="page-title">
+    <i class="bi bi-heart-pulse"></i>
+    Gestión de Pacientes
+</div>
+<p class="page-subtitle">Información y gestión de pacientes del sistema</p>
+
+<!-- Filtros y búsqueda -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="input-group">
+            <span class="input-group-text" style="background: white; border: 1px solid #e9ecef;">
+                <i class="bi bi-search"></i>
+            </span>
+            <input type="text" class="form-control" placeholder="Buscar pacientes por nombre o DNI..." id="searchInput">
+        </div>
+    </div>
+    <div class="col-md-4 text-end">
+        <button class="btn btn-primary" onclick="openNewPacienteModal()">
+            <i class="bi bi-plus-circle"></i> Nuevo Paciente
+        </button>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Nombre</th>
+                <th>DNI</th>
+                <th>Teléfono</th>
+                <th>Email</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="pacientesTableBody">
+            <tr>
+                <td colspan="7" class="text-center text-muted py-4">
+                    Cargando pacientes...
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal Nuevo Paciente -->
+<div class="modal fade" id="newPacienteModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-plus"></i> Agregar Nuevo Paciente
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newPacienteForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre *</label>
+                                <input type="text" class="form-control" name="nombre" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Apellido *</label>
+                                <input type="text" class="form-control" name="apellido" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Email *</label>
+                                <input type="email" class="form-control" name="email" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Teléfono</label>
+                                <input type="tel" class="form-control" name="telefono">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">DNI / Documento</label>
+                                <input type="text" class="form-control" name="dni">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha de Nacimiento</label>
+                                <input type="date" class="form-control" name="fecha_nacimiento">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Género</label>
+                                <select class="form-control" name="genero">
+                                    <option value="M">Masculino</option>
+                                    <option value="F">Femenino</option>
+                                    <option value="O">Otro</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Contacto Emergencia</label>
+                                <input type="tel" class="form-control" name="numero_emergencia">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre Contacto Emergencia</label>
+                                <input type="text" class="form-control" name="contacto_emergencia">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Alergias</label>
+                                <textarea class="form-control" name="alergias" rows="2" placeholder="Ej: Penicilina, Mariscos..."></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Patologías Crónicas</label>
+                                <textarea class="form-control" name="patologias_cronicas" rows="2" placeholder="Ej: Diabetes, Hipertensión..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="savePaciente()">
+                    <i class="bi bi-save"></i> Guardar Paciente
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-title { font-size: 2rem; font-weight: 700; color: #333; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+    .page-subtitle { color: #6c757d; margin-bottom: 30px; font-size: 0.95rem; }
+</style>
+
+<script>
+// Funciones para Modal Nuevo Paciente
+function openNewPacienteModal() {
+    const modal = new bootstrap.Modal(document.getElementById('newPacienteModal'));
+    modal.show();
+}
+
+async function savePaciente() {
+    const form = document.getElementById('newPacienteForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+
+    // Validar datos requeridos
+    if (!data.nombre.trim() || !data.apellido.trim() || !data.email.trim()) {
+        alert('❌ Por favor completa los campos requeridos (nombre, apellido, email)');
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem('auth_token');
+        
+        const response = await fetch('/api/pacientes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert('✅ ¡Paciente creado exitosamente!');
+            form.reset();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('newPacienteModal'));
+            modal.hide();
+            // Recargar tabla de pacientes
+            if (typeof loadPacientes === 'function') {
+                loadPacientes();
+            } else {
+                location.reload();
+            }
+        } else {
+            alert('❌ Error: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error al crear paciente: ' + error.message);
+    }
+}
+
+// Cargar pacientes al iniciar
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof loadPacientes === 'function') {
+        loadPacientes();
+    }
+});
+</script>

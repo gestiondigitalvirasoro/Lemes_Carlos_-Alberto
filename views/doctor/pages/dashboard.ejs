@@ -1,0 +1,1319 @@
+<div class="page-header">
+  <h1><i class="bi bi-speedometer2"></i> Dashboard Clínico</h1>
+  <p>Bienvenido Dr. <%= usuario.nombre %> <%= usuario.apellido %></p>
+</div>
+
+<!-- CONSULTORIO ACTIVO -->
+<div class="consultorio-info" id="consultorioInfo">
+  <div class="row align-items-center">
+    <div class="col-md-8">
+      <h4 style="margin-bottom: 10px;">
+        <i class="bi bi-building"></i> Consultorio - Dr. <%= usuario.nombre %>
+      </h4>
+      <p style="margin-bottom: 0; opacity: 0.9;">Turno actual: <strong><span id="turnoActual">-</span></strong></p>
+    </div>
+    <div class="col-md-4 text-md-end">
+      <button class="btn btn-light btn-clinic" onclick="iniciarConsulta()" id="btnIniciar" disabled>
+        <i class="bi bi-play-circle"></i> Iniciar Consulta
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ESTADÍSTICAS DEL DÍA -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card card-clinic">
+      <div class="card-body">
+        <h6 class="card-title text-muted">Turnos Hoy</h6>
+        <h2 class="mb-0" id="turnosHoy">0</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card card-clinic warning">
+      <div class="card-body">
+        <h6 class="card-title text-muted">Pendientes</h6>
+        <h2 class="mb-0" id="turnosPendientes">0</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card card-clinic">
+      <div class="card-body">
+        <h6 class="card-title text-muted">En Espera</h6>
+        <h2 class="mb-0" id="turnosConfirmados">0</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card card-clinic success">
+      <div class="card-body">
+        <h6 class="card-title text-muted">Atendidos</h6>
+        <h2 class="mb-0" id="turnosAtendidos">0</h2>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- SIGUIENTE PACIENTE -->
+  <div class="col-md-5">
+    <div class="card card-clinic">
+      <div class="card-header bg-white border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-person-check"></i> Siguiente Paciente
+        </h5>
+      </div>
+      <div class="card-body" id="siguientePacienteDiv">
+        <div class="text-center py-4 text-muted">
+          <p><i class="bi bi-hourglass-split" style="font-size: 2rem;"></i></p>
+          <p>Sin turnos pendientes</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENDA DEL DÍA -->
+  <div class="col-md-7">
+    <div class="card card-clinic">
+      <div class="card-header bg-white border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-calendar-event"></i> Agenda del Día
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        <div id="agendaDiv" style="max-height: 450px; overflow-y: auto;">
+          <div class="text-center py-4 text-muted">
+            <p>Cargando agenda...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORIA CLÍNICA RÁPIDA (Oculta inicialmente) -->
+<div class="row mt-4" id="historiaClinicaDiv" style="display:none;">
+  <div class="col-12">
+    <div class="card card-clinic">
+      <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-file-earmark-medical"></i> Historia Clínica - <span id="pacienteNombreHistoria"></span>
+        </h5>
+        <button class="btn btn-sm btn-outline-secondary" onclick="cerrarHistoria()">
+          <i class="bi bi-x"></i> Cerrar
+        </button>
+      </div>
+      <div class="card-body">
+        <ul class="nav nav-tabs tabs-clinic" role="tablist">
+          <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#datosGenerales" role="tab">
+              <i class="bi bi-person"></i> Datos Generales
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#signosVitales" role="tab">
+              <i class="bi bi-heart-pulse"></i> Signos Vitales
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#anamnesis" role="tab">
+              <i class="bi bi-chat-left-text"></i> Anamnesis
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#diagnosticos" role="tab">
+              <i class="bi bi-check-circle"></i> Diagnósticos
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#medicamentos" role="tab">
+              <i class="bi bi-capsule"></i> Medicamentos
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#estudios" role="tab">
+              <i class="bi bi-file-earmark"></i> Estudios
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#graficos" role="tab">
+              <i class="bi bi-graph-up"></i> Gráficos
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#citas" role="tab">
+              <i class="bi bi-calendar2-event"></i> Citas
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#imprimibles" role="tab">
+              <i class="bi bi-printer"></i> Recetas
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#documentos" role="tab">
+              <i class="bi bi-paperclip"></i> Documentos
+            </a>
+          </li>
+        </ul>
+
+        <div class="tab-content mt-3">
+          <!-- DATOS GENERALES -->
+          <div id="datosGenerales" class="tab-pane fade show active">
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Nombre:</strong> <span id="pacienteNombre"></span></p>
+                <p><strong>DNI:</strong> <span id="pacienteDni"></span></p>
+                <p><strong>Edad:</strong> <span id="pacienteEdad"></span></p>
+              </div>
+              <div class="col-md-6">
+                <p><strong>Sexo:</strong> <span id="pacienteSexo"></span></p>
+                <p><strong>Contacto:</strong> <span id="pacienteContacto"></span></p>
+                <p><strong>Obra Social:</strong> <span id="pacienteObra"></span></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- SIGNOS VITALES -->
+          <div id="signosVitales" class="tab-pane fade">
+            <form id="formSignosVitales" onsubmit="guardarSignosVitales(event)">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Peso (kg)</label>
+                    <input type="number" class="form-control" id="peso" step="0.1" placeholder="70">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">Talla (m)</label>
+                    <input type="number" class="form-control" id="talla" step="0.01" placeholder="1.75">
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-3">
+                  <div class="mb-3">
+                    <label class="form-label">IMC</label>
+                    <input type="text" class="form-control" id="imc" readonly placeholder="Calculado automáticamente">
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="mb-3">
+                    <label class="form-label">Presión Sistólica</label>
+                    <input type="number" class="form-control" id="presion_sistolica" placeholder="120">
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="mb-3">
+                    <label class="form-label">Presión Diastólica</label>
+                    <input type="number" class="form-control" id="presion_diastolica" placeholder="80">
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="mb-3">
+                    <label class="form-label">Frecuencia Cardíaca</label>
+                    <input type="number" class="form-control" id="frecuencia_cardiaca" placeholder="72">
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="mb-3">
+                    <label class="form-label">Temperatura (°C)</label>
+                    <input type="number" class="form-control" id="temperatura" step="0.1" placeholder="36.5">
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="mb-3">
+                    <label class="form-label">Glucemia (mg/dl)</label>
+                    <input type="number" class="form-control" id="glucemia" placeholder="100">
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="mb-3">
+                    <label class="form-label">Circunferencia Abdominal (cm)</label>
+                    <input type="number" class="form-control" id="circunferencia_abdominal" placeholder="80">
+                  </div>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-clinic-primary">
+                <i class="bi bi-check-circle"></i> Guardar Signos Vitales
+              </button>
+            </form>
+          </div>
+
+          <!-- ANAMNESIS -->
+          <div id="anamnesis" class="tab-pane fade">
+            <form id="formAnamnesis" onsubmit="guardarAnamnesis(event)">
+              <div class="mb-3">
+                <label class="form-label">Motivo de Consulta</label>
+                <input type="text" class="form-control" id="motivo_consulta" placeholder="Ej: Revisión de peso">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Enfermedad Actual / Síntomas</label>
+                <textarea class="form-control" id="sintomas" rows="3" placeholder="Descripción de síntomas..."></textarea>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Antecedentes Patológicos Personales</label>
+                <textarea class="form-control" id="antecedentes_personales" rows="2" placeholder="Enfermedades previas, cirugías, alergias..."></textarea>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Antecedentes Patológicos Familiares</label>
+                <textarea class="form-control" id="antecedentes_familiares" rows="2" placeholder="Antecedentes de familiares..."></textarea>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Evolución de la Enfermedad</label>
+                <textarea class="form-control" id="evolucion" rows="3" placeholder="Cómo ha evolucionado..."></textarea>
+              </div>
+              <button type="submit" class="btn btn-clinic-primary">
+                <i class="bi bi-check-circle"></i> Guardar Anamnesis
+              </button>
+            </form>
+          </div>
+
+          <!-- DIAGNÓSTICOS -->
+          <div id="diagnosticos" class="tab-pane fade">
+            <form id="formDiagnosticos" onsubmit="guardarDiagnosticos(event)">
+              <div class="mb-3">
+                <label class="form-label">Diagnóstico Principal</label>
+                <input type="text" class="form-control" id="diagnostico_principal" placeholder="Ej: Diabetes Mellitus Tipo 2">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Diagnósticos Secundarios</label>
+                <textarea class="form-control" id="diagnosticos_secundarios" rows="2" placeholder="Otros diagnósticos asociados..."></textarea>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Examen Físico</label>
+                <textarea class="form-control" id="examen_fisico" rows="3" placeholder="Hallazgos del examen..."></textarea>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Impresión Clínica</label>
+                <textarea class="form-control" id="impresion_clinica" rows="3" placeholder="Conclusiones y recomendaciones..."></textarea>
+              </div>
+              <button type="submit" class="btn btn-clinic-primary">
+                <i class="bi bi-check-circle"></i> Guardar Diagnósticos
+              </button>
+            </form>
+          </div>
+
+          <!-- MEDICAMENTOS -->
+          <div id="medicamentos" class="tab-pane fade">
+            <form id="formMedicamentos" onsubmit="agregarMedicamento(event)">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Medicamento</label>
+                  <input type="text" class="form-control" id="nombre_medicamento" placeholder="Ej: Metformina">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Dosis</label>
+                  <input type="text" class="form-control" id="dosis" placeholder="500mg">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Frecuencia</label>
+                  <select class="form-control" id="frecuencia">
+                    <option value="">Seleccionar...</option>
+                    <option value="Una vez al día">Una vez al día</option>
+                    <option value="Dos veces al día">Dos veces al día</option>
+                    <option value="Tres veces al día">Tres veces al día</option>
+                    <option value="En ayunas">En ayunas</option>
+                    <option value="Cada 8 horas">Cada 8 horas</option>
+                    <option value="Cada 12 horas">Cada 12 horas</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Duración del Tratamiento</label>
+                <input type="text" class="form-control" id="duracion" placeholder="Ej: 30 días">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Indicaciones Adicionales</label>
+                <textarea class="form-control" id="indicaciones_med" rows="2" placeholder="Advertencias, observaciones..."></textarea>
+              </div>
+              <button type="submit" class="btn btn-clinic-primary">
+                <i class="bi bi-plus-circle"></i> Agregar Medicamento
+              </button>
+            </form>
+            <div id="listaMedicamentos" class="mt-3"></div>
+          </div>
+
+          <!-- ESTUDIOS COMPLEMENTARIOS -->
+          <div id="estudios" class="tab-pane fade">
+            <form id="formEstudios" onsubmit="agregarEstudio(event)">
+              <div class="mb-3">
+                <label class="form-label">Tipo de Estudio</label>
+                <select class="form-control" id="tipo_estudio">
+                  <option value="">Seleccionar...</option>
+                  <optgroup label="Bioquímica">
+                    <option>Hemograma</option>
+                    <option>Perfil lipídico</option>
+                    <option>Glucosa en ayunas</option>
+                    <option>Hemoglobina glicosilada (HbA1c)</option>
+                    <option>TSH</option>
+                    <option>T4</option>
+                    <option>Función hepática</option>
+                    <option>Función renal</option>
+                  </optgroup>
+                  <optgroup label="Imagenología">
+                    <option>Ecografía tiroidea</option>
+                    <option>Radiografía</option>
+                    <option>Tomografía</option>
+                    <option>Resonancia magnética</option>
+                  </optgroup>
+                  <optgroup label="Especializado">
+                    <option>Densitometría ósea</option>
+                    <option>Electrocardiograma</option>
+                    <option>Monitoreo continuo de glucosa</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Descripción</label>
+                <textarea class="form-control" id="descripcion_estudio" rows="2 placeholder="Ej: TSH elevado, necesita revisión..."></textarea>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Resultado</label>
+                <input type="text" class="form-control" id="resultado_estudio" placeholder="Ej: 5.2 mUI/L">
+              </div>
+              <button type="submit" class="btn btn-clinic-primary">
+                <i class="bi bi-plus-circle"></i> Agregar Estudio
+              </button>
+            </form>
+            <div id="listaEstudios" class="mt-3"></div>
+          </div>
+
+          <!-- GRÁFICOS -->
+          <div id="graficos" class="tab-pane fade">
+            <div class="row mb-3">
+              <div class="col-12">
+                <button class="btn btn-sm btn-clinic-primary" onclick="cargarGraficos()">
+                  <i class="bi bi-graph-up"></i> Cargar Gráficos de Evolución
+                </button>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-body">
+                    <canvas id="graficoPeso"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-body">
+                    <canvas id="graficoGlucemia"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row mt-3">
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-body">
+                    <canvas id="graficoTA"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-body">
+                    <canvas id="graficoIMC"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CITAS TIMELINE -->
+          <div id="citas" class="tab-pane fade">
+            <button class="btn btn-sm btn-clinic-primary mb-3" onclick="cargarTimelineCitas()">
+              <i class="bi bi-calendar2-event"></i> Cargar Citas Próximas
+            </button>
+            <div id="citasTimeline" class="timeline">
+              <p class="text-muted text-center">Cargando citas...</p>
+            </div>
+          </div>
+
+          <!-- IMPRIMIBLES -->
+          <div id="imprimibles" class="tab-pane fade">
+            <div class="row mb-3">
+              <div class="col-12">
+                <h6 class="mb-3">Generar Documentos</h6>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
+                <button class="btn btn-outline-primary w-100" onclick="generarReceta()">
+                  <i class="bi bi-receipt"></i> Generar Receta
+                </button>
+              </div>
+              <div class="col-md-4">
+                <button class="btn btn-outline-primary w-100" onclick="generarOrdenMedica()">
+                  <i class="bi bi-file-text"></i> Generar Orden Médica
+                </button>
+              </div>
+              <div class="col-md-4">
+                <button class="btn btn-outline-primary w-100" onclick="generarCertificado()">
+                  <i class="bi bi-certificate"></i> Generar Certificado
+                </button>
+              </div>
+            </div>
+            <div id="previewImprimible" class="mt-4" style="border: 1px solid #ddd; padding: 20px; min-height: 300px; background: white; display:none;">
+              <button class="btn btn-sm btn-success float-end" onclick="descargarPDF()">
+                <i class="bi bi-download"></i> Descargar PDF
+              </button>
+              <button class="btn btn-sm btn-secondary float-end me-2" onclick="imprimirDocumento()">
+                <i class="bi bi-printer"></i> Imprimir
+              </button>
+              <div id="contenidoImprimible"></div>
+            </div>
+          </div>
+
+          <!-- DOCUMENTOS ADJUNTOS -->
+          <div id="documentos" class="tab-pane fade">
+            <form id="formDocumentos" onsubmit="subirDocumento(event)">
+              <div class="mb-3">
+                <label class="form-label">Seleccionar Documento</label>
+                <input type="file" class="form-control" id="archivoDocumento" required accept=".pdf,.doc,.docx,.jpg,.png">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Tipo de Documento</label>
+                <select class="form-control" id="tipoDocumento" required>
+                  <option value="">Seleccionar tipo...</option>
+                  <option value="analisis_laboratorio">Análisis de Laboratorio</option>
+                  <option value="imagen">Imagen Médica</option>
+                  <option value="informe">Informe Especialista</option>
+                  <option value="otra">Otro</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Descripción</label>
+                <textarea class="form-control" id="descripcionDocumento" rows="2" placeholder="Describir el documento..."></textarea>
+              </div>
+              <button type="submit" class="btn btn-clinic-primary">
+                <i class="bi bi-cloud-upload"></i> Subir Documento
+              </button>
+            </form>
+            <div id="listaDocumentos" class="mt-4"></div>
+          </div>
+        </div>
+
+        <!-- BOTONES DE ACCIÓN PRINCIPAL -->
+        <div class="mt-4 d-flex gap-2">
+          <button class="btn btn-clinic-primary" onclick="finalizarConsulta()">
+            <i class="bi bi-check-circle"></i> Finalizar Consulta
+          </button>
+          <button class="btn btn-outline-secondary" onclick="imprimirReceta()">
+            <i class="bi bi-printer"></i> Imprimir Receta
+          </button>
+          <button class="btn btn-outline-secondary" onclick="mostrarProximasCitas()">
+            <i class="bi bi-calendar-event"></i> Agendar Próxima Cita
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Variables globales
+let turnoSeleccionado = null;
+let pacienteSeleccionado = null;
+let medicamentos = [];
+let estudios = [];
+
+// Cargar dashboard al iniciar
+document.addEventListener('DOMContentLoaded', cargarDashboard);
+
+async function cargarDashboard() {
+  try {
+    const response = await fetch('/api/doctor/dashboard', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      }
+    });
+    
+    if (!response.ok) throw new Error('Error al cargar dashboard');
+    const result = await response.json();
+    const data = result.data;
+
+    // Actualizar estadísticas
+    document.getElementById('turnosHoy').textContent = data.turnosHoy;
+    document.getElementById('turnosPendientes').textContent = data.turnosPendientes;
+    document.getElementById('turnosConfirmados').textContent = data.turnosConfirmados;
+    document.getElementById('turnosAtendidos').textContent = data.turnosAtendidos;
+
+    // Siguiente paciente
+    if (data.siguientePaciente) {
+      const sp = data.siguientePaciente;
+      console.log('Próximo paciente:', sp);
+      document.getElementById('siguientePacienteDiv').innerHTML = `
+        <div class="card card-body bg-light border-0">
+          <div class="row align-items-start mb-3">
+            <div class="col">
+              <h4 class="mb-1"><i class="bi bi-person-fill"></i> ${sp.paciente.nombre} ${sp.paciente.apellido}</h4>
+              <p class="text-muted mb-0"><strong>📅 ${sp.fecha} </strong>&nbsp; <strong>🕒 ${sp.hora}</strong></p>
+            </div>
+            <div class="col-auto">
+              <span class="badge bg-primary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">${sp.estado}</span>
+            </div>
+          </div>
+          
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <p class="mb-1"><small class="text-muted">DNI</small></p>
+              <p class="mb-0"><strong>${sp.paciente.dni || '-'}</strong></p>
+            </div>
+            <div class="col-6">
+              <p class="mb-1"><small class="text-muted">Teléfono</small></p>
+              <p class="mb-0"><strong>${sp.paciente.telefono || '-'}</strong></p>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <p class="mb-1"><small class="text-muted">Edad</small></p>
+              <p class="mb-0"><strong>${sp.paciente.edad || '-'} años</strong></p>
+            </div>
+          </div>
+
+          <div class="alert alert-warning mb-3" role="alert">
+            <strong>🔔 Marcar Consulta como:</strong>
+          </div>
+
+          <div class="d-grid gap-2">
+            <button class="btn btn-success btn-sm" onclick="cambiarEstadoTurno(${sp.id}, 'COMPLETA')">
+              <i class="bi bi-check-circle"></i> Consulta Completa
+            </button>
+            <button class="btn btn-warning btn-sm text-dark" onclick="cambiarEstadoTurno(${sp.id}, 'SUSPENDIDA')">
+              <i class="bi bi-pause-circle"></i> Suspendida
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="cambiarEstadoTurno(${sp.id}, 'CANCELADA')">
+              <i class="bi bi-x-circle"></i> Cancelada
+            </button>
+            <button class="btn btn-info btn-sm" onclick="cambiarEstadoTurno(${sp.id}, 'NO_PRESENTADO')">
+              <i class="bi bi-exclamation-circle"></i> No Presentado
+            </button>
+          </div>
+          
+          <hr class="my-3">
+          
+          <button class="btn btn-clinic-primary btn-sm w-100" onclick="abrirPaciente(${sp.paciente.id}, '${sp.paciente.nombre}')">
+            <i class="bi bi-folder-open"></i> Abrir Historia Clínica
+          </button>
+        </div>
+      `;
+      turnoSeleccionado = sp;
+      document.getElementById('btnIniciar').disabled = false;
+    }
+
+    // Agenda del día
+    if (data.agenda && data.agenda.length > 0) {
+      const agenda = data.agenda.map(t => `
+        <div class="border-bottom p-3" style="cursor: pointer;" onclick="abrirPaciente(${t.paciente.id}, '${t.paciente.usuario.nombre}')">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="mb-1">${t.paciente.usuario.nombre} ${t.paciente.usuario.apellido}</h6>
+              <small class="text-muted">${new Date(t.fecha_hora).toLocaleTimeString('es-AR')}</small>
+            </div>
+            <span class="status-badge status-${t.estado}">${t.estado.toUpperCase()}</span>
+          </div>
+        </div>
+      `).join('');
+      document.getElementById('agendaDiv').innerHTML = agenda;
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al cargar el dashboard');
+  }
+}
+
+async function cambiarEstadoTurno(turnoId, nuevoEstado) {
+  if (!nuevoEstado) return;
+  
+  try {
+    const response = await fetch(`/api/turno/${turnoId}/estado`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      },
+      body: JSON.stringify({ estado: nuevoEstado })
+    });
+
+    if (!response.ok) throw new Error('Error al cambiar el estado');
+    
+    alert('Estado actualizado correctamente');
+    // Recargar el dashboard
+    cargarDashboard();
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al cambiar el estado del turno');
+  }
+}
+
+async function abrirPaciente(pacienteId, nombre) {
+  try {
+    const response = await fetch(`/api/doctor/paciente/${pacienteId}/historia`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      }
+    });
+    
+    if (!response.ok) throw new Error('Error al cargar historia');
+    const result = await response.json();
+    const paciente = result.data.paciente;
+    const historiaActual = result.data.historia_actual;
+
+    pacienteSeleccionado = paciente;
+
+    // Llenar datos generales
+    document.getElementById('pacienteNombreHistoria').textContent = nombre;
+    document.getElementById('pacienteNombre').textContent = `${paciente.nombre || '-'} ${paciente.apellido || '-'}`;
+    document.getElementById('pacienteDni').textContent = paciente.dni || '-';
+    document.getElementById('pacienteEdad').textContent = (paciente.edad || '-') + ' años';
+    document.getElementById('pacienteSexo').textContent = paciente.genero || '-';
+    document.getElementById('pacienteContacto').textContent = paciente.telefono || '-';
+    document.getElementById('pacienteObra').textContent = paciente.patologias_cronicas || '-';
+
+    // Si existen historias clínicas, cargarlas en los tabs
+    if (historiaActual) {
+      // SIGNOS VITALES
+      if (historiaActual.signos_vitales && historiaActual.signos_vitales.length > 0) {
+        const signo = historiaActual.signos_vitales[0]; // Más reciente
+        document.getElementById('peso').value = signo.peso_kg || '';
+        document.getElementById('talla').value = signo.talla_cm || '';
+        document.getElementById('imc').value = signo.imc || '';
+        document.getElementById('presion_sistolica').value = signo.presion_sistolica || '';
+        document.getElementById('presion_diastolica').value = signo.presion_diastolica || '';
+        document.getElementById('frecuencia_cardiaca').value = signo.frecuencia_cardiaca || '';
+        document.getElementById('temperatura').value = signo.temperatura_c || '';
+        document.getElementById('glucemia').value = signo.glucemia_mg_dl || '';
+        document.getElementById('circunferencia_abdominal').value = signo.circunferencia_abd || '';
+      }
+
+      // ANAMNESIS
+      document.getElementById('motivo_consulta').value = historiaActual.motivo_consulta || '';
+      document.getElementById('sintomas').value = historiaActual.anamnesis || '';
+      document.getElementById('antecedentes_personales').value = historiaActual.antecedentes_patologicos_personales || '';
+      document.getElementById('antecedentes_familiares').value = historiaActual.antecedentes_patologicos_familiares || '';
+      document.getElementById('evolucion').value = historiaActual.habitos || '';
+
+      // DIAGNÓSTICOS
+      document.getElementById('examen_fisico').value = historiaActual.examen_fisico || '';
+      document.getElementById('diagnostico_principal').value = historiaActual.diagnostico_principal || '';
+      if (historiaActual.diagnosticos_secundarios && Array.isArray(historiaActual.diagnosticos_secundarios)) {
+        document.getElementById('diagnosticos_secundarios').value = historiaActual.diagnosticos_secundarios.join(', ');
+      }
+      document.getElementById('impresion_clinica').value = historiaActual.impresion_clinica || '';
+
+      // MEDICAMENTOS - Cargar desde historia
+      if (historiaActual.tratamiento && Array.isArray(historiaActual.tratamiento)) {
+        medicamentos = historiaActual.tratamiento;
+        actualizarListaMedicamentos();
+      }
+
+      // ESTUDIOS - Cargar desde historia
+      if (historiaActual.estudios_adjuntos && Array.isArray(historiaActual.estudios_adjuntos)) {
+        estudios = historiaActual.estudios_adjuntos.map(e => ({
+          tipo: e.tipo_estudio,
+          descripcion: e.descripcion || '',
+          resultado: e.resultado || '',
+          observaciones: e.observaciones || ''
+        }));
+        actualizarListasEstudios();
+      }
+    }
+
+    // Mostrar historia clínica
+    document.getElementById('historiaClinicaDiv').style.display = 'block';
+    
+    // Scroll hasta la historia
+    document.getElementById('historiaClinicaDiv').scrollIntoView({ behavior: 'smooth' });
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al cargar la historia clínica');
+  }
+}
+
+function cerrarHistoria() {
+  document.getElementById('historiaClinicaDiv').style.display = 'none';
+  pacienteSeleccionado = null;
+  limpiarFormularios();
+}
+
+function limpiarFormularios() {
+  document.getElementById('formSignosVitales').reset();
+  document.getElementById('formAnamnesis').reset();
+  document.getElementById('formDiagnosticos').reset();
+  document.getElementById('formMedicamentos').reset();
+  document.getElementById('formEstudios').reset();
+  medicamentos = [];
+  estudios = [];
+}
+
+function calcularIMC() {
+  const peso = parseFloat(document.getElementById('peso').value);
+  const talla = parseFloat(document.getElementById('talla').value);
+  if (peso && talla) {
+    const imc = (peso / (talla * talla)).toFixed(2);
+    document.getElementById('imc').value = imc;
+  }
+}
+
+document.getElementById('peso')?.addEventListener('change', calcularIMC);
+document.getElementById('talla')?.addEventListener('change', calcularIMC);
+
+async function iniciarConsulta() {
+  if (!turnoSeleccionado) {
+    alert('No hay turno seleccionado');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/doctor/consulta/iniciar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      },
+      body: JSON.stringify({ turnoId: turnoSeleccionado.id })
+    });
+    
+    if (!response.ok) throw new Error('Error al iniciar consulta');
+    alert('Consulta iniciada');
+    document.getElementById('btnIniciar').disabled = true;
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al iniciar consulta');
+  }
+}
+
+async function finalizarConsulta() {
+  if (!pacienteSeleccionado || !turnoSeleccionado) {
+    alert('Selecciona un paciente primero');
+    return;
+  }
+
+  try {
+    // 1. Crear historia clínica
+    const historiResponse = await fetch('/api/doctor/consulta/finalizar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      },
+      body: JSON.stringify({
+        turnoId: turnoSeleccionado.id,
+        pacienteId: pacienteSeleccionado.id,
+        motivo: document.getElementById('motivo_consulta')?.value || '',
+        anamnesis: document.getElementById('sintomas')?.value || '',
+        examen_fisico: document.getElementById('examen_fisico')?.value || '',
+        diagnostico: document.getElementById('diagnostico_principal')?.value || '',
+        medicamentos: JSON.stringify(medicamentos),
+        observaciones: document.getElementById('evolucion')?.value || '',
+        signos_vitales: {
+          peso: document.getElementById('peso')?.value,
+          talla: document.getElementById('talla')?.value,
+          imc: document.getElementById('imc')?.value,
+          presion: `${document.getElementById('presion_sistolica')?.value}/${document.getElementById('presion_diastolica')?.value}`,
+          frecuencia_cardiaca: document.getElementById('frecuencia_cardiaca')?.value,
+          temperatura: document.getElementById('temperatura')?.value,
+          glucemia: document.getElementById('glucemia')?.value
+        }
+      })
+    });
+    
+    if (!historiResponse.ok) throw new Error('Error al crear historia clínica');
+    const historiaResult = await historiResponse.json();
+    const historiaId = historiaResult.data.id;
+
+    // 2. Guardar signos vitales en tabla separada
+    if (document.getElementById('peso')?.value) {
+      const signosResponse = await fetch('/api/doctor/signos-vitales', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({
+          historia_clinica_id: historiaId,
+          peso: document.getElementById('peso')?.value,
+          talla: document.getElementById('talla')?.value,
+          presion_sistolica: document.getElementById('presion_sistolica')?.value,
+          presion_diastolica: document.getElementById('presion_diastolica')?.value,
+          frecuencia_cardiaca: document.getElementById('frecuencia_cardiaca')?.value,
+          temperatura: document.getElementById('temperatura')?.value,
+          glucemia: document.getElementById('glucemia')?.value,
+          circunferencia_abdominal: document.getElementById('circunferencia_abdominal')?.value || null,
+          observaciones: ''
+        })
+      });
+      
+      if (!signosResponse.ok) throw new Error('Error al guardar signos vitales');
+    }
+
+    alert('Consulta finalizada y historia clínica guardada correctamente');
+    cerrarHistoria();
+    cargarDashboard();
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al finalizar consulta: ' + error.message);
+  }
+}
+
+async function guardarSignosVitales(event) {
+  event.preventDefault();
+  alert('Signos vitales guardados');
+}
+
+async function guardarAnamnesis(event) {
+  event.preventDefault();
+  alert('Anamnesis guardada');
+}
+
+async function guardarDiagnosticos(event) {
+  event.preventDefault();
+  alert('Diagnósticos guardados');
+}
+
+function agregarMedicamento(event) {
+  event.preventDefault();
+  const med = {
+    nombre: document.getElementById('nombre_medicamento').value,
+    dosis: document.getElementById('dosis').value,
+    frecuencia: document.getElementById('frecuencia').value,
+    duracion: document.getElementById('duracion').value
+  };
+  medicamentos.push(med);
+  document.getElementById('formMedicamentos').reset();
+  actualizarListaMedicamentos();
+}
+
+function actualizarListaMedicamentos() {
+  const lista = medicamentos.map((m, i) => `
+    <div class="card mb-2 p-2">
+      <div class="d-flex justify-content-between">
+        <div>
+          <strong>${m.nombre} - ${m.dosis}</strong>
+          <br><small>${m.frecuencia} / ${m.duracion}</small>
+        </div>
+        <button class="btn btn-sm btn-outline-danger" onclick="eliminarMedicamento(${i})">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('listaMedicamentos').innerHTML = lista;
+}
+
+function eliminarMedicamento(index) {
+  medicamentos.splice(index, 1);
+  actualizarListaMedicamentos();
+}
+
+function agregarEstudio(event) {
+  event.preventDefault();
+  const est = {
+    tipo: document.getElementById('tipo_estudio').value,
+    descripcion: document.getElementById('descripcion_estudio').value,
+    resultado: document.getElementById('resultado_estudio').value
+  };
+  estudios.push(est);
+  document.getElementById('formEstudios').reset();
+  actualizarListasEstudios();
+}
+
+function actualizarListasEstudios() {
+  const lista = estudios.map((e, i) => `
+    <div class="card mb-2 p-2">
+      <div class="d-flex justify-content-between">
+        <div>
+          <strong>${e.tipo}</strong>
+          <br><small>${e.resultado || 'Sin resultado'}</small>
+        </div>
+        <button class="btn btn-sm btn-outline-danger" onclick="eliminarEstudio(${i})">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('listaEstudios').innerHTML = lista;
+}
+
+function eliminarEstudio(index) {
+  estudios.splice(index, 1);
+  actualizarListasEstudios();
+}
+
+function imprimirReceta() {
+  alert('Función de impresión pronto disponible');
+}
+
+function mostrarProximasCitas() {
+  alert('Función de agendar próxima cita pronto disponible');
+}
+
+// ============================================
+// GRÁFICOS DE EVOLUCIÓN
+// ============================================
+async function cargarGraficos() {
+  if (!pacienteSeleccionado?.id) {
+    alert('Selecciona un paciente primero');
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/doctor/graficos/evolucion/${pacienteSeleccionado.id}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      }
+    });
+
+    if (!response.ok) throw new Error('Error loading charts');
+    const result = await response.json();
+    const { labels, datasets } = result.data;
+
+    // Destruir gráficos existentes
+    Object.values(chartInstances || {}).forEach(chart => chart?.destroy?.());
+    chartInstances = {};
+
+    // GRÁFICO PESO
+    const ctxPeso = document.getElementById('graficoPeso').getContext('2d');
+    chartInstances.peso = new Chart(ctxPeso, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Peso (kg)',
+          data: datasets.peso,
+          borderColor: '#FF6B6B',
+          backgroundColor: 'rgba(255,107,107,0.1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { title: { display: true, text: 'Evolución de Peso' } }
+      }
+    });
+
+    // GRÁFICO GLUCEMIA
+    const ctxGlucemia = document.getElementById('graficoGlucemia').getContext('2d');
+    chartInstances.glucemia = new Chart(ctxGlucemia, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Glucemia (mg/dL)',
+          data: datasets.glucemia,
+          borderColor: '#FFA500',
+          backgroundColor: 'rgba(255,165,0,0.1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { title: { display: true, text: 'Evolución de Glucemia' } }
+      }
+    });
+
+    // GRÁFICO PRESIÓN ARTERIAL
+    const ctxTA = document.getElementById('graficoTA').getContext('2d');
+    chartInstances.ta = new Chart(ctxTA, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Sistólica (mmHg)',
+            data: datasets.presionSistolica,
+            borderColor: '#E74C3C',
+            backgroundColor: 'rgba(231,76,60,0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          },
+          {
+            label: 'Diastólica (mmHg)',
+            data: datasets.presionDiastolica,
+            borderColor: '#3498DB',
+            backgroundColor: 'rgba(52,152,219,0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { title: { display: true, text: 'Evolución de Presión Arterial' } }
+      }
+    });
+
+    // GRÁFICO IMC
+    const ctxIMC = document.getElementById('graficoIMC').getContext('2d');
+    chartInstances.imc = new Chart(ctxIMC, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'IMC',
+          data: datasets.imc,
+          backgroundColor: (ctx) => {
+            const value = ctx.parsed.y;
+            if (value < 18.5) return '#3498DB'; // Bajo peso
+            if (value < 25) return '#2ECC71'; // Normal
+            if (value < 30) return '#F39C12'; // Sobrepeso
+            return '#E74C3C'; // Obeso
+          },
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { title: { display: true, text: 'Evolución de IMC' } }
+      }
+    });
+
+    alert('Gráficos cargados exitosamente');
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al cargar gráficos');
+  }
+}
+
+let chartInstances = {};
+
+// ============================================
+// TIMELINE DE CITAS
+// ============================================
+async function cargarTimelineCitas() {
+  if (!pacienteSeleccionado?.id) {
+    alert('Selecciona un paciente primero');
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/doctor/citas-timeline/${pacienteSeleccionado.id}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      }
+    });
+
+    if (!response.ok) throw new Error('Error loading appointments');
+    const result = await response.json();
+    const timeline = result.data;
+
+    const html = timeline.map(cita => `
+      <div class="timeline-item mb-3">
+        <div class="timeline-marker" style="background-color: ${cita.estadoColor}"></div>
+        <div class="timeline-content card p-3">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="mb-1">${cita.fechaFormato} - ${cita.horaFormato}</h6>
+              <p class="mb-2"><strong>${cita.doctor}</strong></p>
+              <p class="mb-2"><small>${cita.especialidad}</small></p>
+              <p class="mb-2">📍 ${cita.sala}</p>
+              <p class="mb-0"><em>Motivo: ${cita.motivo}</em></p>
+            </div>
+            <span class="badge" style="background-color: ${cita.estadoColor}">${cita.estado.toUpperCase()}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    document.getElementById('citasTimeline').innerHTML = html || '<p class="text-muted">Sin citas programadas</p>';
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al cargar timeline de citas');
+  }
+}
+
+// ============================================
+// IMPRIMIBLES (RECETA, ORDEN, CERTIFICADO)
+// ============================================
+async function generarReceta() {
+  try {
+    const response = await fetch('/api/doctor/receta/generar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      },
+      body: JSON.stringify({
+        historia_clinica_id: 1,
+        paciente_nombre: `${pacienteSeleccionado.nombre} ${pacienteSeleccionado.apellido}`,
+        medicamentos: medicamentos,
+        observaciones: 'Seguir recomendaciones médicas'
+      })
+    });
+
+    if (!response.ok) throw new Error('Error generating recipe');
+    const result = await response.json();
+    mostrarPreviewImprimible(result.data, 'receta');
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al generar receta');
+  }
+}
+
+async function generarOrdenMedica() {
+  try {
+    const response = await fetch('/api/doctor/orden-medica/generar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      },
+      body: JSON.stringify({
+        historia_clinica_id: 1,
+        paciente_nombre: `${pacienteSeleccionado.nombre} ${pacienteSeleccionado.apellido}`,
+        diagnositco_principal: document.getElementById('diagnostico_principal')?.value || '',
+        estudios_solicitados: estudios
+      })
+    });
+
+    if (!response.ok) throw new Error('Error generating medical order');
+    const result = await response.json();
+    mostrarPreviewImprimible(result.data, 'orden');
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al generar orden médica');
+  }
+}
+
+async function generarCertificado() {
+  try {
+    const diasReposo = prompt('¿Días de reposo (0 si no aplica)?', '0') || '0';
+    const response = await fetch('/api/doctor/certificado/generar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      },
+      body: JSON.stringify({
+        historia_clinica_id: 1,
+        paciente_nombre: `${pacienteSeleccionado.nombre} ${pacienteSeleccionado.apellido}`,
+        diagnostico: document.getElementById('diagnostico_principal')?.value || '',
+        dias_reposo: parseInt(diasReposo),
+        observaciones: ''
+      })
+    });
+
+    if (!response.ok) throw new Error('Error generating certificate');
+    const result = await response.json();
+    mostrarPreviewImprimible(result.data, 'certificado');
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al generar certificado');
+  }
+}
+
+function mostrarPreviewImprimible(data, tipo) {
+  let html = '';
+
+  if (tipo === 'receta') {
+    html = `
+      <div class="text-center mb-4">
+        <h3>RECETA MÉDICA</h3>
+        <p class="text-muted">${data.fecha}</p>
+      </div>
+      <div class="mb-4">
+        <p><strong>Paciente:</strong> ${data.paciente}</p>
+        <p><strong>Médico:</strong> ${data.doctor}</p>
+        <p><strong>Especialidad:</strong> ${data.especialidad}</p>
+      </div>
+      <div class="mb-4">
+        <h5>Medicamentos Indicados:</h5>
+        <ul>
+          ${data.medicamentos.map(m => `<li>${m.medicamento} - ${m.dosis} - ${m.frecuencia}</li>`).join('')}
+        </ul>
+      </div>
+      <div class="mb-4">
+        <p><strong>Observaciones:</strong> ${data.observaciones}</p>
+      </div>
+      <div class="text-center mt-4">
+        <p>_________________________</p>
+        <p>${data.firma}</p>
+      </div>
+    `;
+  } else if (tipo === 'orden') {
+    html = `
+      <div class="text-center mb-4">
+        <h3>ORDEN MÉDICA</h3>
+        <p class="text-muted">N° ${data.numero} - ${data.fecha}</p>
+      </div>
+      <div class="mb-4">
+        <p><strong>Paciente:</strong> ${data.paciente}</p>
+        <p><strong>Médico:</strong> ${data.doctor}</p>
+        <p><strong>Diagnóstico:</strong> ${data.diagnostico}</p>
+      </div>
+      <div class="mb-4">
+        <h5>Estudios Solicitados:</h5>
+        <ul>
+          ${data.estudios.map(e => `<li>${e.tipo} - ${e.descripcion || ''}</li>`).join('')}
+        </ul>
+      </div>
+      <div class="mb-4">
+        <p><strong>Prioridad:</strong> ${data.prioridad}</p>
+        <p><strong>Observaciones:</strong> ${data.observaciones}</p>
+      </div>
+      <div class="text-center mt-4">
+        <p>_________________________</p>
+        <p>${data.firma}</p>
+      </div>
+    `;
+  } else if (tipo === 'certificado') {
+    html = `
+      <div class="text-center mb-4">
+        <h3>CERTIFICADO MÉDICO</h3>
+        <p class="text-muted">N° ${data.numero} - ${data.fecha}</p>
+      </div>
+      <div class="my-5 text-center">
+        <p class="lead">${data.mensaje}</p>
+      </div>
+      <div class="mb-4">
+        <p><strong>Paciente:</strong> ${data.paciente}</p>
+        <p><strong>Diagnóstico:</strong> ${data.diagnostico}</p>
+        <p><strong>Médico:</strong> ${data.doctor}</p>
+        <p><strong>Especialidad:</strong> ${data.especialidad}</p>
+      </div>
+      <div class="text-center mt-5">
+        <p>_________________________</p>
+        <p>${data.firma}</p>
+      </div>
+    `;
+  }
+
+  document.getElementById('contenidoImprimible').innerHTML = html;
+  document.getElementById('previewImprimible').style.display = 'block';
+  document.getElementById('previewImprimible').scrollIntoView({ behavior: 'smooth' });
+}
+
+function imprimirDocumento() {
+  window.print();
+}
+
+function descargarPDF() {
+  // Para descargar como PDF se necesitaría html2pdf o similar
+  alert('Descargar como PDF se implementará pronto. Por ahora usa Imprimir → Guardar como PDF');
+}
+
+// ============================================
+// DOCUMENTOS ADJUNTOS
+// ============================================
+async function subirDocumento(event) {
+  event.preventDefault();
+  alert('Upload de documentos a Supabase se implementará próximamente');
+}
+
+cargarDashboard();
+

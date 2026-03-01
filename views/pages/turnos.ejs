@@ -1,0 +1,166 @@
+<div class="page-title">
+    <div class="d-flex justify-content-between align-items-center">
+        <h1>
+            <i class="bi bi-calendar-event"></i>
+            Turnos
+        </h1>
+        <button class="btn btn-primary">
+            <i class="bi bi-plus"></i>
+            Nuevo Turno
+        </button>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Filtrar por Médico</label>
+                <select class="form-select">
+                    <option selected>Todos</option>
+                    <option>Dr. López</option>
+                    <option>Dra. Martínez</option>
+                    <option>Dr. Pérez</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Estado</label>
+                <select class="form-select">
+                    <option selected>Todos</option>
+                    <option>Pendiente</option>
+                    <option>Confirmado</option>
+                    <option>Cancelado</option>
+                    <option>Completado</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Fecha</label>
+                <input type="date" class="form-control">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de Turnos -->
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-calendar-event"></i>
+        Listado de Turnos
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Hora</th>
+                        <th>Paciente</th>
+                        <th>Médico</th>
+                        <th>Especialidad</th>
+                        <th>Motivo</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>09:00</td>
+                        <td>María García</td>
+                        <td>Dr. López</td>
+                        <td>Cardiología</td>
+                        <td>Revisión general</td>
+                        <td><span class="badge bg-success">Confirmado</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-info" title="Detalles">
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" title="Cancelar">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>10:30</td>
+                        <td>Carlos Rodríguez</td>
+                        <td>Dra. Martínez</td>
+                        <td>Dermatología</td>
+                        <td>Consulta dermatológica</td>
+                        <td><span class="badge bg-warning">Pendiente</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-info" title="Detalles">
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" title="Cancelar">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>14:00</td>
+                        <td>Ana López</td>
+                        <td>Dr. Pérez</td>
+                        <td>Oftalmología</td>
+                        <td>Control de visión</td>
+                        <td><span class="badge bg-danger">Cancelado</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-info" title="Detalles">
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" title="Cancelar">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Calendario -->
+<div class="card mt-4">
+    <div class="card-header">
+        <i class="bi bi-calendar"></i>
+        Vista de Calendario
+    </div>
+    <div class="card-body">
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'es',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            events: [
+                {
+                    title: 'Dr. López - María García',
+                    start: new Date().toISOString().split('T')[0] + 'T09:00:00',
+                    backgroundColor: '#198754'
+                },
+                {
+                    title: 'Dra. Martínez - Carlos Rodríguez',
+                    start: new Date().toISOString().split('T')[0] + 'T10:30:00',
+                    backgroundColor: '#ffc107'
+                }
+            ]
+        });
+        calendar.render();
+    });
+</script>
