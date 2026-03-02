@@ -176,8 +176,36 @@ app.get('/', (req, res) => {
 // RUTAS DE FRONTEND (VISTAS EJS) - CON AUTENTICACIÓN
 // ============================================================================
 
-// Dashboard
+// Dashboard Secretaria
+app.get('/secretaria/dashboard', requireAuth, requireRole(['secretaria']), (req, res) => {
+  res.render('pages/dashboard-agenda', {
+    title: 'Dashboard Secretaría',
+    user: {
+      nombre: req.usuario.nombre,
+      apellido: req.usuario.apellido,
+      rol: req.usuario.role,
+      email: req.usuario.email
+    }
+  });
+});
+
+// Dashboard General (Redirección)
 app.get('/dashboard', requireAuth, (req, res) => {
+  const { role } = req.usuario;
+
+  if (role === 'admin') {
+    return res.redirect('/admin/dashboard');
+  }
+  
+  if (role === 'doctor') {
+    return res.redirect('/doctor/dashboard');
+  }
+
+  if (role === 'secretaria') {
+    return res.redirect('/secretaria/dashboard');
+  }
+
+  // Fallback para otros roles o si no coincide
   res.render('pages/dashboard-agenda', {
     title: 'Dashboard',
     user: {
@@ -1885,126 +1913,20 @@ app.get('/admin/estadisticas', requireAuth, (req, res) => {
 // RUTAS DE FRONTEND DOCTOR (VISTAS EJS) - CON AUTENTICACIÓN
 // ============================================================================
 
-// 🔐 Generar Token Automáticamente (en caso de que no exista o esté expirado)
-app.get('/ensure-token', (req, res) => {
-  try {
-    const existingToken = req.cookies.auth_token;
-    let token = existingToken;
-    let generado = false;
 
-    // Si no hay token o está expirado, generar uno nuevo
-    if (!existingToken) {
-      generado = true;
-      token = jwt.sign({
-        id: '1',
-        nombre: 'Dr.',
-        apellido: 'Médico',
-        email: 'doctor@lemes.local',
-        role: 'doctor'
-      }, process.env.JWT_SECRET || 'secret_key_lemes_2024', { expiresIn: '7d' });
 
-      // Guardar en cookie
-      res.cookie('auth_token', token, {
-        httpOnly: false, // Permitir acceso desde JavaScript
-        secure: false,
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
-      });
-
-      console.log(`\n✅ NUEVO TOKEN GENERADO Y GUARDADO EN COOKIE\n`);
+// Dashboard Doctor
+app.get('/doctor/dashboard', requireAuth, requireRole(['doctor']), (req, res) => {
+  res.render('pages/dashboard-doctor', {
+    title: 'Mi Agenda',
+    token: req.cookies.auth_token,
+    user: {
+      nombre: req.usuario.nombre,
+      apellido: req.usuario.apellido,
+      rol: req.usuario.role,
+      email: req.usuario.email
     }
-
-    // Redirigir al dashboard con el token en localStorage (también)
-    res.send(`
-      <html>
-        <head>
-          <script>
-            // Guardar token en localStorage también
-            localStorage.setItem('auth_token', '${token}');
-            console.log('✅ Token guardado en localStorage');
-            // Redirigir al dashboard
-            window.location.href = '/doctor/dashboard';
-          </script>
-        </head>
-        <body>Cargando...</body>
-      </html>
-    `);
-  } catch (error) {
-    console.error('❌ Error en ensure-token:', error);
-    res.status(500).send('Error: ' + error.message);
-  }
-});
-
-// Dashboard Doctor (redirigir a ensure-token si no hay token)
-app.get('/doctor/dashboard', (req, res, next) => {
-  const existingToken = req.cookies.auth_token;
-  let token = existingToken;
-  let tokenIsNew = false;
-  
-  // Si no hay token válido, generar uno nuevo
-  if (!existingToken) {
-    tokenIsNew = true;
-    token = jwt.sign({
-      id: '1',
-      nombre: 'Dr.',
-      apellido: 'Médico',
-      email: 'doctor@lemes.local',
-      role: 'doctor'
-    }, process.env.JWT_SECRET || 'secret_key_lemes_2024', { expiresIn: '7d' });
-
-    // Guardar en cookie
-    res.cookie('auth_token', token, {
-      httpOnly: false,
-      secure: false,
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
-
-    console.log(`\n✅ NUEVO TOKEN GENERADO EN DASHBOARD:\n   ${token.substring(0, 50)}...\n`);
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret_key_lemes_2024');
-    req.usuario = decoded;
-    
-    // Token válido, renderizar dashboard CON EL TOKEN
-    res.render('pages/dashboard-doctor', {
-      title: 'Mi Agenda',
-      token: token,  // 👈 Pasar el token al template
-      user: {
-        nombre: decoded.nombre,
-        apellido: decoded.apellido,
-        rol: decoded.role,
-        email: decoded.email
-      }
-    });
-  } catch (error) {
-    console.log('⚠️ Token expirado, generando uno nuevo');
-    // Generar nuevo token y reintentar
-    const newToken = jwt.sign({
-      id: '1',
-      nombre: 'Dr.',
-      apellido: 'Médico',
-      email: 'doctor@lemes.local',
-      role: 'doctor'
-    }, process.env.JWT_SECRET || 'secret_key_lemes_2024', { expiresIn: '7d' });
-
-    res.cookie('auth_token', newToken, {
-      httpOnly: false,
-      secure: false,
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
-
-    const decoded = jwt.decode(newToken);
-    res.render('pages/dashboard-doctor', {
-      title: 'Mi Agenda',
-      token: newToken,  // 👈 Pasar el nuevo token
-      user: {
-        nombre: decoded.nombre,
-        apellido: decoded.apellido,
-        rol: decoded.role,
-        email: decoded.email
-      }
-    });
-  }
+  });
 });
 
 // Pacientes del Doctor
