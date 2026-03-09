@@ -1520,10 +1520,9 @@ async function subirDocumento(file, nombreDocumento) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('nombre', nombreDocumento);
-    formData.append('historia_clinica_id', historiaId);
     
     try {
-        const response = await fetch('/api/historias-clinicas/documentos', {
+        const response = await fetch(`/api/historias-clinicas/${historiaId}/documentos`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
@@ -1552,7 +1551,7 @@ async function subirDocumento(file, nombreDocumento) {
         }
     } catch (error) {
         console.error('❌ Error:', error);
-        alert('❌ Error al subir documento');
+        alert('❌ Error al subir documento: ' + error.message);
     }
 }
 
