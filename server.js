@@ -13,6 +13,7 @@ import pacientesRoutes from './src/routes/pacientes.js';
 import turnosRoutes from './src/routes/turnos.js';
 import dashboardRoutes from './src/routes/dashboard.js';
 import historiasClinicasRoutes from './src/routes/historias-clinicas.js';
+import consultasMedicasRoutes from './src/routes/consultas-medicas.js';
 import estudiosAdjuntosRoutes from './src/routes/estudios-adjuntos.js';
 import documentosRoutes from './src/routes/documentos.js';
 import adminRoutes from './src/routes/admin.js';
@@ -2115,6 +2116,9 @@ app.use('/api/dashboard', dashboardRoutes);
 
 // Rutas de historias clínicas
 app.use('/api/historias-clinicas', historiasClinicasRoutes);
+
+// Rutas de consultas médicas
+app.use('/api/consultas-medicas', consultasMedicasRoutes);
 
 // Rutas de estudios adjuntos
 app.use('/api/estudios-adjuntos', estudiosAdjuntosRoutes);
