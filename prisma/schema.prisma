@@ -44,6 +44,40 @@ model Usuario {
 }
 
 // ============================================================================
+// 📋 ESTADO TURNO - Tabla normalizada de estados
+// ============================================================================
+model EstadoTurno {
+  id                    BigInt      @id @default(autoincrement())
+  nombre                String      @unique @db.VarChar(50)  // PENDIENTE, CONFIRMADO, EN_CONSULTA, etc
+  descripcion           String?     @db.VarChar(255)
+  activo                Boolean     @default(true)
+  creado_en             DateTime    @default(now()) @db.Timestamptz(6)
+  
+  // Relaciones
+  turnos                Turno[]
+  
+  @@index([nombre], map: "idx_estado_turno_nombre")
+  @@map("estado_turnos")
+}
+
+// ============================================================================
+// 📋 ESTADO CONSULTA - Tabla normalizada de estados
+// ============================================================================
+model EstadoConsulta {
+  id                    BigInt      @id @default(autoincrement())
+  nombre                String      @unique @db.VarChar(50)  // EN_CONSULTA, ATENDIDA, CANCELADA, etc
+  descripcion           String?     @db.VarChar(255)
+  activo                Boolean     @default(true)
+  creado_en             DateTime    @default(now()) @db.Timestamptz(6)
+  
+  // Relaciones
+  consultas             ConsultaMedica[]
+  
+  @@index([nombre], map: "idx_estado_consulta_nombre")
+  @@map("estado_consultas")
+}
+
+// ============================================================================
 // 1️⃣ PERSONA - Base para datos personales (pacientes, etc.)
 // ============================================================================
 model Persona {
@@ -128,10 +162,10 @@ model ConsultaMedica {
   historia_clinica_id   BigInt
   medico_id             BigInt
   turno_id              BigInt?     @unique
+  estado_id             BigInt      @default(2) // FK a EstadoConsulta (default: ATENDIDA)
   fecha                 DateTime    @db.Timestamptz(6)
   motivo_consulta       String
   resumen               String?
-  estado                String      @default("ATENDIDA") // PROGRAMADA, ATENDIDA, CANCELADA, NO_PRESENTADO
   creado_en             DateTime    @default(now()) @db.Timestamptz(6)
   actualizado_en        DateTime    @updatedAt @db.Timestamptz(6)
   
@@ -139,13 +173,14 @@ model ConsultaMedica {
   historia              HistoriaClinica @relation(fields: [historia_clinica_id], references: [id], onDelete: Cascade, map: "fk_consulta_historia")
   medico                Usuario         @relation("DoctorConsulta", fields: [medico_id], references: [id], map: "fk_consulta_medico")
   turno                 Turno?          @relation(fields: [turno_id], references: [id], map: "fk_consulta_turno")
+  estado                EstadoConsulta  @relation(fields: [estado_id], references: [id], map: "fk_consulta_estado")
   anamnesis             Anamnesis?
   tratamientos          Tratamiento[]
   
   @@index([historia_clinica_id], map: "idx_consulta_historia_id")
   @@index([medico_id], map: "idx_consulta_medico_id")
+  @@index([estado_id], map: "idx_consulta_estado_id")
   @@index([fecha], map: "idx_consulta_fecha")
-  @@index([estado], map: "idx_consulta_estado")
   @@map("consultas_medicas")
 }
 
@@ -338,9 +373,9 @@ model Turno {
   id                    BigInt      @id @default(autoincrement())
   persona_id            BigInt
   medico_id             BigInt
+  estado_id             BigInt      @default(1) // FK a EstadoTurno (default: PENDIENTE)
   fecha                 DateTime    @db.Timestamptz(6)
   hora                  String      @db.VarChar(5) // HH:mm
-  estado                String      @default("PENDIENTE") @db.VarChar(20) // PENDIENTE, CONFIRMADO, EN_CONSULTA, COMPLETA, NO_PRESENTADO, CANCELADO
   creado_por_secretaria_id BigInt?
   observaciones         String?
   creado_en             DateTime    @default(now()) @db.Timestamptz(6)
@@ -350,12 +385,13 @@ model Turno {
   persona               Persona     @relation(fields: [persona_id], references: [id], onDelete: Cascade, map: "fk_turno_persona")
   medico                Usuario     @relation("MedicoAtiendeTurno", fields: [medico_id], references: [id], map: "fk_turno_medico")
   secretaria            Usuario?    @relation("SecretariaCreaTurno", fields: [creado_por_secretaria_id], references: [id], map: "fk_turno_secretaria")
+  estado                EstadoTurno @relation(fields: [estado_id], references: [id], map: "fk_turno_estado")
   consulta              ConsultaMedica?
   
   @@index([persona_id], map: "idx_turno_persona_id")
   @@index([medico_id], map: "idx_turno_medico_id")
+  @@index([estado_id], map: "idx_turno_estado_id")
   @@index([fecha], map: "idx_turno_fecha")
-  @@index([estado], map: "idx_turno_estado")
   @@map("turnos")
 }
 

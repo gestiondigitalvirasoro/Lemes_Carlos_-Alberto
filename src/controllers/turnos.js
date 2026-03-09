@@ -130,7 +130,6 @@ export const obtenerTurnos = async (req, res) => {
     const { skip = 0, take = 10, estado, medico_id, persona_id, fecha } = req.query;
 
     const where = {
-      ...(estado && { estado }),
       ...(medico_id && { medico_id: BigInt(medico_id) }),
       ...(persona_id && { persona_id: BigInt(persona_id) }),
       ...(fecha && {
@@ -153,6 +152,9 @@ export const obtenerTurnos = async (req, res) => {
           },
           medico: {
             select: { id: true, nombre: true, apellido: true, especialidad: true }
+          },
+          estado: {
+            select: { id: true, nombre: true, descripcion: true, activo: true }
           }
         }
       }),
@@ -168,7 +170,12 @@ export const obtenerTurnos = async (req, res) => {
           medico_id: t.medico_id.toString(),
           fecha: t.fecha,
           hora: t.hora,
-          estado: t.estado,
+          estado: {
+            id: t.estado.id.toString(),
+            nombre: t.estado.nombre,
+            descripcion: t.estado.descripcion,
+            activo: t.estado.activo
+          },
           observaciones: t.observaciones,
           createdAt: t.createdAt,
           updatedAt: t.updatedAt,
@@ -702,8 +709,7 @@ export const obtenerTurnosDePersona = async (req, res) => {
     }
 
     const where = {
-      persona_id: BigInt(persona_id),
-      ...(estado && { estado })
+      persona_id: BigInt(persona_id)
     };
 
     const [turnos, total] = await Promise.all([
@@ -718,6 +724,9 @@ export const obtenerTurnosDePersona = async (req, res) => {
           },
           medico: {
             select: { id: true, nombre: true, apellido: true, especialidad: true }
+          },
+          estado: {
+            select: { id: true, nombre: true, descripcion: true, activo: true }
           }
         }
       }),
@@ -741,7 +750,12 @@ export const obtenerTurnosDePersona = async (req, res) => {
           medico_id: t.medico_id.toString(),
           fecha: t.fecha,
           hora: t.hora,
-          estado: t.estado,
+          estado: {
+            id: t.estado.id.toString(),
+            nombre: t.estado.nombre,
+            descripcion: t.estado.descripcion,
+            activo: t.estado.activo
+          },
           observaciones: t.observaciones,
           createdAt: t.createdAt,
           updatedAt: t.updatedAt,
@@ -784,7 +798,7 @@ export const obtenerTurnosDePersona = async (req, res) => {
 export const obtenerTurnosDePaciente = async (req, res) => {
   try {
     const { paciente_id } = req.params;
-    const { skip = 0, take = 50, estado } = req.query;
+    const { skip = 0, take = 50 } = req.query;
 
     // Obtener paciente con relaciones
     const paciente = await prisma.paciente.findUnique({
@@ -809,8 +823,7 @@ export const obtenerTurnosDePaciente = async (req, res) => {
 
     // Obtener turnos vinculados a través de la persona
     const where = {
-      persona_id: paciente.persona_id,
-      ...(estado && { estado })
+      persona_id: paciente.persona_id
     };
 
     const [turnos, total] = await Promise.all([
@@ -825,6 +838,9 @@ export const obtenerTurnosDePaciente = async (req, res) => {
           },
           medico: {
             select: { id: true, nombre: true, apellido: true, especialidad: true }
+          },
+          estado: {
+            select: { id: true, nombre: true, descripcion: true, activo: true }
           }
         }
       }),
@@ -835,11 +851,24 @@ export const obtenerTurnosDePaciente = async (req, res) => {
     const turnoIds = turnos.map(t => t.id);
     const consultas = await prisma.consultaMedica.findMany({
       where: { turno_id: { in: turnoIds } },
-      select: { turno_id: true, id: true, estado: true }
+      include: {
+        estado: {
+          select: { id: true, nombre: true, descripcion: true, activo: true }
+        }
+      }
     });
 
     const consultasPorTurno = new Map(
-      consultas.map(c => [c.turno_id.toString(), c])
+      consultas.map(c => [{
+        id: c.id.toString(),
+        turno_id: c.turno_id.toString(),
+        estado: {
+          id: c.estado.id.toString(),
+          nombre: c.estado.nombre,
+          descripcion: c.estado.descripcion,
+          activo: c.estado.activo
+        }
+      }])
     );
 
     return res.status(200).json({
@@ -867,7 +896,12 @@ export const obtenerTurnosDePaciente = async (req, res) => {
           medico_id: t.medico_id.toString(),
           fecha: t.fecha.toISOString().split('T')[0],
           hora: t.hora,
-          estado: t.estado,
+          estado: {
+            id: t.estado.id.toString(),
+            nombre: t.estado.nombre,
+            descripcion: t.estado.descripcion,
+            activo: t.estado.activo
+          },
           observaciones: t.observaciones,
           createdAt: t.createdAt,
           updatedAt: t.updatedAt,

@@ -36,6 +36,13 @@ export const getDashboard = async (req, res) => {
               }
             }
           }
+        },
+        estado: {
+          select: {
+            id: true,
+            nombre: true,
+            descripcion: true
+          }
         }
       },
       orderBy: [{ fecha: 'asc' }, { hora: 'asc' }]
@@ -43,13 +50,12 @@ export const getDashboard = async (req, res) => {
 
     // Siguiente paciente (PRÓXIMO TURNO CRONOLÓGICAMENTE, sin importar fecha)
     const ahora = new Date();
-    const siguientePaciente = await prisma.turno.findFirst({
+    const siguientePacienteQuery = await prisma.turno.findFirst({
       where: {
         medico_id: medicoId,
         fecha: {
           gte: hoy
-        },
-        estado: { in: ['PENDIENTE', 'CONFIRMADO', 'EN_CONSULTA'] }
+        }
       },
       include: {
         paciente: {
@@ -64,11 +70,21 @@ export const getDashboard = async (req, res) => {
               }
             }
           }
+        },
+        estado: {
+          select: {
+            id: true,
+            nombre: true,
+            descripcion: true
+          }
         }
       },
       orderBy: [{ fecha: 'asc' }, { hora: 'asc' }],
       take: 1
     });
+
+    // Filtrar siguiente paciente: solo estados PENDIENTE, CONFIRMADO, EN_CONSULTA
+    const siguientePaciente = siguientePacienteQuery && ['PENDIENTE', 'CONFIRMADO', 'EN_CONSULTA'].includes(siguientePacienteQuery.estado.nombre) ? siguientePacienteQuery : null;
 
     // Función para calcular edad
     const calcularEdad = (fechaNacimiento) => {
@@ -82,19 +98,6 @@ export const getDashboard = async (req, res) => {
       return edad;
     };
 
-    // Contar turnos por estado (solo hoy)
-    const estadisticas = await prisma.turno.groupBy({
-      by: ['estado'],
-      where: {
-        medico_id: medicoId,
-        fecha: {
-          gte: hoy,
-          lt: mañana
-        }
-      },
-      _count: true
-    });
-
     // Formatear datos
     const datos = {
       turnosHoy: turnosHoy.length,
@@ -102,7 +105,11 @@ export const getDashboard = async (req, res) => {
         id: siguientePaciente.id.toString(),
         fecha: siguientePaciente.fecha.toLocaleDateString('es-AR'),
         hora: siguientePaciente.hora,
-        estado: siguientePaciente.estado,
+        estado: {
+          id: siguientePaciente.estado.id.toString(),
+          nombre: siguientePaciente.estado.nombre,
+          descripcion: siguientePaciente.estado.descripcion
+        },
         observaciones: siguientePaciente.observaciones,
         paciente: {
           id: siguientePaciente.paciente.id.toString(),
@@ -113,15 +120,20 @@ export const getDashboard = async (req, res) => {
           edad: calcularEdad(siguientePaciente.paciente.persona.fecha_nacimiento)
         }
       } : null,
-      turnosPendientes: estadisticas.find(e => e.estado === 'PENDIENTE')?._count || 0,
-      turnosConfirmados: estadisticas.find(e => e.estado === 'CONFIRMADO')?._count || 0,
-      turnosEnConsulta: estadisticas.find(e => e.estado === 'EN_CONSULTA')?._count || 0,
-      turnosAtendidos: estadisticas.find(e => e.estado === 'ATENDIDO')?._count || 0,
+      // Contar turnos por estado (procesar en memoria)
+      turnosPendientes: turnosHoy.filter(t => t.estado.nombre === 'PENDIENTE').length,
+      turnosConfirmados: turnosHoy.filter(t => t.estado.nombre === 'CONFIRMADO').length,
+      turnosEnConsulta: turnosHoy.filter(t => t.estado.nombre === 'EN_CONSULTA').length,
+      turnosAtendidos: turnosHoy.filter(t => t.estado.nombre === 'COMPLETA').length,
       agenda: turnosHoy.map(t => ({
         id: t.id.toString(),
         fecha: t.fecha.toLocaleDateString('es-AR'),
         hora: t.hora,
-        estado: t.estado,
+        estado: {
+          id: t.estado.id.toString(),
+          nombre: t.estado.nombre,
+          descripcion: t.estado.descripcion
+        },
         paciente: {
           id: t.paciente.id.toString(),
           nombre: t.paciente.persona.nombre,
@@ -482,32 +494,69 @@ export const getProximasCitas = async (req, res) => {
   try {
     const { pacienteId } = req.params;
 
+    // Obtener persona del paciente
+    const paciente = await prisma.paciente.findUnique({
+      where: { id: BigInt(pacienteId) },
+      select: { persona_id: true }
+    });
+
+    if (!paciente) {
+      return res.status(404).json({
+        error: 'Not found',
+        message: 'Paciente no encontrado'
+      });
+    }
+
+    const ahora = new Date();
     const citas = await prisma.turno.findMany({
       where: {
-        paciente_id: BigInt(pacienteId),
-        fecha_hora: {
-          gte: new Date()
-        },
-        estado: {
-          in: ['pendiente', 'confirmado']
+        persona_id: paciente.persona_id,
+        fecha: {
+          gte: ahora
         }
       },
       include: {
-        doctor: {
+        medico: {
           select: {
+            id: true,
             nombre: true,
             apellido: true,
             especialidad: true
           }
+        },
+        estado: {
+          select: {
+            id: true,
+            nombre: true,
+            descripcion: true
+          }
         }
       },
-      orderBy: { fecha_hora: 'asc' },
+      orderBy: [{ fecha: 'asc' }, { hora: 'asc' }],
       take: 5
     });
 
+    // Filtrar solo turnos con estado pendiente o confirmado
+    const citasFiltradas = citas.filter(c => ['PENDIENTE', 'CONFIRMADO'].includes(c.estado.nombre));
+
     return res.status(200).json({
       success: true,
-      data: citas
+      data: citasFiltradas.map(c => ({
+        id: c.id.toString(),
+        fecha: c.fecha.toLocaleDateString('es-AR'),
+        hora: c.hora,
+        estado: {
+          id: c.estado.id.toString(),
+          nombre: c.estado.nombre,
+          descripcion: c.estado.descripcion
+        },
+        medico: {
+          id: c.medico.id.toString(),
+          nombre: c.medico.nombre,
+          apellido: c.medico.apellido,
+          especialidad: c.medico.especialidad
+        }
+      }))
     });
   } catch (error) {
     console.error('Error en getProximasCitas:', error);
@@ -526,19 +575,45 @@ export const getHistorialConsultas = async (req, res) => {
   try {
     const { pacienteId } = req.params;
 
-    const consultas = await prisma.historiaClinica.findMany({
+    const consultas = await prisma.consultaMedica.findMany({
       where: {
-        paciente_id: BigInt(pacienteId)
+        historia_clinica: {
+          paciente_id: BigInt(pacienteId)
+        }
       },
       include: {
-        signos_vitales: {
-          orderBy: { created_at: 'desc' }
+        historia_clinica: {
+          select: {
+            id: true,
+            fecha_apertura: true,
+            activa: true
+          }
         },
-        estudios_adjuntos: true,
         turno: {
           select: {
-            fecha_hora: true,
-            estado: true
+            id: true,
+            fecha: true,
+            hora: true,
+            estado: {
+              select: {
+                nombre: true,
+                descripcion: true
+              }
+            }
+          }
+        },
+        medico: {
+          select: {
+            id: true,
+            nombre: true,
+            apellido: true,
+            especialidad: true
+          }
+        },
+        estado: {
+          select: {
+            nombre: true,
+            descripcion: true
           }
         }
       },
@@ -547,7 +622,36 @@ export const getHistorialConsultas = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: consultas
+      data: consultas.map(c => ({
+        id: c.id.toString(),
+        fecha: c.fecha,
+        motivo_consulta: c.motivo_consulta,
+        resumen: c.resumen,
+        estado: {
+          nombre: c.estado.nombre,
+          descripcion: c.estado.descripcion
+        },
+        medico: {
+          id: c.medico.id.toString(),
+          nombre: c.medico.nombre,
+          apellido: c.medico.apellido,
+          especialidad: c.medico.especialidad
+        },
+        turno: c.turno ? {
+          id: c.turno.id.toString(),
+          fecha: c.turno.fecha,
+          hora: c.turno.hora,
+          estado: {
+            nombre: c.turno.estado.nombre,
+            descripcion: c.turno.estado.descripcion
+          }
+        } : null,
+        historia_clinica: {
+          id: c.historia_clinica.id.toString(),
+          fecha_apertura: c.historia_clinica.fecha_apertura,
+          activa: c.historia_clinica.activa
+        }
+      }))
     });
   } catch (error) {
     console.error('Error en getHistorialConsultas:', error);
@@ -634,46 +738,65 @@ export const getCitasTimeline = async (req, res) => {
   try {
     const { pacienteId } = req.params;
 
+    // Obtener persona del paciente
+    const paciente = await prisma.paciente.findUnique({
+      where: { id: BigInt(pacienteId) },
+      select: { persona_id: true }
+    });
+
+    if (!paciente) {
+      return res.status(404).json({
+        error: 'Not found',
+        message: 'Paciente no encontrado'
+      });
+    }
+
+    const ahora = new Date();
     const citas = await prisma.turno.findMany({
       where: {
-        paciente_id: BigInt(pacienteId),
-        fecha_hora: {
-          gte: new Date()
+        persona_id: paciente.persona_id,
+        fecha: {
+          gte: ahora
         }
       },
       include: {
-        doctor: {
+        medico: {
           select: {
             nombre: true,
             apellido: true,
             especialidad: true
           }
+        },
+        estado: {
+          select: {
+            nombre: true,
+            descripcion: true
+          }
         }
       },
-      orderBy: { fecha_hora: 'asc' }
+      orderBy: [{ fecha: 'asc' }, { hora: 'asc' }]
     });
 
+    const estadoColores = {
+      'PENDIENTE': '#FFC107',
+      'CONFIRMADO': '#28A745',
+      'EN_CONSULTA': '#007BFF',
+      'COMPLETA': '#6C757D',
+      'CANCELADA': '#DC3545',
+      'NO_PRESENTADO': '#FF6B6B'
+    };
+
     const timeline = citas.map(cita => ({
-      id: cita.id,
-      fecha: cita.fecha_hora,
-      fechaFormato: new Date(cita.fecha_hora).toLocaleDateString('es-AR'),
-      horaFormato: new Date(cita.fecha_hora).toLocaleTimeString('es-AR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      }),
-      doctor: `Dr/Dra. ${cita.doctor.nombre} ${cita.doctor.apellido}`,
-      especialidad: cita.doctor.especialidad,
-      motivo: cita.motivo || 'Sin especificar',
-      sala: cita.sala_atencion || 'Por confirmar',
-      estado: cita.estado,
-      estadoColor: {
-        'pendiente': '#FFC107',
-        'confirmado': '#28A745',
-        'en_consulta': '#007BFF',
-        'atendido': '#6C757D',
-        'ausente': '#DC3545',
-        'cancelado': '#DC3545'
-      }[cita.estado] || '#6C757D'
+      id: cita.id.toString(),
+      fecha: cita.fecha,
+      fechaFormato: cita.fecha.toLocaleDateString('es-AR'),
+      horaFormato: cita.hora,
+      medico: `Dr/Dra. ${cita.medico.nombre} ${cita.medico.apellido}`,
+      especialidad: cita.medico.especialidad,
+      observaciones: cita.observaciones || 'Sin observaciones',
+      estado: cita.estado.nombre,
+      descripcionEstado: cita.estado.descripcion,
+      estadoColor: estadoColores[cita.estado.nombre] || '#6C757D'
     }));
 
     return res.status(200).json({

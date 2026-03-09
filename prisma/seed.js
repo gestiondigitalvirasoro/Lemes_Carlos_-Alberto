@@ -23,11 +23,14 @@ async function main() {
   await prisma.diagnostico.deleteMany({});
   await prisma.signoVital.deleteMany({});
   await prisma.estudioComplementario.deleteMany({});
-  await prisma.historiaClinica.deleteMany({});
+  await prisma.consultaMedica.deleteMany({});
   await prisma.turno.deleteMany({});
+  await prisma.historiaClinica.deleteMany({});
   await prisma.paciente.deleteMany({});
   await prisma.persona.deleteMany({});
   await prisma.usuario.deleteMany({});
+  await prisma.estadoConsulta.deleteMany({});
+  await prisma.estadoTurno.deleteMany({});
 
   // ============================================================
   // 1️⃣  CREAR USUARIOS EN SUPABASE AUTH + BD LOCAL
@@ -42,7 +45,9 @@ async function main() {
   const usuarios = [];
 
   for (const userData of usuariosData) {
-    // 1️⃣ Crear en Supabase Auth
+    let userId = null;
+
+    // 1️⃣ Intentar crear en Supabase Auth
     console.log(`📝 Creando usuario en Supabase: ${userData.email}`);
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: userData.email,
@@ -51,7 +56,30 @@ async function main() {
     });
 
     if (authError) {
-      console.error(`❌ Error en Supabase para ${userData.email}:`, authError.message);
+      // Si el usuario ya existe en Supabase, intenta obtenerlo
+      if (authError.message.includes('already been registered')) {
+        console.log(`⚠️  Usuario ya existe en Supabase: ${userData.email}`);
+        const { data: { users }, error: searchError } = await supabase.auth.admin.listUsers();
+        if (searchError) {
+          console.error(`❌ No se pudo buscar usuario:`, searchError.message);
+          continue;
+        }
+        const existingUser = users.find(u => u.email === userData.email);
+        if (existingUser) {
+          userId = existingUser.id;
+          console.log(`✅ Usuario encontrado en Supabase: ${userData.email}`);
+        }
+      } else {
+        console.error(`❌ Error en Supabase para ${userData.email}:`, authError.message);
+        continue;
+      }
+    } else {
+      userId = authData.user.id;
+      console.log(`✅ Usuario creado en Supabase: ${userData.email}`);
+    }
+
+    if (!userId) {
+      console.error(`❌ No se obtuvo ID para ${userData.email}`);
       continue;
     }
 
@@ -59,7 +87,7 @@ async function main() {
     const usuarioBD = await prisma.usuario.create({
       data: {
         email: userData.email,
-        password_hash: authData.user.id, // Guardar UUID de Supabase
+        password_hash: userId, // Guardar UUID de Supabase
         nombre: userData.nombre,
         apellido: userData.apellido,
         role: userData.role,
@@ -70,11 +98,11 @@ async function main() {
     });
 
     usuarios.push(usuarioBD);
-    console.log(`✅ Usuario creado: ${userData.email}`);
+    console.log(`✅ Usuario en BD: ${userData.email}`);
   }
 
   if (usuarios.length !== 3) {
-    throw new Error('⚠️  No se crearon todos los usuarios');
+    console.error('⚠️  Solo se crearon ' + usuarios.length + ' usuarios de 3 esperados');
   }
 
   const doctor1 = usuarios[0];
@@ -83,7 +111,32 @@ async function main() {
 
   console.log('✅ Médicos y secretaria creados');
 
-  // 2. Crear Personas (Pacientes)
+  // 2. Crear Estados de Turnos
+  console.log('\n📋 Creando estados de turnos...');
+  
+  const estadosTurno = {
+    PENDIENTE: await prisma.estadoTurno.create({ data: { nombre: 'PENDIENTE', descripcion: 'Turno pendiente de confirmación', activo: true } }),
+    CONFIRMADO: await prisma.estadoTurno.create({ data: { nombre: 'CONFIRMADO', descripcion: 'Turno confirmado', activo: true } }),
+    EN_CONSULTA: await prisma.estadoTurno.create({ data: { nombre: 'EN_CONSULTA', descripcion: 'En consulta actualmente', activo: true } }),
+    COMPLETA: await prisma.estadoTurno.create({ data: { nombre: 'COMPLETA', descripcion: 'Consulta completada', activo: true } }),
+    CANCELADA: await prisma.estadoTurno.create({ data: { nombre: 'CANCELADA', descripcion: 'Turno cancelado', activo: false } }),
+    NO_PRESENTADO: await prisma.estadoTurno.create({ data: { nombre: 'NO_PRESENTADO', descripcion: 'Paciente no se presentó', activo: false } })
+  };
+  
+  console.log('✅ Estados de Turnos creados (6 estados)');
+
+  // 3. Crear Estados de Consultas
+  console.log('📋 Creando estados de consultas...');
+  
+  const estadosConsulta = {
+    EN_CONSULTA: await prisma.estadoConsulta.create({ data: { nombre: 'EN_CONSULTA', descripcion: 'Consulta en proceso', activo: true } }),
+    ATENDIDA: await prisma.estadoConsulta.create({ data: { nombre: 'ATENDIDA', descripcion: 'Consulta finalizada', activo: true } }),
+    CANCELADA: await prisma.estadoConsulta.create({ data: { nombre: 'CANCELADA', descripcion: 'Consulta cancelada', activo: false } })
+  };
+  
+  console.log('✅ Estados de Consultas creados (3 estados)');
+
+  // 4. Crear Personas (Pacientes)
   const persona1 = await prisma.persona.create({
     data: {
       nombre: 'Carlos',
@@ -300,7 +353,7 @@ async function main() {
       medico_id: doctor1.id,
       fecha: hoy,
       hora: '09:00',
-      estado: 'EN_CONSULTA', // Turno activo - en consulta ahora
+      estado_id: estadosTurno.EN_CONSULTA.id, // Turno activo - en consulta ahora
       creado_por_secretaria_id: secretaria.id
     }
   });
@@ -311,7 +364,7 @@ async function main() {
       medico_id: doctor2.id,
       fecha: hoy,
       hora: '10:30',
-      estado: 'COMPLETA', // Turno terminado
+      estado_id: estadosTurno.COMPLETA.id, // Turno terminado
       creado_por_secretaria_id: secretaria.id
     }
   });
@@ -322,7 +375,7 @@ async function main() {
       medico_id: doctor1.id,
       fecha: hoy,
       hora: '14:00',
-      estado: 'CONFIRMADO', // Turno próximo confirmado
+      estado_id: estadosTurno.CONFIRMADO.id, // Turno próximo confirmado
       creado_por_secretaria_id: secretaria.id
     }
   });
@@ -338,7 +391,7 @@ async function main() {
       fecha: new Date(),
       motivo_consulta: 'Control de hipertensión',
       resumen: 'En consulta - Paciente refiere buen cumplimiento del tratamiento.',
-      estado: 'EN_CONSULTA' // Activa ahora
+      estado_id: estadosConsulta.EN_CONSULTA.id // Activa ahora
     }
   });
 
@@ -350,7 +403,7 @@ async function main() {
       fecha: new Date(),
       motivo_consulta: 'Seguimiento diabetes',
       resumen: 'Consulta completada - Paciente controlado, hemoglobina glicosilada dentro de rango.',
-      estado: 'ATENDIDA' // Terminada
+      estado_id: estadosConsulta.ATENDIDA.id // Terminada
     }
   });
 

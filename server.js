@@ -861,7 +861,15 @@ app.get('/api/debug/turnos', async (req, res) => {
             persona: true
           }
         },
-        medico: true
+        medico: true,
+        estado: {
+          select: {
+            id: true,
+            nombre: true,
+            descripcion: true,
+            activo: true
+          }
+        }
       }
     });
     
@@ -872,7 +880,12 @@ app.get('/api/debug/turnos', async (req, res) => {
       medico_id: t.medico_id.toString(),
       fecha: t.fecha,
       hora: t.hora,
-      estado: t.estado,
+      estado: {
+        id: t.estado.id.toString(),
+        nombre: t.estado.nombre,
+        descripcion: t.estado.descripcion,
+        activo: t.estado.activo
+      },
       observaciones: t.observaciones,
       paciente: {
         id: t.paciente.id.toString(),
@@ -943,10 +956,25 @@ app.get('/api/dashboard-turnos', requireAuth, async (req, res) => {
             especialidad: true
           }
         },
+        estado: {
+          select: {
+            id: true,
+            nombre: true,
+            descripcion: true,
+            activo: true
+          }
+        },
         consulta: {
           select: {
             id: true,
-            estado: true,
+            estado: {
+              select: {
+                id: true,
+                nombre: true,
+                descripcion: true,
+                activo: true
+              }
+            },
             motivo_consulta: true,
             fecha: true
           }
@@ -973,21 +1001,23 @@ app.get('/api/dashboard-turnos', requireAuth, async (req, res) => {
         }
       }
 
-      const estadoColores = {
-        'PENDIENTE': '#FFC107',
-        'CONFIRMADO': '#17A2B8',
-        'EN_CONSULTA': '#007BFF',
-        'ATENDIDO': '#28A745',
-        'AUSENTE': '#6C757D',
-        'CANCELADO': '#DC3545'
-      };
-
       return {
         id: turno.id.toString(),
         hora: turno.hora,
         fecha: turno.fecha.toLocaleDateString('es-AR'),
-        estado: turno.estado,
-        estadoColor: estadoColores[turno.estado] || '#007BFF',
+        estado: {
+          id: turno.estado.id.toString(),
+          nombre: turno.estado.nombre,
+          descripcion: turno.estado.descripcion
+        },
+        estadoColor: {
+          'PENDIENTE': '#FFC107',
+          'CONFIRMADO': '#007BFF',
+          'EN_CONSULTA': '#28A745',
+          'COMPLETA': '#6C757D',
+          'CANCELADA': '#DC3545',
+          'NO_PRESENTADO': '#6C757D'
+        }[turno.estado.nombre] || '#007BFF',
         paciente: {
           nombre: persona.nombre,
           apellido: persona.apellido,
@@ -998,7 +1028,11 @@ app.get('/api/dashboard-turnos', requireAuth, async (req, res) => {
         },
         consulta: turno.consulta ? {
           id: turno.consulta.id.toString(),
-          estado: turno.consulta.estado,
+          estado: {
+            id: turno.consulta.estado.id.toString(),
+            nombre: turno.consulta.estado.nombre,
+            descripcion: turno.consulta.estado.descripcion
+          },
           motivo: turno.consulta.motivo_consulta || '-',
           fecha: turno.consulta.fecha
         } : null,
@@ -1727,7 +1761,14 @@ app.get('/api/pacientes-lista', requireAuth, async (req, res) => {
         turnos: {
           select: {
             id: true,
-            estado: true,
+            estado: {
+              select: {
+                id: true,
+                nombre: true,
+                descripcion: true,
+                activo: true
+              }
+            },
             fecha: true
           },
           orderBy: { fecha: 'desc' },
@@ -1757,7 +1798,12 @@ app.get('/api/pacientes-lista', requireAuth, async (req, res) => {
       es_paciente: p.paciente ? true : false,
       ultimo_turno: p.turnos[0] ? {
         id: p.turnos[0].id.toString(),
-        estado: p.turnos[0].estado,
+        estado: {
+          id: p.turnos[0].estado.id.toString(),
+          nombre: p.turnos[0].estado.nombre,
+          descripcion: p.turnos[0].estado.descripcion,
+          activo: p.turnos[0].estado.activo
+        },
         fecha: p.turnos[0].fecha.toISOString()
       } : null
     }));
