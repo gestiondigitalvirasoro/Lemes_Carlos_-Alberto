@@ -1,12 +1,24 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
+import { createClient } from '@supabase/supabase-js';
 
 const prisma = new PrismaClient();
+
+// Cliente de Supabase (server-side con Service Key)
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
 
 async function main() {
   console.log('🌱 Sembrando datos de prueba...');
 
-  // Limpiar datos existentes
+  // Limpiar datos existentes (BD local)
   await prisma.documentoAdjunto.deleteMany({});
   await prisma.diagnostico.deleteMany({});
   await prisma.signoVital.deleteMany({});
@@ -17,47 +29,57 @@ async function main() {
   await prisma.persona.deleteMany({});
   await prisma.usuario.deleteMany({});
 
-  // 1. Crear Médicos (Usuarios con role doctor)
-  const passwordDoctor = await bcrypt.hash('doctor123', 10);
-  const passwordSecretaria = await bcrypt.hash('secretaria123', 10);
+  // ============================================================
+  // 1️⃣  CREAR USUARIOS EN SUPABASE AUTH + BD LOCAL
+  // ============================================================
+  
+  const usuariosData = [
+    { email: 'doctor@lemes.com', password: 'doctor123', nombre: 'Juan', apellido: 'García', role: 'doctor', especialidad: 'Medicina General', telefono: '1234567890' },
+    { email: 'cardiologo@lemes.com', password: 'doctor123', nombre: 'María', apellido: 'López', role: 'doctor', especialidad: 'Cardiología', telefono: '0987654321' },
+    { email: 'secretaria@lemes.com', password: 'secretaria123', nombre: 'Ana', apellido: 'Martínez', role: 'secretaria', telefono: '5555555555' }
+  ];
 
-  const doctor1 = await prisma.usuario.create({
-    data: {
-      email: 'doctor@ejemplo.com',
-      password_hash: passwordDoctor,
-      nombre: 'Juan',
-      apellido: 'García',
-      role: 'doctor',
-      especialidad: 'Medicina General',
-      telefono: '1234567890',
-      activo: true
-    }
-  });
+  const usuarios = [];
 
-  const doctor2 = await prisma.usuario.create({
-    data: {
-      email: 'cardiologo@ejemplo.com',
-      password_hash: passwordDoctor,
-      nombre: 'María',
-      apellido: 'López',
-      role: 'doctor',
-      especialidad: 'Cardiología',
-      telefono: '0987654321',
-      activo: true
-    }
-  });
+  for (const userData of usuariosData) {
+    // 1️⃣ Crear en Supabase Auth
+    console.log(`📝 Creando usuario en Supabase: ${userData.email}`);
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: userData.email,
+      password: userData.password,
+      email_confirm: true
+    });
 
-  const secretaria = await prisma.usuario.create({
-    data: {
-      email: 'secretaria@ejemplo.com',
-      password_hash: passwordSecretaria,
-      nombre: 'Ana',
-      apellido: 'Martínez',
-      role: 'secretaria',
-      telefono: '5555555555',
-      activo: true
+    if (authError) {
+      console.error(`❌ Error en Supabase para ${userData.email}:`, authError.message);
+      continue;
     }
-  });
+
+    // 2️⃣ Crear en BD local
+    const usuarioBD = await prisma.usuario.create({
+      data: {
+        email: userData.email,
+        password_hash: authData.user.id, // Guardar UUID de Supabase
+        nombre: userData.nombre,
+        apellido: userData.apellido,
+        role: userData.role,
+        especialidad: userData.especialidad || null,
+        telefono: userData.telefono,
+        activo: true
+      }
+    });
+
+    usuarios.push(usuarioBD);
+    console.log(`✅ Usuario creado: ${userData.email}`);
+  }
+
+  if (usuarios.length !== 3) {
+    throw new Error('⚠️  No se crearon todos los usuarios');
+  }
+
+  const doctor1 = usuarios[0];
+  const doctor2 = usuarios[1];
+  const secretaria = usuarios[2];
 
   console.log('✅ Médicos y secretaria creados');
 
@@ -320,9 +342,9 @@ async function main() {
   console.log(`  - 2 Turnos creados`);
   console.log(`  - 1 Consulta Médica creada`);
   console.log('\n🔐 Datos de acceso:');
-  console.log(`  Doctor: doctor@ejemplo.com / doctor123`);
-  console.log(`  Cardióloga: cardiologo@ejemplo.com / doctor123`);
-  console.log(`  Secretaria: secretaria@ejemplo.com / secretaria123`);
+  console.log(`  Doctor: doctor@lemes.com / doctor123`);
+  console.log(`  Cardióloga: cardiologo@lemes.com / doctor123`);
+  console.log(`  Secretaria: secretaria@lemes.com / secretaria123`);
 }
 
 main()
