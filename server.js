@@ -1151,15 +1151,11 @@ app.get('/api/alertas-clinicas', requireAuth, async (req, res) => {
         }
       },
       include: {
-        consulta: {
+        historia_clinica: {
           include: {
-            historia: {
+            paciente: {
               include: {
-                paciente: {
-                  include: {
-                    persona: true
-                  }
-                }
+                persona: true
               }
             }
           }
@@ -1170,11 +1166,11 @@ app.get('/api/alertas-clinicas', requireAuth, async (req, res) => {
     });
 
     glucemiaAlta.forEach(sv => {
-      if (sv.consulta?.historia?.paciente) {
+      if (sv.historia_clinica?.paciente) {
         alertas.push({
           tipo: 'glucemia',
           titulo: '🔴 Glucemia Alta',
-          paciente: `${sv.consulta.historia.paciente.persona.nombre} ${sv.consulta.historia.paciente.persona.apellido}`,
+          paciente: `${sv.historia_clinica.paciente.persona.nombre} ${sv.historia_clinica.paciente.persona.apellido}`,
           valor: `${sv.glucemia_mg_dl} mg/dL`,
           color: '#DC3545',
           fecha: sv.fecha_registro
@@ -1190,15 +1186,11 @@ app.get('/api/alertas-clinicas', requireAuth, async (req, res) => {
         }
       },
       include: {
-        consulta: {
+        historia_clinica: {
           include: {
-            historia: {
+            paciente: {
               include: {
-                paciente: {
-                  include: {
-                    persona: true
-                  }
-                }
+                persona: true
               }
             }
           }
@@ -1209,11 +1201,11 @@ app.get('/api/alertas-clinicas', requireAuth, async (req, res) => {
     });
 
     imcAlto.forEach(sv => {
-      if (sv.consulta?.historia?.paciente) {
+      if (sv.historia_clinica?.paciente) {
         alertas.push({
           tipo: 'imc',
           titulo: '⚠️ IMC Elevado',
-          paciente: `${sv.consulta.historia.paciente.persona.nombre} ${sv.consulta.historia.paciente.persona.apellido}`,
+          paciente: `${sv.historia_clinica.paciente.persona.nombre} ${sv.historia_clinica.paciente.persona.apellido}`,
           valor: `IMC: ${sv.imc.toFixed(1)}`,
           color: '#FFC107',
           fecha: sv.fecha_registro
