@@ -1,11 +1,83 @@
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import { supabase } from '../services/supabase.js';
 
 const prisma = new PrismaClient();
 
 // ============================================================================
-// CONTROLLER: LOGIN
+// CONTROLLER: REGISTRO (SIGNUP) - Crear usuario en Supabase + BD local
+// ============================================================================
+export const signup = async (req, res) => {
+  try {
+    const { email, password, nombre, apellido, role = 'doctor', especialidad } = req.body;
+
+    // Validaciones
+    if (!email || !password || !nombre || !apellido) {
+      return res.status(400).json({
+        error: 'Bad request',
+        message: 'Email, contraseña, nombre y apellido son requeridos'
+      });
+    }
+
+    // 1. Crear usuario en Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true // Auto-confirmar
+    });
+
+    if (authError) {
+      return res.status(400).json({
+        error: 'Bad request',
+        message: authError.message || 'Error al crear usuario en Supabase'
+      });
+    }
+
+    const supabaseUserId = authData.user.id;
+
+    // 2. Crear usuario en BD local (con datos clínicos)
+    try {
+      const usuarioBD = await prisma.usuario.create({
+        data: {
+          email,
+          password_hash: supabaseUserId, // Guardar UUID de Supabase como "contraseña"
+          nombre,
+          apellido,
+          role,
+          especialidad: especialidad || null,
+          activo: true
+        }
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: 'Usuario registrado exitosamente',
+        data: {
+          usuario: {
+            id: usuarioBD.id.toString(),
+            email: usuarioBD.email,
+            nombre: usuarioBD.nombre,
+            apellido: usuarioBD.apellido,
+            role: usuarioBD.role
+          }
+        }
+      });
+    } catch (dbError) {
+      // Si falla la BD, eliminar usuario de Supabase
+      await supabase.auth.admin.deleteUser(supabaseUserId);
+      throw dbError;
+    }
+  } catch (error) {
+    console.error('Error en signup:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+};
+
+// ============================================================================
+// CONTROLLER: LOGIN - Autenticar con Supabase Auth + obtener datos BD
 // ============================================================================
 
 export const login = async (req, res) => {
@@ -20,77 +92,88 @@ export const login = async (req, res) => {
       });
     }
 
-    // Buscar usuario por email
-    const usuario = await prisma.usuario.findUnique({
-      where: { email }
+    // 1. Autenticar con Supabase
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password
     });
 
-    if (!usuario) {
+    if (authError || !authData.user) {
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'Email o contraseña incorrectos'
       });
     }
 
+    // 2. Obtener datos del usuario desde BD local
+    const usuarioBD = await prisma.usuario.findUnique({
+      where: { email }
+    });
+
+    if (!usuarioBD) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Usuario no configurado en sistema'
+      });
+    }
+
     // Verificar que el usuario está activo
-    if (!usuario.activo) {
+    if (!usuarioBD.activo) {
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'Usuario inactivo'
       });
     }
 
-    // Comparar contraseña con bcrypt
-    const contraseñaValida = await bcrypt.compare(password, usuario.password_hash);
-
-    if (!contraseñaValida) {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Email o contraseña incorrectos'
-      });
-    }
-
-    // Crear JWT (convertir BigInt a string)
-    const token = jwt.sign(
+    // 3. Crear JWT local con datos clínicos (opcional, para rapidez)
+    const jwtLocal = jwt.sign(
       {
-        id: usuario.id.toString(),
-        email: usuario.email,
-        nombre: usuario.nombre,
-        apellido: usuario.apellido,
-        role: usuario.role
+        id: usuarioBD.id.toString(),
+        email: usuarioBD.email,
+        nombre: usuarioBD.nombre,
+        apellido: usuarioBD.apellido,
+        role: usuarioBD.role,
+        supabaseId: authData.user.id
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     );
 
-    // Actualizar último login
+    // 4. Guardar token en cookie httpOnly
+    res.cookie('auth_token', jwtLocal, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000  // 24 horas
+    });
+
+    // También guardar sesión de Supabase
+    res.cookie('supabase_session', authData.session.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000
+    });
+
+    // 5. Actualizar último login
     await prisma.usuario.update({
-      where: { id: usuario.id },
+      where: { id: usuarioBD.id },
       data: { ultimo_login: new Date() }
     });
 
-    // Guardar token en cookie httpOnly (segura)
-    res.cookie('auth_token', token, {
-      httpOnly: true,        // Solo accesible en servidor
-      secure: process.env.NODE_ENV === 'production',  // Solo HTTPS en producción
-      sameSite: 'strict',    // Protección CSRF
-      maxAge: 24 * 60 * 60 * 1000  // 24 horas en milisegundos
-    });
-
-    // Responder (convertir BigInt a string)
+    // 6. Responder
     return res.status(200).json({
       success: true,
       message: 'Login exitoso',
       data: {
-        token,
+        token: jwtLocal,
         usuario: {
-          id: usuario.id.toString(),
-          email: usuario.email,
-          nombre: usuario.nombre,
-          apellido: usuario.apellido,
-          role: usuario.role,
-          especialidad: usuario.especialidad,
-          subespecialidad: usuario.subespecialidad
+          id: usuarioBD.id.toString(),
+          email: usuarioBD.email,
+          nombre: usuarioBD.nombre,
+          apellido: usuarioBD.apellido,
+          role: usuarioBD.role,
+          especialidad: usuarioBD.especialidad
         }
       }
     });
@@ -98,6 +181,10 @@ export const login = async (req, res) => {
     console.error('Error en login:', error);
     return res.status(500).json({
       error: 'Internal server error',
+      message: error.message
+    });
+  }
+};
       message: 'Error al procesar el login'
     });
   }

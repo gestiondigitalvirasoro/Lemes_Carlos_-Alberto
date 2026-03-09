@@ -1,6 +1,6 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
-import { login, logout, me, crearUsuario, cambiarContrasena } from '../controllers/auth.js';
+import { login, logout, me, crearUsuario, cambiarContrasena, signup } from '../controllers/auth.js';
 import { authMiddleware, roleMiddleware } from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -37,6 +37,24 @@ router.post(
   ],
   validarErrores,
   login
+);
+
+/**
+ * POST /api/auth/signup
+ * Registrar nuevo usuario (Supabase Auth + BD local)
+ */
+router.post(
+  '/signup',
+  [
+    body('email').isEmail().withMessage('Email inválido'),
+    body('password').isLength({ min: 6 }).withMessage('Contraseña debe tener al menos 6 caracteres'),
+    body('nombre').notEmpty().withMessage('Nombre requerido'),
+    body('apellido').notEmpty().withMessage('Apellido requerido'),
+    body('role').optional().isIn(['doctor', 'secretaria', 'admin']).withMessage('Rol inválido'),
+    body('especialidad').optional().isString().withMessage('Especialidad inválida')
+  ],
+  validarErrores,
+  signup
 );
 
 /**
