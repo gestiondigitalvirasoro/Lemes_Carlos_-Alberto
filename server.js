@@ -2013,6 +2013,10 @@ app.get('/doctor/pacientes/:paciente_id', requireAuth, requireRole(['doctor']), 
         historias_clinicas: {
           where: { activa: true },
           include: {
+            signos_vitales: {
+              orderBy: { creado_en: 'desc' },
+              take: 1
+            },
             consultas: {
               include: {
                 signos_vitales: true,
@@ -2070,7 +2074,7 @@ app.get('/doctor/pacientes/:paciente_id', requireAuth, requireRole(['doctor']), 
         anamnesis: consulta?.anamnesis?.enfermedad_actual || '',
         antecedentes: historia?.antecedentes?.map(a => a.descripcion).join(', ') || '',
         diagnosticos: consulta?.diagnosticos || [],
-        signos_vitales: consulta?.signos_vitales ? consulta.signos_vitales[0] : null,
+        signos_vitales: historia?.signos_vitales && historia.signos_vitales.length > 0 ? historia.signos_vitales[0] : null,
         estudios: consulta?.estudios || [],
         tratamientos: consulta?.tratamientos || [],
         documentos: historia?.documentos || [],

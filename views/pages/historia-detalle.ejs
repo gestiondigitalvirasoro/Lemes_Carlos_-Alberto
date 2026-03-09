@@ -74,6 +74,107 @@
         .tabla-signos input[readonly] { background: #f8f9fa; }
         .tabla-signos input.editable { background: white; border: 2px solid #3b82f6; }
         
+        /* ESTILOS PARA SIGNOS VITALES EN GRID */
+        .signos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .signo-card {
+            background: white;
+            border-left: 5px solid #ef4444;
+            border-top: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .signo-card:nth-child(2) {
+            border-left-color: #0ea5e9;
+        }
+        
+        .signo-card:nth-child(3) {
+            border-left-color: #f59e0b;
+        }
+        
+        .signo-card:nth-child(4) {
+            border-left-color: #8b5cf6;
+        }
+        
+        .signo-card:nth-child(5) {
+            border-left-color: #10b981;
+        }
+        
+        .signo-card:nth-child(6) {
+            border-left-color: #06b6d4;
+        }
+        
+        .signo-card:nth-child(7) {
+            border-left-color: #ec4899;
+        }
+        
+        .signo-card:nth-child(8) {
+            border-left-color: #f97316;
+        }
+        
+        .signo-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .signo-valor-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .signo-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            background: white !important;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        
+        .signo-input[readonly] {
+            background: white !important;
+        }
+        
+        .signo-unidad {
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .signo-normal {
+            font-size: 10px;
+            color: #cbd5e1;
+            margin-top: 3px;
+        }
+        
+        .titulo-seccion {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
         .area-texto { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; font-family: inherit; }
         .area-texto[readonly] { background: #f8f9fa; }
         .area-texto.editable { background: white; border: 2px solid #3b82f6; }
@@ -85,6 +186,35 @@
         
         .area-documentos { border: 2px dashed #e2e8f0; border-radius: 8px; padding: 40px 20px; text-align: center; }
         .area-documentos.activa { background: rgba(59, 130, 246, 0.05); border-color: #3b82f6; }
+        
+        /* Estilos para campos en modo lectura vs edición */
+        .campo-lectura {
+            background-color: #f8f9fa;
+            border: 1px solid #e2e8f0;
+            color: #64748b;
+            cursor: default;
+            pointer-events: none;
+        }
+        
+        .campo-lectura:focus {
+            outline: none;
+            background-color: #f8f9fa;
+            border-color: #e2e8f0;
+        }
+        
+        .campo-editable.editable {
+            background-color: white;
+            border: 1px solid #3b82f6;
+            color: #1e293b;
+            cursor: text;
+            pointer-events: auto;
+        }
+        
+        .campo-editable.editable:focus {
+            outline: none;
+            border: 2px solid #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
         
         @media (max-width: 768px) {
             .contenedor-historia { grid-template-columns: 1fr; }
@@ -163,6 +293,18 @@
                     <span class="valor-signo"><%= historia.signos_vitales.frecuencia_cardiaca || '-' %></span>
                 </div>
                 <div class="signo-info">
+                    <span class="label-signo">Temperatura</span>
+                    <span class="valor-signo"><%= historia.signos_vitales.temperatura || '-' %></span>
+                </div>
+                <div class="signo-info">
+                    <span class="label-signo">Peso</span>
+                    <span class="valor-signo"><%= historia.signos_vitales.peso || '-' %></span>
+                </div>
+                <div class="signo-info">
+                    <span class="label-signo">Talla</span>
+                    <span class="valor-signo"><%= historia.signos_vitales.talla || '-' %></span>
+                </div>
+                <div class="signo-info">
                     <span class="label-signo">Glucosa</span>
                     <span class="valor-signo"><%= historia.signos_vitales.glucemia || '-' %></span>
                 </div>
@@ -228,83 +370,140 @@
 
         <!-- SIGNOS VITALES -->
         <section id="signos" class="seccion-historia">
-            <div class="titulo-seccion">
-                <i class="bi bi-heart-pulse"></i>
-                Signos Vitales
+            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('signos-vitales-content', 'chevron-signos')">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="bi bi-heart-pulse"></i>
+                    Signos Vitales
+                </div>
+                <i class="bi bi-chevron-down" id="chevron-signos" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
             </div>
-            <table class="tabla-signos">
-                <thead>
-                    <tr>
-                        <th>Parámetro</th>
-                        <th>Valor</th>
-                        <th>Unidad</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% if (historia.signos_vitales) { %>
-                        <tr>
-                            <td>Presión Arterial</td>
-                            <td><input type="text" class="campo-editable" data-field="presion_arterial" value="<%= historia.signos_vitales.presion_arterial || '' %>" readonly></td>
-                            <td>mmHg</td>
-                        </tr>
-                        <tr>
-                            <td>Frecuencia Cardíaca</td>
-                            <td><input type="text" class="campo-editable" data-field="frecuencia_cardiaca" value="<%= historia.signos_vitales.frecuencia_cardiaca || '' %>" readonly></td>
-                            <td>lpm</td>
-                        </tr>
-                        <tr>
-                            <td>Glucemia</td>
-                            <td><input type="text" class="campo-editable" data-field="glucemia" value="<%= historia.signos_vitales.glucemia || '' %>" readonly></td>
-                            <td>mg/dL</td>
-                        </tr>
-                        <tr>
-                            <td>Temperatura</td>
-                            <td><input type="text" class="campo-editable" data-field="temperatura" value="<%= historia.signos_vitales.temperatura || '' %>" readonly></td>
-                            <td>°C</td>
-                        </tr>
-                        <tr>
-                            <td>IMC</td>
-                            <td><input type="text" class="campo-editable" data-field="imc" value="<%= historia.signos_vitales.imc || '' %>" readonly></td>
-                            <td>kg/m²</td>
-                        </tr>
-                    <% } %>
-                </tbody>
-            </table>
+            <div id="signos-vitales-content" class="signos-collapse-content" style="display: none; margin-top: 15px;">
+                <div class="signos-grid">
+                    <div class="signo-card">
+                        <label class="signo-label">PRESIÓN SISTÓLICA</label>
+                        <div class="signo-valor-container">
+                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="presion_sistolica" value="<%= (historia.signos_vitales && historia.signos_vitales.presion_sistolica) || '' %>">
+                            <span class="signo-unidad">mmHg</span>
+                        </div>
+                        <span class="signo-normal">Normal: <120</span>
+                    </div>
+
+                    <div class="signo-card">
+                        <label class="signo-label">PRESIÓN DIASTÓLICA</label>
+                        <div class="signo-valor-container">
+                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="presion_diastolica" value="<%= (historia.signos_vitales && historia.signos_vitales.presion_diastolica) || '' %>">
+                            <span class="signo-unidad">mmHg</span>
+                        </div>
+                        <span class="signo-normal">Normal: <80</span>
+                    </div>
+
+                    <div class="signo-card">
+                        <label class="signo-label">FRECUENCIA CARDÍACA</label>
+                        <div class="signo-valor-container">
+                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="frecuencia_cardiaca" value="<%= (historia.signos_vitales && historia.signos_vitales.frecuencia_cardiaca) || '' %>">
+                            <span class="signo-unidad">lpm</span>
+                        </div>
+                        <span class="signo-normal">Normal: 60–100</span>
+                    </div>
+
+                    <div class="signo-card">
+                        <label class="signo-label">TEMPERATURA</label>
+                        <div class="signo-valor-container">
+                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="temperatura" value="<%= (historia.signos_vitales && historia.signos_vitales.temperatura_c) || '' %>" step="0.1">
+                            <span class="signo-unidad">°C</span>
+                        </div>
+                        <span class="signo-normal">Normal: 36.1–37.2</span>
+                    </div>
+
+                    <div class="signo-card">
+                        <label class="signo-label">PESO</label>
+                        <div class="signo-valor-container">
+                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="peso" value="<%= (historia.signos_vitales && historia.signos_vitales.peso_kg) || '' %>" step="0.1">
+                            <span class="signo-unidad">kg</span>
+                        </div>
+                    </div>
+
+                    <div class="signo-card">
+                        <label class="signo-label">TALLA</label>
+                        <div class="signo-valor-container">
+                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="talla" value="<%= (historia.signos_vitales && historia.signos_vitales.talla_cm) || '' %>" step="0.1">
+                            <span class="signo-unidad">cm</span>
+                        </div>
+                    </div>
+
+                    <div class="signo-card">
+                        <label class="signo-label">GLUCEMIA</label>
+                        <div class="signo-valor-container">
+                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="glucemia" value="<%= (historia.signos_vitales && historia.signos_vitales.glucemia_mg_dl) || '' %>">
+                            <span class="signo-unidad">mg/dL</span>
+                        </div>
+                        <span class="signo-normal">Normal: 70–100</span>
+                    </div>
+
+                    <div class="signo-card">
+                        <label class="signo-label">IMC</label>
+                        <div class="signo-valor-container">
+                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="imc" value="<%= (historia.signos_vitales && historia.signos_vitales.imc) || '' %>" step="0.01">
+                            <span class="signo-unidad">kg/m²</span>
+                        </div>
+                        <span class="signo-normal">Normal: 18.5–24.9</span>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- MOTIVO DE CONSULTA -->
         <section id="motivo" class="seccion-historia">
-            <div class="titulo-seccion">
-                <i class="bi bi-chat-dots"></i>
-                Motivo de Consulta
+            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('motivo-content', 'chevron-motivo')">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="bi bi-chat-dots"></i>
+                    Motivo de Consulta
+                </div>
+                <i class="bi bi-chevron-down" id="chevron-motivo" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
             </div>
-            <textarea class="area-texto campo-editable" id="motivo_consulta" data-field="motivo_consulta" rows="4" readonly><%= historia.motivo_consulta || '' %></textarea>
+            <div id="motivo-content" style="display: block; margin-top: 15px;">
+                <textarea class="area-texto campo-editable" id="motivo_consulta" data-field="motivo_consulta" rows="4" readonly><%= historia.motivo_consulta || '' %></textarea>
+            </div>
         </section>
 
         <!-- ENFERMEDAD ACTUAL -->
         <section id="enfermedad" class="seccion-historia">
-            <div class="titulo-seccion">
-                <i class="bi bi-stethoscope"></i>
-                Enfermedad Actual
+            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('enfermedad-content', 'chevron-enfermedad')">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="bi bi-stethoscope"></i>
+                    Enfermedad Actual
+                </div>
+                <i class="bi bi-chevron-down" id="chevron-enfermedad" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
             </div>
-            <textarea class="area-texto campo-editable" id="anamnesis" data-field="anamnesis" rows="4" readonly><%= historia.anamnesis || '' %></textarea>
+            <div id="enfermedad-content" style="display: block; margin-top: 15px;">
+                <textarea class="area-texto campo-editable" id="anamnesis" data-field="anamnesis" rows="4" readonly><%= historia.anamnesis || '' %></textarea>
+            </div>
         </section>
 
         <!-- ANTECEDENTES -->
         <section id="antecedentes" class="seccion-historia">
-            <div class="titulo-seccion">
-                <i class="bi bi-book"></i>
-                Antecedentes Patológicos
+            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('antecedentes-content', 'chevron-antecedentes')">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="bi bi-book"></i>
+                    Antecedentes Patológicos
+                </div>
+                <i class="bi bi-chevron-down" id="chevron-antecedentes" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
             </div>
-            <textarea class="area-texto campo-editable" id="antecedentes_text" data-field="antecedentes" rows="4" readonly><%= historia.antecedentes || '' %></textarea>
+            <div id="antecedentes-content" style="display: block; margin-top: 15px;">
+                <textarea class="area-texto campo-editable" id="antecedentes_text" data-field="antecedentes" rows="4" readonly><%= historia.antecedentes || '' %></textarea>
+            </div>
         </section>
 
         <!-- DIAGNÓSTICOS -->
         <section id="diagnosticos" class="seccion-historia">
-            <div class="titulo-seccion">
-                <i class="bi bi-search"></i>
-                Diagnósticos (<%= historia.diagnosticos ? historia.diagnosticos.length : 0 %>)
+            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('diagnosticos-content', 'chevron-diagnosticos')">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="bi bi-search"></i>
+                    Diagnósticos (<%= historia.diagnosticos ? historia.diagnosticos.length : 0 %>)
+                </div>
+                <i class="bi bi-chevron-down" id="chevron-diagnosticos" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
             </div>
+            <div id="diagnosticos-content" style="display: block; margin-top: 15px;">
             
             <!-- FORMULARIO PARA AGREGAR DIAGNÓSTICO -->
             <div style="margin-bottom: 20px; padding: 15px; background: #f0f7ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
@@ -393,12 +592,16 @@
 
         <!-- ESTUDIOS COMPLEMENTARIOS -->
         <section id="estudios" class="seccion-historia">
-            <div class="titulo-seccion">
-                <i class="bi bi-flask"></i>
-                Estudios Complementarios (<span id="contadorEstudios"><%= historia.estudios ? historia.estudios.length : 0 %></span>)
+            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('estudios-content', 'chevron-estudios')">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="bi bi-flask"></i>
+                    Estudios Complementarios (<span id="contadorEstudios"><%= historia.estudios ? historia.estudios.length : 0 %></span>)
+                </div>
+                <i class="bi bi-chevron-down" id="chevron-estudios" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
             </div>
             
             <!-- TABLA DE ESTUDIOS EXISTENTES -->
+            <div id="estudios-content" style="display: block; margin-top: 15px;">
             <div id="contenedorEstudios">
                 <% if (historia.estudios && historia.estudios.length > 0) { %>
                     <table class="tabla-signos">
@@ -479,14 +682,19 @@
                     ✓ Agregar Estudio
                 </button>
             </div>
+            </div>
         </section>
 
         <!-- DOCUMENTOS ADJUNTOS -->
         <section id="documentos" class="seccion-historia">
-            <div class="titulo-seccion">
-                <i class="bi bi-paperclip"></i>
-                Documentos Adjuntos (<span id="contadorDocumentos"><%= historia.documentos ? historia.documentos.length : 0 %></span>)
+            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('documentos-content', 'chevron-documentos')">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="bi bi-paperclip"></i>
+                    Documentos Adjuntos (<span id="contadorDocumentos"><%= historia.documentos ? historia.documentos.length : 0 %></span>)
+                </div>
+                <i class="bi bi-chevron-down" id="chevron-documentos" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
             </div>
+            <div id="documentos-content" style="display: block; margin-top: 15px;">
             
             <!-- LISTA DE DOCUMENTOS -->
             <div id="contenedorDocumentos">
@@ -556,10 +764,14 @@
 
         <!-- TRATAMIENTO -->
         <section id="tratamiento" class="seccion-historia">
-            <div class="titulo-seccion">
-                <i class="bi bi-capsule"></i>
-                Plan de Tratamiento (<%= historia.tratamientos ? historia.tratamientos.length : 0 %>)
+            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('tratamiento-content', 'chevron-tratamiento')">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="bi bi-capsule"></i>
+                    Plan de Tratamiento (<%= historia.tratamientos ? historia.tratamientos.length : 0 %>)
+                </div>
+                <i class="bi bi-chevron-down" id="chevron-tratamiento" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
             </div>
+            <div id="tratamiento-content" style="display: block; margin-top: 15px;">
             <% if (historia.tratamientos && historia.tratamientos.length > 0) { %>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
                     <% historia.tratamientos.forEach(trat => { %>
@@ -584,6 +796,7 @@
             <% } else { %>
                 <p style="color: #999;">No hay tratamientos registrados</p>
             <% } %>
+            </div>
         </section>
     </main>
 </div>
@@ -898,7 +1111,7 @@ function habilitarEdicion() {
     
     // Habilitar campos editable
     document.querySelectorAll('.campo-editable').forEach(campo => {
-        campo.removeAttribute('readonly');
+        campo.classList.remove('campo-lectura');
         campo.classList.add('editable');
     });
     
@@ -1043,6 +1256,23 @@ function actualizarContadorEstudios() {
 // ============================================================================
 
 function guardarCambios() {
+    // Recolectar datos de signos vitales - limpiar valores vacíos
+    const signosVitalesData = {
+        historia_clinica_id: historiaId,
+        presion_sistolica: document.querySelector('[data-field="presion_sistolica"]')?.value?.trim() || null,
+        presion_diastolica: document.querySelector('[data-field="presion_diastolica"]')?.value?.trim() || null,
+        frecuencia_cardiaca: document.querySelector('[data-field="frecuencia_cardiaca"]')?.value?.trim() || null,
+        temperatura: document.querySelector('[data-field="temperatura"]')?.value?.trim() || null,
+        peso: document.querySelector('[data-field="peso"]')?.value?.trim() || null,
+        talla: document.querySelector('[data-field="talla"]')?.value?.trim() || null,
+        glucemia: document.querySelector('[data-field="glucemia"]')?.value?.trim() || null,
+        circunferencia_abdominal: null,
+        observaciones: null
+    };
+    
+    console.log('📊 Datos a guardar:', signosVitalesData);
+    
+    // Recolectar otros datos
     const datos = {};
     document.querySelectorAll('.campo-editable').forEach(campo => {
         const field = campo.getAttribute('data-field') || campo.id;
@@ -1064,49 +1294,71 @@ function guardarCambios() {
         }
     });
     
-    console.log('📤 Guardando cambios...', datos);
-    console.log('📊 Estudios nuevos:', estudiosNuevos);
+    console.log('📤 Guardando signos vitales...', signosVitalesData);
     
-    // Opcional: Enviar al servidor si tienes un endpoint
-    // Por ahora mostramos confirmación
-    alert('✅ Cambios guardados exitosamente!\n' + (estudiosNuevos.length > 0 ? `Se agregaron ${estudiosNuevos.length} estudio(s)` : ''));
-    
-    modoEdicion = false;
-    
-    // Ocultar elementos de edición
-    const btnEditar = document.getElementById('btnEditar');
-    const btnGuardar = document.getElementById('btnGuardar');
-    const btnCancelar = document.getElementById('btnCancelar');
-    const formularioEstudios = document.getElementById('formularioEstudios');
-    const colAcciones = document.getElementById('colAccionesEstudios');
-    
-    if (btnEditar) btnEditar.style.display = 'inline-flex';
-    if (btnGuardar) btnGuardar.style.display = 'none';
-    if (btnCancelar) btnCancelar.style.display = 'none';
-    if (formularioEstudios) formularioEstudios.style.display = 'none';
-    if (colAcciones) colAcciones.style.display = 'none';
-    
-    // Ocultar formulario de documentos
-    const formularioDocumentos = document.getElementById('formularioDocumentos');
-    if (formularioDocumentos) formularioDocumentos.style.display = 'none';
-    
-    // OCULTAR BOTONES DE ELIMINAR DOCUMENTOS
-    const botonesEliminar = document.querySelectorAll('.btn-eliminar-doc');
-    botonesEliminar.forEach(btn => {
-        btn.style.display = 'none';
+    // Guardar signos vitales al servidor
+    fetch('/api/doctor/signos-vitales', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+        },
+        body: JSON.stringify(signosVitalesData)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            console.log('✅ Signos vitales guardados exitosamente', result);
+            alert('✅ Cambios guardados exitosamente!');
+            modoEdicion = false;
+            
+            // Ocultar elementos de edición
+            const btnEditar = document.getElementById('btnEditar');
+            const btnGuardar = document.getElementById('btnGuardar');
+            const btnCancelar = document.getElementById('btnCancelar');
+            const formularioEstudios = document.getElementById('formularioEstudios');
+            const colAcciones = document.getElementById('colAccionesEstudios');
+            
+            if (btnEditar) btnEditar.style.display = 'inline-flex';
+            if (btnGuardar) btnGuardar.style.display = 'none';
+            if (btnCancelar) btnCancelar.style.display = 'none';
+            if (formularioEstudios) formularioEstudios.style.display = 'none';
+            if (colAcciones) colAcciones.style.display = 'none';
+            
+            // Ocultar formulario de documentos
+            const formularioDocumentos = document.getElementById('formularioDocumentos');
+            if (formularioDocumentos) formularioDocumentos.style.display = 'none';
+            
+            // OCULTAR BOTONES DE ELIMINAR DOCUMENTOS
+            const botonesEliminar = document.querySelectorAll('.btn-eliminar-doc');
+            botonesEliminar.forEach(btn => {
+                btn.style.display = 'none';
+            });
+            
+            document.querySelectorAll('.btn-eliminar-estudio').forEach(btn => {
+                if (btn.parentElement) btn.parentElement.style.display = 'none';
+            });
+            
+            document.querySelectorAll('.campo-editable').forEach(campo => {
+                campo.classList.add('campo-lectura');
+                campo.classList.remove('editable');
+            });
+            
+            // Recargar página para ver los cambios
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            const errorMsg = result.message || result.error || 'Error desconocido';
+            const details = result.details ? '\nDetalles: ' + result.details : '';
+            alert('❌ Error al guardar: ' + errorMsg + details);
+            console.error('Error al guardar signos vitales:', result);
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error en la petición:', error);
+        alert('❌ Error al guardar los datos: ' + error.message);
     });
-    console.log('✅ Botones de eliminar ocultados');
-    
-    document.querySelectorAll('.btn-eliminar-estudio').forEach(btn => {
-        if (btn.parentElement) btn.parentElement.style.display = 'none';
-    });
-    
-    document.querySelectorAll('.campo-editable').forEach(campo => {
-        campo.setAttribute('readonly', 'readonly');
-        campo.classList.remove('editable');
-    });
-    
-    console.log('✅ Cambios guardados y modo edición deshabilitado');
 }
 
 // Drag and drop de documentos
@@ -1388,6 +1640,30 @@ async function logout() {
 
 window.logout = logout;
 console.log('✅ Función logout disponible');
+
+// Función genérica para toggle de secciones
+function toggleSection(contentId, chevronId) {
+    const content = document.getElementById(contentId);
+    const chevron = document.getElementById(chevronId);
+    
+    if (!content || !chevron) {
+        console.error('❌ Elemento no encontrado:', { contentId, chevronId });
+        return;
+    }
+    
+    const isHidden = content.style.display === 'none';
+    
+    if (isHidden) {
+        content.style.display = 'block';
+        chevron.style.transform = 'rotate(180deg)';
+    } else {
+        content.style.display = 'none';
+        chevron.style.transform = 'rotate(0deg)';
+    }
+}
+
+window.toggleSection = toggleSection;
+console.log('✅ Función toggleSection disponible');
 </script>
 </body>
 </html>

@@ -110,6 +110,7 @@ model HistoriaClinica {
   consultas             ConsultaMedica[]
   antecedentes          Antecedente[]
   documentos            DocumentoAdjunto[]
+  signos_vitales        SignoVital[]
   
   @@unique([paciente_id])
   @@index([paciente_id], map: "idx_historia_paciente_id")
@@ -155,7 +156,8 @@ model ConsultaMedica {
 // ============================================================================
 model SignoVital {
   id                    BigInt      @id @default(autoincrement())
-  consulta_id           BigInt
+  historia_clinica_id   BigInt?
+  consulta_id           BigInt?
   peso_kg               Decimal?    @db.Decimal(5,2)
   talla_cm              Decimal?    @db.Decimal(5,2)
   imc                   Decimal?    @db.Decimal(5,2)
@@ -169,8 +171,10 @@ model SignoVital {
   creado_en             DateTime    @default(now()) @db.Timestamptz(6)
   
   // Relaciones
-  consulta              ConsultaMedica @relation(fields: [consulta_id], references: [id], onDelete: Cascade, map: "fk_signo_consulta")
+  historia              HistoriaClinica? @relation(fields: [historia_clinica_id], references: [id], onDelete: Cascade, map: "fk_signo_historia")
+  consulta              ConsultaMedica?  @relation(fields: [consulta_id], references: [id], onDelete: Cascade, map: "fk_signo_consulta")
   
+  @@index([historia_clinica_id], map: "idx_signo_historia_id")
   @@index([consulta_id], map: "idx_signo_consulta_id")
   @@index([fecha_registro], map: "idx_signo_fecha")
   @@map("signos_vitales")

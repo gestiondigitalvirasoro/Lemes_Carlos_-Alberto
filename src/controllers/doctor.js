@@ -369,47 +369,107 @@ export const registrarSignosVitales = async (req, res) => {
       observaciones
     } = req.body;
 
-    // Calcular IMC
-    const talla_m = talla / 100; // Convertir cm a metros
-    const imc = talla ? (peso / (talla_m * talla_m)).toFixed(2) : null;
+    console.log('📊 Datos recibidos:', req.body);
 
-    // Guardar signos vitales en base de datos
-    const signosVitales = await prisma.signoVital.create({
-      data: {
-        historia_clinica_id: BigInt(historia_clinica_id),
-        peso_kg: parseFloat(peso),
-        talla_cm: parseFloat(talla),
-        imc: parseFloat(imc),
-        presion_sistolica: parseInt(presion_sistolica),
-        presion_diastolica: parseInt(presion_diastolica),
-        frecuencia_cardiaca: parseInt(frecuencia_cardiaca),
-        temperatura_c: parseFloat(temperatura),
-        glucemia_mg_dl: parseInt(glucemia),
-        circunferencia_abd: circunferencia_abdominal ? parseFloat(circunferencia_abdominal) : null,
-        observaciones
-      }
+    // Validar que exista historia_clinica_id
+    if (!historia_clinica_id) {
+      return res.status(400).json({
+        error: 'Bad request',
+        message: 'Se requiere historia_clinica_id'
+      });
+    }
+
+    // Validar y convertir datos de forma segura
+    const peso_kg = peso ? parseFloat(peso) : null;
+    const talla_cm = talla ? parseFloat(talla) : null;
+    const presion_sist = presion_sistolica ? parseInt(presion_sistolica) : null;
+    const presion_diast = presion_diastolica ? parseInt(presion_diastolica) : null;
+    const frec_cardiaca = frecuencia_cardiaca ? parseInt(frecuencia_cardiaca) : null;
+    const temp = temperatura ? parseFloat(temperatura) : null;
+    const glucem = glucemia ? parseInt(glucemia) : null;
+
+    // Calcular IMC si hay peso y talla
+    let imc = null;
+    if (peso_kg && talla_cm && talla_cm > 0) {
+      const talla_m = talla_cm / 100;
+      imc = parseFloat((peso_kg / (talla_m * talla_m)).toFixed(2));
+    }
+
+    console.log('✅ Datos convertidos:', {
+      historia_clinica_id,
+      peso_kg,
+      talla_cm,
+      imc,
+      presion_sistolica: presion_sist,
+      presion_diastolica: presion_diast,
+      frecuencia_cardiaca: frec_cardiaca,
+      temperatura_c: temp,
+      glucemia_mg_dl: glucem
     });
+
+    // Verificar si ya existen signos vitales para esta historia
+    const signoExistente = await prisma.signoVital.findFirst({
+      where: { historia_clinica_id: BigInt(historia_clinica_id) }
+    });
+
+    let signosVitales;
+    if (signoExistente) {
+      console.log('📝 Actualizando signos vitales existentes...');
+      signosVitales = await prisma.signoVital.update({
+        where: { id: signoExistente.id },
+        data: {
+          peso_kg,
+          talla_cm,
+          imc,
+          presion_sistolica: presion_sist,
+          presion_diastolica: presion_diast,
+          frecuencia_cardiaca: frec_cardiaca,
+          temperatura_c: temp,
+          glucemia_mg_dl: glucem,
+          circunferencia_abd_cm: circunferencia_abdominal ? parseFloat(circunferencia_abdominal) : null
+        }
+      });
+    } else {
+      console.log('➕ Creando nuevos signos vitales...');
+      // Guardar signos vitales en base de datos
+      signosVitales = await prisma.signoVital.create({
+        data: {
+          historia_clinica_id: BigInt(historia_clinica_id),
+          peso_kg,
+          talla_cm,
+          imc,
+          presion_sistolica: presion_sist,
+          presion_diastolica: presion_diast,
+          frecuencia_cardiaca: frec_cardiaca,
+          temperatura_c: temp,
+          glucemia_mg_dl: glucem,
+          circunferencia_abd_cm: circunferencia_abdominal ? parseFloat(circunferencia_abdominal) : null
+        }
+      });
+    }
+
+    console.log('✅ Signos vitales guardados:', signosVitales);
 
     return res.status(201).json({
       success: true,
-      message: 'Signos vitales registrados correctamente',
+      message: signoExistente ? 'Signos vitales actualizados correctamente' : 'Signos vitales registrados correctamente',
       data: {
-        id: signosVitales.id,
-        peso,
-        talla,
+        id: signosVitales.id.toString(),
+        peso: peso_kg,
+        talla: talla_cm,
         imc,
-        presion: `${presion_sistolica}/${presion_diastolica}`,
-        frecuencia_cardiaca,
-        temperatura,
-        glucemia,
-        circunferencia_abdominal
+        presion: presion_sist && presion_diast ? `${presion_sist}/${presion_diast}` : 'N/A',
+        frecuencia_cardiaca: frec_cardiaca,
+        temperatura: temp,
+        glucemia: glucem
       }
     });
   } catch (error) {
-    console.error('Error en registrarSignosVitales:', error);
+    console.error('❌ Error en registrarSignosVitales:', error);
     return res.status(500).json({
       error: 'Internal server error',
-      message: 'Error al registrar signos vitales'
+      message: 'Error al registrar signos vitales',
+      details: error.message
     });
   }
 };
