@@ -1151,7 +1151,7 @@ app.get('/api/alertas-clinicas', requireAuth, async (req, res) => {
         }
       },
       include: {
-        historia_clinica: {
+        historia: {
           include: {
             paciente: {
               include: {
@@ -1166,11 +1166,11 @@ app.get('/api/alertas-clinicas', requireAuth, async (req, res) => {
     });
 
     glucemiaAlta.forEach(sv => {
-      if (sv.historia_clinica?.paciente) {
+      if (sv.historia?.paciente) {
         alertas.push({
           tipo: 'glucemia',
           titulo: '🔴 Glucemia Alta',
-          paciente: `${sv.historia_clinica.paciente.persona.nombre} ${sv.historia_clinica.paciente.persona.apellido}`,
+          paciente: `${sv.historia.paciente.persona.nombre} ${sv.historia.paciente.persona.apellido}`,
           valor: `${sv.glucemia_mg_dl} mg/dL`,
           color: '#DC3545',
           fecha: sv.fecha_registro
@@ -1186,7 +1186,7 @@ app.get('/api/alertas-clinicas', requireAuth, async (req, res) => {
         }
       },
       include: {
-        historia_clinica: {
+        historia: {
           include: {
             paciente: {
               include: {
@@ -1201,11 +1201,11 @@ app.get('/api/alertas-clinicas', requireAuth, async (req, res) => {
     });
 
     imcAlto.forEach(sv => {
-      if (sv.historia_clinica?.paciente) {
+      if (sv.historia?.paciente) {
         alertas.push({
           tipo: 'imc',
           titulo: '⚠️ IMC Elevado',
-          paciente: `${sv.historia_clinica.paciente.persona.nombre} ${sv.historia_clinica.paciente.persona.apellido}`,
+          paciente: `${sv.historia.paciente.persona.nombre} ${sv.historia.paciente.persona.apellido}`,
           valor: `IMC: ${sv.imc.toFixed(1)}`,
           color: '#FFC107',
           fecha: sv.fecha_registro
