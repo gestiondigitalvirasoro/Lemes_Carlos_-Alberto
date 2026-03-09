@@ -471,17 +471,9 @@ export const registrarDiagnostico = async (req, res) => {
     const { historia_id } = req.params;
     const { codigo_cie10, descripcion, principal } = req.body;
 
-    // Obtener la historia clínica y su consulta más reciente
+    // Obtener la historia clínica
     const historia = await prisma.historiaClinica.findUnique({
-      where: { id: BigInt(historia_id) },
-      select: { 
-        id: true,
-        consultas: {
-          select: { id: true },
-          orderBy: { fecha: 'desc' },
-          take: 1
-        }
-      }
+      where: { id: BigInt(historia_id) }
     });
 
     if (!historia) {
@@ -491,30 +483,21 @@ export const registrarDiagnostico = async (req, res) => {
       });
     }
 
-    if (!historia.consultas || historia.consultas.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No hay consultasregistradas para esta historia'
-      });
-    }
-
-    const consultaId = historia.consultas[0].id;
-
-    // Si es principal, desmarcar otros diagnósticos como principal
+    // Si es principal, desmarcar otros diagnósticos como principal en ESTA historia
     if (principal) {
       await prisma.diagnostico.updateMany({
         where: {
-          consulta_id: consultaId,
+          historia_clinica_id: BigInt(historia_id),
           principal: true
         },
         data: { principal: false }
       });
     }
 
-    // Crear el diagnóstico
+    // Crear el diagnóstico vinculado directamente a la historia
     const diagnostico = await prisma.diagnostico.create({
       data: {
-        consulta_id: consultaId,
+        historia_clinica_id: BigInt(historia_id),
         codigo_cie10: codigo_cie10.toUpperCase(),
         descripcion: descripcion.charAt(0).toUpperCase() + descripcion.slice(1),
         principal: principal || false
