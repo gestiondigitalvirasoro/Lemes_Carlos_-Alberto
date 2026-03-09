@@ -794,7 +794,7 @@ export const obtenerTurnosDePaciente = async (req, res) => {
           select: { id: true, nombre: true, apellido: true, dni: true, email: true, telefono: true }
         },
         historias_clinicas: {
-          select: { id: true, numero_historia: true, fecha_apertura: true },
+          select: { id: true, fecha_apertura: true, activa: true },
           take: 1 // Obtener solo la primera historia clínica
         }
       }
@@ -856,8 +856,8 @@ export const obtenerTurnosDePaciente = async (req, res) => {
         },
         historia_clinica: paciente.historias_clinicas && paciente.historias_clinicas[0] ? {
           id: paciente.historias_clinicas[0].id.toString(),
-          numero_historia: paciente.historias_clinicas[0].numero_historia,
-          fecha_apertura: paciente.historias_clinicas[0].fecha_apertura
+          fecha_apertura: paciente.historias_clinicas[0].fecha_apertura,
+          activa: paciente.historias_clinicas[0].activa
         } : null
       },
       turnos: turnos.map(t => {
