@@ -669,6 +669,202 @@ export const obtenerConsultaActiva = async (req, res) => {
   }
 };
 
+// ============================================================================
+// CONTROLLER: OBTENER TURNOS DE UNA PERSONA
+// ============================================================================
+export const obtenerTurnosDePersona = async (req, res) => {
+  try {
+    const { persona_id } = req.params;
+    const { skip = 0, take = 50, estado } = req.query;
+
+    // Verificar que la persona existe
+    const persona = await prisma.persona.findUnique({
+      where: { id: BigInt(persona_id) }
+    });
+
+    if (!persona) {
+      return res.status(404).json({
+        error: 'Not found',
+        message: 'Persona no encontrada'
+      });
+    }
+
+    const where = {
+      persona_id: BigInt(persona_id),
+      ...(estado && { estado })
+    };
+
+    const [turnos, total] = await Promise.all([
+      prisma.turno.findMany({
+        where,
+        skip: parseInt(skip),
+        take: parseInt(take),
+        orderBy: [{ fecha: 'desc' }, { hora: 'desc' }],
+        include: {
+          persona: {
+            select: { id: true, nombre: true, apellido: true, dni: true, email: true, telefono: true }
+          },
+          medico: {
+            select: { id: true, nombre: true, apellido: true, especialidad: true }
+          }
+        }
+      }),
+      prisma.turno.count({ where })
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      persona: {
+        id: persona.id.toString(),
+        nombre: persona.nombre,
+        apellido: persona.apellido,
+        dni: persona.dni,
+        email: persona.email,
+        telefono: persona.telefono
+      },
+      data: turnos.map(t => ({
+        ...t,
+        id: t.id.toString(),
+        persona_id: t.persona_id.toString(),
+        medico_id: t.medico_id.toString(),
+        persona: {
+          ...t.persona,
+          id: t.persona.id.toString()
+        },
+        medico: {
+          ...t.medico,
+          id: t.medico.id.toString()
+        }
+      })),
+      pagination: {
+        total,
+        skip: parseInt(skip),
+        take: parseInt(take),
+        pages: Math.ceil(total / parseInt(take))
+      }
+    });
+  } catch (error) {
+    console.error('Error al obtener turnos de la persona:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: 'Error al obtener los turnos de la persona'
+    });
+  }
+};
+
+// ============================================================================
+// CONTROLLER: OBTENER TURNOS DE UN PACIENTE
+// ============================================================================
+export const obtenerTurnosDePaciente = async (req, res) => {
+  try {
+    const { paciente_id } = req.params;
+    const { skip = 0, take = 50, estado } = req.query;
+
+    // Obtener paciente con relaciones
+    const paciente = await prisma.paciente.findUnique({
+      where: { id: BigInt(paciente_id) },
+      include: {
+        persona: {
+          select: { id: true, nombre: true, apellido: true, dni: true, email: true, telefono: true }
+        },
+        historia_clinica: {
+          select: { id: true, numero_historia: true, fecha_apertura: true }
+        }
+      }
+    });
+
+    if (!paciente) {
+      return res.status(404).json({
+        error: 'Not found',
+        message: 'Paciente no encontrado'
+      });
+    }
+
+    // Obtener turnos vinculados a través de la persona
+    const where = {
+      persona_id: paciente.persona_id,
+      ...(estado && { estado })
+    };
+
+    const [turnos, total] = await Promise.all([
+      prisma.turno.findMany({
+        where,
+        skip: parseInt(skip),
+        take: parseInt(take),
+        orderBy: [{ fecha: 'desc' }, { hora: 'desc' }],
+        include: {
+          persona: {
+            select: { id: true, nombre: true, apellido: true, dni: true, email: true, telefono: true }
+          },
+          medico: {
+            select: { id: true, nombre: true, apellido: true, especialidad: true }
+          }
+        }
+      }),
+      prisma.turno.count({ where })
+    ]);
+
+    // Obtener consultas asociadas a estos turnos
+    const turnoIds = turnos.map(t => t.id);
+    const consultas = await prisma.consultaMedica.findMany({
+      where: { turno_id: { in: turnoIds } },
+      select: { turno_id: true, id: true, estado: true }
+    });
+
+    const consultasPorTurno = new Map(
+      consultas.map(c => [c.turno_id.toString(), c])
+    );
+
+    return res.status(200).json({
+      success: true,
+      paciente: {
+        id: paciente.id.toString(),
+        persona: {
+          id: paciente.persona.id.toString(),
+          nombre: paciente.persona.nombre,
+          apellido: paciente.persona.apellido,
+          dni: paciente.persona.dni,
+          email: paciente.persona.email,
+          telefono: paciente.persona.telefono
+        },
+        historia_clinica: paciente.historia_clinica ? {
+          id: paciente.historia_clinica.id.toString(),
+          numero_historia: paciente.historia_clinica.numero_historia,
+          fecha_apertura: paciente.historia_clinica.fecha_apertura
+        } : null
+      },
+      turnos: turnos.map(t => ({
+        ...t,
+        id: t.id.toString(),
+        persona_id: t.persona_id.toString(),
+        medico_id: t.medico_id.toString(),
+        fecha: t.fecha.toISOString().split('T')[0],
+        persona: {
+          ...t.persona,
+          id: t.persona.id.toString()
+        },
+        medico: {
+          ...t.medico,
+          id: t.medico.id.toString()
+        },
+        consulta: consultasPorTurno.get(t.id.toString()) || null
+      })),
+      pagination: {
+        total,
+        skip: parseInt(skip),
+        take: parseInt(take),
+        pages: Math.ceil(total / parseInt(take))
+      }
+    });
+  } catch (error) {
+    console.error('Error al obtener turnos del paciente:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: 'Error al obtener los turnos del paciente'
+    });
+  }
+};
+
 export default {
   crearTurno,
   obtenerTurnos,
@@ -677,5 +873,7 @@ export default {
   obtenerTurno,
   eliminarTurno,
   obtenerTurnosAgenda,
-  obtenerConsultaActiva
+  obtenerConsultaActiva,
+  obtenerTurnosDePersona,
+  obtenerTurnosDePaciente
 };

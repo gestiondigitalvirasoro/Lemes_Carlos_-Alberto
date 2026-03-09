@@ -10,7 +10,9 @@ import {
   obtenerTurno,
   eliminarTurno,
   obtenerTurnosAgenda,
-  obtenerConsultaActiva
+  obtenerConsultaActiva,
+  obtenerTurnosDePersona,
+  obtenerTurnosDePaciente
 } from '../controllers/turnos.js';
 
 const router = express.Router();
@@ -121,6 +123,34 @@ router.get(
   '/dashboard',
   authMiddleware,
   obtenerTurnosAgenda
+);
+
+/**
+ * GET /api/turnos/persona/:persona_id
+ * Obtener todos los turnos de una persona
+ * Query params: skip, take, estado
+ * Roles: doctor, secretaria, admin
+ */
+router.get(
+  '/persona/:persona_id',
+  authMiddleware,
+  checkPermission('turnos', 'read'),
+  param('persona_id').isNumeric().withMessage('ID de la persona debe ser un número válido'),
+  obtenerTurnosDePersona
+);
+
+/**
+ * GET /api/turnos/paciente/:paciente_id
+ * Obtener todos los turnos de un paciente (con historia clínica)
+ * Query params: skip, take, estado
+ * Roles: doctor, secretaria, admin
+ */
+router.get(
+  '/paciente/:paciente_id',
+  authMiddleware,
+  checkPermission('turnos', 'read'),
+  param('paciente_id').isNumeric().withMessage('ID del paciente debe ser un número válido'),
+  obtenerTurnosDePaciente
 );
 
 /**
