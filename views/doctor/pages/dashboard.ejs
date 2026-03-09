@@ -558,7 +558,7 @@ async function cargarDashboard() {
               <p class="text-muted mb-0"><strong>📅 ${sp.fecha} </strong>&nbsp; <strong>🕒 ${sp.hora}</strong></p>
             </div>
             <div class="col-auto">
-              <span class="badge bg-primary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">${sp.estado}</span>
+              <span class="badge bg-primary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">${sp.estado && sp.estado.nombre ? sp.estado.nombre : 'SIN ESTADO'}</span>
             </div>
           </div>
           
@@ -601,7 +601,7 @@ async function cargarDashboard() {
           
           <hr class="my-3">
           
-          <button class="btn btn-clinic-primary btn-sm w-100" onclick="abrirPaciente(${sp.paciente.id}, '${sp.paciente.nombre}')">
+          <button class="btn btn-clinic-primary btn-sm w-100" onclick="abrirHistoria(${sp.paciente.id}, '${sp.paciente.nombre}')">
             <i class="bi bi-folder-open"></i> Abrir Historia Clínica
           </button>
         </div>
@@ -612,18 +612,77 @@ async function cargarDashboard() {
 
     // Agenda del día
     if (data.agenda && data.agenda.length > 0) {
-      const agenda = data.agenda.map(t => `
-        <div class="border-bottom p-3" style="cursor: pointer;" onclick="abrirPaciente(${t.paciente.id}, '${t.paciente.usuario.nombre}')">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="mb-1">${t.paciente.usuario.nombre} ${t.paciente.usuario.apellido}</h6>
-              <small class="text-muted">${new Date(t.fecha_hora).toLocaleTimeString('es-AR')}</small>
-            </div>
-            <span class="status-badge status-${t.estado}">${t.estado.toUpperCase()}</span>
-          </div>
+      const estadoColores = {
+        'PENDIENTE': '#FFC107',
+        'CONFIRMADO': '#007BFF',
+        'EN_CONSULTA': '#28A745',
+        'COMPLETA': '#6C757D',
+        'CANCELADA': '#DC3545',
+        'NO_PRESENTADO': '#FF6B6B'
+      };
+
+      const agenda = `
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 12%;">Hora</th>
+                <th style="width: 25%;">Paciente</th>
+                <th style="width: 15%;">Estado</th>
+                <th style="width: 25%;">Consulta</th>
+                <th style="width: 23%;">Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.agenda.map(t => `
+                <tr style="vertical-align: middle;">
+                  <td><strong>${t.hora || '-'}</strong></td>
+                  <td>
+                    <strong>${t.paciente.nombre || '-'} ${t.paciente.apellido || '-'}</strong><br/>
+                    <small class="text-muted">DNI: ${t.paciente.dni || '-'}</small>
+                  </td>
+                  <td>
+                    <span class="badge" style="background-color: ${estadoColores[t.estado?.nombre] || '#007BFF'}; padding: 0.5rem;">
+                      ${t.estado?.nombre || 'SIN ESTADO'}
+                    </span>
+                  </td>
+                  <td>
+                    ${t.consulta ? `
+                      <small class="text-muted">
+                        <i class="bi bi-check-circle"></i> ${t.consulta.estado?.nombre || 'SIN ESTADO'}<br/>
+                        ${t.consulta.motivo || '-'}
+                      </small>
+                    ` : `
+                      <small class="text-muted text-secondary">
+                        <i class="bi bi-dash-circle"></i> Sin consulta
+                      </small>
+                    `}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                      ${!t.consulta ? `
+                        <button class="btn btn-success btn-sm" onclick="iniciarConsultaTurno(${t.id}, ${t.paciente.id}, '${t.paciente.nombre}')" title="Iniciar consulta">
+                          <i class="bi bi-play-circle"></i> Iniciar
+                        </button>
+                      ` : `
+                        <button class="btn btn-info btn-sm" onclick="abrirHistoria(${t.paciente.id}, '${t.paciente.nombre}')" title="Ver historia clínica">
+                          <i class="bi bi-file-earmark-medical"></i> Consulta
+                        </button>
+                      `}
+                      <button class="btn btn-outline-danger btn-sm" onclick="cambiarEstadoTurno(${t.id}, 'CANCELADA')" title="Cancelar turno">
+                        <i class="bi bi-x-circle"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
         </div>
-      `).join('');
+      `;
       document.getElementById('agendaDiv').innerHTML = agenda;
+    } else {
+      document.getElementById('agendaDiv').innerHTML = '<div class="text-center py-4 text-muted"><p><i class="bi bi-calendar-x" style="font-size: 2rem;"></i></p><p>No hay turnos hoy</p></div>';
     }
   } catch (error) {
     console.error('Error:', error);
@@ -633,6 +692,11 @@ async function cargarDashboard() {
 
 async function cambiarEstadoTurno(turnoId, nuevoEstado) {
   if (!nuevoEstado) return;
+  
+  // Confirmar si es cancelación
+  if (nuevoEstado === 'CANCELADA') {
+    if (!confirm('¿Está seguro de que desea cancelar este turno?')) return;
+  }
   
   try {
     const response = await fetch(`/api/turno/${turnoId}/estado`, {
@@ -644,18 +708,54 @@ async function cambiarEstadoTurno(turnoId, nuevoEstado) {
       body: JSON.stringify({ estado: nuevoEstado })
     });
 
-    if (!response.ok) throw new Error('Error al cambiar el estado');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Error al cambiar el estado');
+    }
     
-    alert('Estado actualizado correctamente');
-    // Recargar el dashboard
+    // Recargar dashboard
     cargarDashboard();
   } catch (error) {
     console.error('Error:', error);
-    alert('Error al cambiar el estado del turno');
+    alert('Error al cambiar el estado: ' + error.message);
   }
 }
 
-async function abrirPaciente(pacienteId, nombre) {
+async function iniciarConsultaTurno(turnoId, pacienteId, nombrePaciente) {
+  try {
+    console.log('Iniciando consulta para turno:', turnoId, 'paciente:', pacienteId);
+    
+    // Crear la consulta médica (esto también debería cambiar el estado del turno a EN_CONSULTA)
+    const response = await fetch('/api/consultas-medicas', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      },
+      body: JSON.stringify({
+        turno_id: turnoId,
+        paciente_id: pacienteId,
+        motivo_consulta: ''  // Se completará en la historia clínica
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Error al iniciar consulta');
+    }
+
+    const result = await response.json();
+    
+    // Abrir la historia clínica del paciente
+    abrirHistoria(pacienteId, nombrePaciente);
+    
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al iniciar consulta: ' + error.message);
+  }
+}
+
+async function abrirHistoria(pacienteId, nombre) {
   try {
     const response = await fetch(`/api/doctor/paciente/${pacienteId}/historia`, {
       headers: {
