@@ -43,6 +43,19 @@ export const getDashboard = async (req, res) => {
             nombre: true,
             descripcion: true
           }
+        },
+        consulta: {
+          select: {
+            id: true,
+            motivo_consulta: true,
+            estado: {
+              select: {
+                id: true,
+                nombre: true,
+                descripcion: true
+              }
+            }
+          }
         }
       },
       orderBy: [{ fecha: 'asc' }, { hora: 'asc' }]
@@ -140,7 +153,16 @@ export const getDashboard = async (req, res) => {
           apellido: t.paciente.persona.apellido,
           dni: t.paciente.persona.dni,
           telefono: t.paciente.persona.telefono
-        }
+        },
+        consulta: t.consulta ? {
+          id: t.consulta.id.toString(),
+          motivo: t.consulta.motivo_consulta,
+          estado: {
+            id: t.consulta.estado.id.toString(),
+            nombre: t.consulta.estado.nombre,
+            descripcion: t.consulta.estado.descripcion
+          }
+        } : null
       }))
     };
 
