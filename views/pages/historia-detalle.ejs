@@ -522,6 +522,7 @@
                             style="width: 100%; padding: 10px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 13px;"
                             autocomplete="off"
                             onkeyup="buscarCIE10(this.value)"
+                            onfocus="mostrarDiagnosticosComunes()"
                         >
                         <div id="sugerenciasDiv" style="position: absolute; background: white; border: 1px solid #d1d5db; border-radius: 6px; width: 100%; max-height: 250px; overflow-y: auto; display: none; margin-top: 4px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
                         </div>
@@ -812,27 +813,121 @@ let codigoSeleccionado = null;
 // FUNCIONES DE DIAGNÓSTICOS
 // ============================================================================
 
+// Diagnósticos más comunes para mostrar por defecto
+const diagnosticosComunes = [
+    { codigo: 'J06.9', descripcion: 'Infección aguda de las vías respiratorias superiores, no especificada' },
+    { codigo: 'I10', descripcion: 'Hipertensión esencial (primaria)' },
+    { codigo: 'E11.9', descripcion: 'Diabetes mellitus tipo 2 sin complicaciones' },
+    { codigo: 'J45.9', descripcion: 'Asma, no especificada' },
+    { codigo: 'M79.3', descripcion: 'Dolor muscular, no especificado' },
+    { codigo: 'K21.9', descripcion: 'Enfermedad por reflujo gastroesofágico sin esofagitis' },
+    { codigo: 'F32.9', descripcion: 'Episodio depresivo, no especificado' },
+    { codigo: 'E78.5', descripcion: 'Hiperlipidemia, no especificada' },
+    { codigo: 'N39.0', descripcion: 'Infección del tracto urinario, sitio no especificado' },
+    { codigo: 'K29.9', descripcion: 'Gastritis, no especificada' }
+];
+
+function mostrarDiagnosticosComunes() {
+    const buscarInput = document.getElementById('buscarCIE10');
+    const sugerenciasDiv = document.getElementById('sugerenciasDiv');
+    
+    if (!sugerenciasDiv) return;
+    
+    // Si el campo está vacío, mostrar diagnósticos comunes
+    if (!buscarInput.value.trim()) {
+        sugerenciasDiv.innerHTML = diagnosticosComunes.map(item => `
+            <div class="sugerencia-cie10" data-codigo="${item.codigo}" data-descripcion="${item.descripcion}"
+                 style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; cursor: pointer; transition: all 0.2s;">
+                <div style="font-weight: 600; color: #3b82f6; font-size: 13px;">${item.codigo}</div>
+                <div style="font-size: 12px; color: #666; margin-top: 2px;">${item.descripcion}</div>
+            </div>
+        `).join('');
+        
+        sugerenciasDiv.style.display = 'block';
+        
+        // Agregar event listeners
+        sugerenciasDiv.querySelectorAll('.sugerencia-cie10').forEach(el => {
+            el.addEventListener('click', (e) => {
+                const codigo = e.currentTarget.getAttribute('data-codigo');
+                const descripcion = e.currentTarget.getAttribute('data-descripcion');
+                seleccionarCIE10(codigo, descripcion);
+            });
+            
+            el.addEventListener('mouseover', (e) => {
+                e.currentTarget.style.background = '#f3f4f6';
+            });
+            el.addEventListener('mouseout', (e) => {
+                e.currentTarget.style.background = 'white';
+            });
+        });
+    }
+}
+
 async function buscarCIE10(termino) {
+    const sugerenciasDiv = document.getElementById('sugerenciasDiv');
+    
     if (!termino || termino.length < 2) {
-        const sugerenciasDiv = document.getElementById('sugerenciasDiv');
-        if (sugerenciasDiv) sugerenciasDiv.style.display = 'none';
+        // Si está vacío, mostrar diagnósticos comunes
+        if (termino.length === 0) {
+            mostrarDiagnosticosComunes();
+        } else {
+            if (sugerenciasDiv) sugerenciasDiv.style.display = 'none';
+        }
         return;
     }
     
     console.log('🔍 Buscando CIE-10:', termino);
     
+    // Primero buscar en diagnósticos comunes
+    const terminoBusqueda = termino.toLowerCase();
+    const resultadosComunes = diagnosticosComunes.filter(item => 
+        item.codigo.toLowerCase().includes(terminoBusqueda) || 
+        item.descripcion.toLowerCase().includes(terminoBusqueda)
+    );
+    
+    if (resultadosComunes.length > 0) {
+        console.log('✅ Se encontraron', resultadosComunes.length, 'resultados en diagnósticos comunes');
+        
+        sugerenciasDiv.innerHTML = resultadosComunes.map((item, idx) => `
+            <div class="sugerencia-cie10" data-codigo="${item.codigo}" data-descripcion="${item.descripcion}"
+                 style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; cursor: pointer; transition: all 0.2s;">
+                <div style="font-weight: 600; color: #3b82f6; font-size: 13px;">${item.codigo}</div>
+                <div style="font-size: 12px; color: #666; margin-top: 2px;">${item.descripcion}</div>
+            </div>
+        `).join('');
+        
+        sugerenciasDiv.style.display = 'block';
+        
+        // Agregar event listeners
+        sugerenciasDiv.querySelectorAll('.sugerencia-cie10').forEach(el => {
+            el.addEventListener('click', (e) => {
+                const codigo = e.currentTarget.getAttribute('data-codigo');
+                const descripcion = e.currentTarget.getAttribute('data-descripcion');
+                seleccionarCIE10(codigo, descripcion);
+            });
+            
+            el.addEventListener('mouseover', (e) => {
+                e.currentTarget.style.background = '#f3f4f6';
+            });
+            el.addEventListener('mouseout', (e) => {
+                e.currentTarget.style.background = 'white';
+            });
+        });
+        return; // No buscar en API si ya encontramos en comunes
+    }
+    
+    // Si no hay resultados en comunes, buscar en API
     try {
         const response = await fetch(`/api/cie10?search=${encodeURIComponent(termino)}&limit=15`);
         const result = await response.json();
         
-        const sugerenciasDiv = document.getElementById('sugerenciasDiv');
         if (!sugerenciasDiv) {
             console.error('❌ No se encontró el div de sugerencias');
             return;
         }
         
         if (result.data && result.data.length > 0) {
-            console.log('✅ Se encontraron', result.data.length, 'resultados');
+            console.log('✅ Se encontraron', result.data.length, 'resultados en API CIE-10');
             
             // Crear HTML de sugerencias
             sugerenciasDiv.innerHTML = result.data.map((item, idx) => `
@@ -845,7 +940,7 @@ async function buscarCIE10(termino) {
             
             sugerenciasDiv.style.display = 'block';
             
-            // Agregar event listeners a las sugerencias usando event delegation
+            // Agregar event listeners a las sugerencias
             sugerenciasDiv.querySelectorAll('.sugerencia-cie10').forEach(el => {
                 el.addEventListener('click', (e) => {
                     const codigo = e.currentTarget.getAttribute('data-codigo');
