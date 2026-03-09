@@ -12,6 +12,7 @@
     "prisma:push": "prisma db push",
     "prisma:reset": "prisma migrate reset --force",
     "prisma:studio": "prisma studio",
+    "prisma:seed": "node prisma/seed.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
