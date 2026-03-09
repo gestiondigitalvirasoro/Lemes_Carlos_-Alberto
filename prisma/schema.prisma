@@ -111,6 +111,8 @@ model HistoriaClinica {
   antecedentes          Antecedente[]
   documentos            DocumentoAdjunto[]
   signos_vitales        SignoVital[]
+  diagnosticos          Diagnostico[]
+  estudios              EstudioComplementario[]
   
   @@unique([paciente_id])
   @@index([paciente_id], map: "idx_historia_paciente_id")
@@ -239,11 +241,12 @@ model CIE10 {
   @@map("cie10_codigos")
 }
 
-// 🔟 DIAGNOSTICOS - Diagnósticos de cada consulta
+// 🔟 DIAGNOSTICOS - Diagnósticos de la Historia Clínica
 // ============================================================================
 model Diagnostico {
   id                    BigInt      @id @default(autoincrement())
-  consulta_id           BigInt
+  historia_clinica_id   BigInt
+  consulta_id           BigInt?
   codigo_cie10          String?     @db.VarChar(10)
   descripcion           String
   principal             Boolean     @default(false)
@@ -251,8 +254,10 @@ model Diagnostico {
   creado_en             DateTime    @default(now()) @db.Timestamptz(6)
   
   // Relaciones
-  consulta              ConsultaMedica @relation(fields: [consulta_id], references: [id], onDelete: Cascade, map: "fk_diagnostico_consulta")
+  historia              HistoriaClinica @relation(fields: [historia_clinica_id], references: [id], onDelete: Cascade, map: "fk_diagnostico_historia")
+  consulta              ConsultaMedica? @relation(fields: [consulta_id], references: [id], onDelete: SetNull, map: "fk_diagnostico_consulta")
   
+  @@index([historia_clinica_id], map: "idx_diagnostico_historia_id")
   @@index([consulta_id], map: "idx_diagnostico_consulta_id")
   @@index([codigo_cie10], map: "idx_diagnostico_cie10")
   @@index([principal], map: "idx_diagnostico_principal")
@@ -288,7 +293,8 @@ model Tratamiento {
 // ============================================================================
 model EstudioComplementario {
   id                    BigInt      @id @default(autoincrement())
-  consulta_id           BigInt
+  historia_clinica_id   BigInt
+  consulta_id           BigInt?
   tipo_estudio          String      @db.VarChar(100)
   resultado             String?
   observaciones         String?
@@ -298,10 +304,12 @@ model EstudioComplementario {
   actualizado_en        DateTime    @updatedAt @db.Timestamptz(6)
   
   // Relaciones
-  consulta              ConsultaMedica @relation(fields: [consulta_id], references: [id], onDelete: Cascade, map: "fk_estudio_consulta")
+  historia              HistoriaClinica @relation(fields: [historia_clinica_id], references: [id], onDelete: Cascade, map: "fk_estudio_historia")
+  consulta              ConsultaMedica? @relation(fields: [consulta_id], references: [id], onDelete: SetNull, map: "fk_estudio_consulta")
   medico                Usuario        @relation("MedicoSolicitaEstudio", fields: [medico_id], references: [id], map: "fk_estudio_medico")
   documentos            DocumentoAdjunto[]
   
+  @@index([historia_clinica_id], map: "idx_estudio_historia_id")
   @@index([consulta_id], map: "idx_estudio_consulta_id")
   @@index([tipo_estudio], map: "idx_estudio_tipo")
   @@index([fecha_estudio], map: "idx_estudio_fecha")
