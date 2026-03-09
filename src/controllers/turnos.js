@@ -734,20 +734,34 @@ export const obtenerTurnosDePersona = async (req, res) => {
         email: persona.email,
         telefono: persona.telefono
       },
-      data: turnos.map(t => ({
-        ...t,
-        id: t.id.toString(),
-        persona_id: t.persona_id.toString(),
-        medico_id: t.medico_id.toString(),
-        persona: {
-          ...t.persona,
-          id: t.persona.id.toString()
-        },
-        medico: {
-          ...t.medico,
-          id: t.medico.id.toString()
-        }
-      })),
+      data: turnos.map(t => {
+        const turnoObj = {
+          id: t.id.toString(),
+          persona_id: t.persona_id.toString(),
+          medico_id: t.medico_id.toString(),
+          fecha: t.fecha,
+          hora: t.hora,
+          estado: t.estado,
+          observaciones: t.observaciones,
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+          persona: {
+            id: t.persona.id.toString(),
+            nombre: t.persona.nombre,
+            apellido: t.persona.apellido,
+            dni: t.persona.dni,
+            email: t.persona.email,
+            telefono: t.persona.telefono
+          },
+          medico: {
+            id: t.medico.id.toString(),
+            nombre: t.medico.nombre,
+            apellido: t.medico.apellido,
+            especialidad: t.medico.especialidad
+          }
+        };
+        return turnoObj;
+      }),
       pagination: {
         total,
         skip: parseInt(skip),
@@ -845,22 +859,35 @@ export const obtenerTurnosDePaciente = async (req, res) => {
           fecha_apertura: paciente.historia_clinica.fecha_apertura
         } : null
       },
-      turnos: turnos.map(t => ({
-        ...t,
-        id: t.id.toString(),
-        persona_id: t.persona_id.toString(),
-        medico_id: t.medico_id.toString(),
-        fecha: t.fecha.toISOString().split('T')[0],
-        persona: {
-          ...t.persona,
-          id: t.persona.id.toString()
-        },
-        medico: {
-          ...t.medico,
-          id: t.medico.id.toString()
-        },
-        consulta: consultasPorTurno.get(t.id.toString()) || null
-      })),
+      turnos: turnos.map(t => {
+        const turnoObj = {
+          id: t.id.toString(),
+          persona_id: t.persona_id.toString(),
+          medico_id: t.medico_id.toString(),
+          fecha: t.fecha.toISOString().split('T')[0],
+          hora: t.hora,
+          estado: t.estado,
+          observaciones: t.observaciones,
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+          persona: {
+            id: t.persona.id.toString(),
+            nombre: t.persona.nombre,
+            apellido: t.persona.apellido,
+            dni: t.persona.dni,
+            email: t.persona.email,
+            telefono: t.persona.telefono
+          },
+          medico: {
+            id: t.medico.id.toString(),
+            nombre: t.medico.nombre,
+            apellido: t.medico.apellido,
+            especialidad: t.medico.especialidad
+          },
+          consulta: consultasPorTurno.get(t.id.toString()) || null
+        };
+        return turnoObj;
+      }),
       pagination: {
         total,
         skip: parseInt(skip),
