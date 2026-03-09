@@ -290,14 +290,17 @@ async function main() {
 
   console.log('✅ Estudios Complementarios creados');
 
-  // 8. Crear Turnos
+  // 8. Crear Turnos (hoy con diferentes estados)
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0); // Inicio del día actual
+  
   const turno1 = await prisma.turno.create({
     data: {
       persona_id: persona1.id,
       medico_id: doctor1.id,
-      fecha: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // En 3 días
-      hora: '14:30',
-      estado: 'CONFIRMADO',
+      fecha: hoy,
+      hora: '09:00',
+      estado: 'EN_CONSULTA', // Turno activo - en consulta ahora
       creado_por_secretaria_id: secretaria.id
     }
   });
@@ -306,14 +309,25 @@ async function main() {
     data: {
       persona_id: persona2.id,
       medico_id: doctor2.id,
-      fecha: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // En 5 días
-      hora: '10:00',
-      estado: 'PENDIENTE',
+      fecha: hoy,
+      hora: '10:30',
+      estado: 'COMPLETA', // Turno terminado
       creado_por_secretaria_id: secretaria.id
     }
   });
 
-  console.log('✅ Turnos creados');
+  const turno3 = await prisma.turno.create({
+    data: {
+      persona_id: persona3.id,
+      medico_id: doctor1.id,
+      fecha: hoy,
+      hora: '14:00',
+      estado: 'CONFIRMADO', // Turno próximo confirmado
+      creado_por_secretaria_id: secretaria.id
+    }
+  });
+
+  console.log('✅ Turnos creados (3 turnos para hoy)');
 
   // 9. Crear Consultas Médicas
   const consulta1 = await prisma.consultaMedica.create({
@@ -323,8 +337,20 @@ async function main() {
       turno_id: turno1.id,
       fecha: new Date(),
       motivo_consulta: 'Control de hipertensión',
-      resumen: 'Paciente refiere buen cumplimiento del tratamiento. TA controlada.',
-      estado: 'ATENDIDA'
+      resumen: 'En consulta - Paciente refiere buen cumplimiento del tratamiento.',
+      estado: 'EN_CONSULTA' // Activa ahora
+    }
+  });
+
+  const consulta2 = await prisma.consultaMedica.create({
+    data: {
+      historia_clinica_id: historia2.id,
+      medico_id: doctor2.id,
+      turno_id: turno2.id,
+      fecha: new Date(),
+      motivo_consulta: 'Seguimiento diabetes',
+      resumen: 'Consulta completada - Paciente controlado, hemoglobina glicosilada dentro de rango.',
+      estado: 'ATENDIDA' // Terminada
     }
   });
 
@@ -339,8 +365,12 @@ async function main() {
   console.log(`  - 2 Signos Vitales creados`);
   console.log(`  - 3 Diagnósticos creados`);
   console.log(`  - 3 Estudios Complementarios creados`);
-  console.log(`  - 2 Turnos creados`);
-  console.log(`  - 1 Consulta Médica creada`);
+  console.log(`  - 3 Turnos creados (todos para HOY)`);
+  console.log(`  - 2 Consultas Médicas creadas`);
+  console.log('\n📊 Estados de Turnos:');
+  console.log(`  - Turno 1 (09:00) - EN_CONSULTA: Carlos (Activo ahora)`);
+  console.log(`  - Turno 2 (10:30) - COMPLETA: Marta (Terminado)`);
+  console.log(`  - Turno 3 (14:00) - CONFIRMADO: Pedro (Próximo)`);
   console.log('\n🔐 Datos de acceso:');
   console.log(`  Doctor: doctor@lemes.com / doctor123`);
   console.log(`  Cardióloga: cardiologo@lemes.com / doctor123`);
