@@ -3,6 +3,7 @@ import { body, param, query } from 'express-validator';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { v2 as cloudinary } from 'cloudinary';
 import { authMiddleware } from '../middlewares/auth.js';
 import roleMiddleware from '../middlewares/role.js';
 import { PrismaClient } from '@prisma/client';
@@ -16,25 +17,19 @@ import {
   eliminarDiagnostico
 } from '../controllers/historias-clinicas.js';
 
+// Configurar Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 const prisma = new PrismaClient();
 const router = express.Router();
 
-// Configurar multer para subida de archivos
-const uploadDir = 'uploads/documentos';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const timestamp = Date.now();
-    const filename = `${timestamp}-${file.originalname}`;
-    cb(null, filename);
-  }
-});
+// Configurar multer para recibir archivos en memoria (no guardar en disco)
+// Los archivos se subirán directamente a Cloudinary
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
@@ -149,7 +144,7 @@ router.delete(
 // RUTAS DE DOCUMENTOS
 // ============================================================================
 
-// POST - Subir documento
+// POST - Subir documento a Cloudinary
 router.post(
   '/:historia_id/documentos',
   roleMiddleware(['admin', 'doctor']),
@@ -162,31 +157,50 @@ router.post(
         return res.status(400).json({ success: false, message: 'No se proporcionó archivo' });
       }
 
-      // Guardar en base de datos
       // Obtener user_id del token
-      const userId = req.user?.id || 1; // fallback to 1 if not available
-      
+      const userId = req.user?.id || 1;
+
+      // Subir a Cloudinary directamente desde el buffer
+      const uploadResult = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            resource_type: 'auto',
+            public_id: `clinicalemes/documentos/${Date.now()}-${req.file.originalname.split('.')[0]}`,
+            folder: 'clinicalemes/documentos',
+            secure: true
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        stream.end(req.file.buffer);
+      });
+
+      // Guardar en base de datos con URL de Cloudinary
       const documento = await prisma.documentoAdjunto.create({
         data: {
-          historia_clinica_id: parseInt(historia_id),
+          historia_clinica_id: BigInt(historia_id),
           nombre_archivo: req.file.originalname,
           tipo_mime: req.file.mimetype,
-          tamano_bytes: req.file.size,
-          url_storage: path.join(uploadDir, req.file.filename),
-          subido_por_medico_id: userId,
+          tamano_bytes: BigInt(req.file.size),
+          url_storage: uploadResult.secure_url,
+          cloudinary_id: uploadResult.public_id,
+          subido_por_medico_id: BigInt(userId),
           fecha_subida: new Date(),
           eliminado: false
         }
       });
 
-      console.log('✅ Documento subido:', documento);
+      console.log('✅ Documento subido a Cloudinary:', documento.id);
 
       // Convertir BigInt a string para JSON
       const docResponse = {
         id: documento.id.toString(),
         nombre_archivo: documento.nombre_archivo,
-        tamaño: documento.tamano_bytes,
-        fecha_subida: documento.fecha_subida
+        tamaño: documento.tamano_bytes.toString(),
+        fecha_subida: documento.fecha_subida,
+        url: uploadResult.secure_url
       };
 
       res.json({
@@ -195,7 +209,7 @@ router.post(
         data: docResponse
       });
     } catch (error) {
-      console.error('❌ Error al subir documento:', error);
+      console.error('❌ Error al subir documento a Cloudinary:', error);
       res.status(500).json({
         success: false,
         message: 'Error al subir documento: ' + error.message
@@ -213,18 +227,16 @@ router.get(
       const { documento_id } = req.params;
 
       const documento = await prisma.documentoAdjunto.findUnique({
-        where: { id: parseInt(documento_id) }
+        where: { id: BigInt(documento_id) }
       });
 
       if (!documento) {
         return res.status(404).json({ success: false, message: 'Documento no encontrado' });
       }
 
-      if (!fs.existsSync(documento.url_storage)) {
-        return res.status(404).json({ success: false, message: 'Archivo no encontrado en servidor' });
-      }
-
-      res.download(documento.url_storage, documento.nombre_archivo);
+      // Redirigir a la URL de Cloudinary (ya es pública)
+      // O descargar directamente si prefieres
+      res.redirect(documento.url_storage);
     } catch (error) {
       console.error('❌ Error al descargar documento:', error);
       res.status(500).json({
@@ -244,21 +256,27 @@ router.delete(
       const { documento_id } = req.params;
 
       const documento = await prisma.documentoAdjunto.findUnique({
-        where: { id: parseInt(documento_id) }
+        where: { id: BigInt(documento_id) }
       });
 
       if (!documento) {
         return res.status(404).json({ success: false, message: 'Documento no encontrado' });
       }
 
-      // Eliminar archivo del servidor
-      if (fs.existsSync(documento.url_storage)) {
-        fs.unlinkSync(documento.url_storage);
+      // Eliminar de Cloudinary si existe cloudinary_id
+      if (documento.cloudinary_id) {
+        try {
+          await cloudinary.uploader.destroy(documento.cloudinary_id);
+          console.log('✅ Archivo eliminado de Cloudinary:', documento.cloudinary_id);
+        } catch (cloudinaryError) {
+          console.error('⚠️ Error al eliminar de Cloudinary:', cloudinaryError);
+          // Continuar incluso si falla en Cloudinary
+        }
       }
 
-      // Marcar como eliminado
+      // Marcar como eliminado en BD
       await prisma.documentoAdjunto.update({
-        where: { id: parseInt(documento_id) },
+        where: { id: BigInt(documento_id) },
         data: {
           eliminado: true,
           fecha_eliminacion: new Date()

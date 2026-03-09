@@ -320,6 +320,7 @@ model DocumentoAdjunto {
   tipo_mime             String      @db.VarChar(100)
   tamano_bytes          BigInt
   url_storage           String      @db.VarChar(500)
+  cloudinary_id         String?     @db.VarChar(255)
   subido_por_medico_id  BigInt
   eliminado             Boolean     @default(false)
   fecha_subida          DateTime    @default(now()) @db.Timestamptz(6)
