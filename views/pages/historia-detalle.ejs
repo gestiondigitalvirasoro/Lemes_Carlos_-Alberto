@@ -641,7 +641,7 @@
                                 <th>Resultado</th>
                                 <th>Unidad</th>
                                 <th>Referencia</th>
-                                <th id="colAccionesEstudios" style="display: none; text-align: center; width: 80px;">Acción</th>
+                                <th id="colAccionesEstudios" style="text-align: center; width: 100px;">Acción</th>
                             </tr>
                         </thead>
                         <tbody id="tbodyEstudios">
@@ -675,6 +675,11 @@
                         <label style="display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 6px;">Rango de Referencia</label>
                         <input type="text" id="rangoEstudio" placeholder="Ej: 70-100, 9-15, etc."
                                style="width: 100%; padding: 10px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 13px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 6px;">📎 Archivo (Opcional)</label>
+                        <input type="file" id="archivoEstudio" 
+                               style="width: 100%; padding: 8px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 13px;">
                     </div>
                 </div>
                 
@@ -1279,13 +1284,21 @@ function agregarEstudioTemporal() {
     const resultado = document.getElementById('resultadoEstudio')?.value.trim();
     const unidad = document.getElementById('unidadEstudio')?.value.trim();
     const rango = document.getElementById('rangoEstudio')?.value.trim();
+    const archivoInput = document.getElementById('archivoEstudio');
+    const archivo = archivoInput?.files[0];
     
     if (!nombre || !resultado) {
         alert('⚠️ Por favor completa al menos el Parámetro y el Resultado');
         return;
     }
     
-    console.log('📊 Agregando estudio:', nombre, resultado);
+    console.log('📊 Agregando estudio:', nombre, resultado, archivo ? '+ archivo' : '');
+    
+    // Si hay archivo, subirlo como documento
+    if (archivo) {
+        const nombreDocumento = `${nombre} - ${resultado}`;
+        subirDocumento(archivo, nombreDocumento);
+    }
     
     // Obtener tbody
     const tbody = document.getElementById('tbodyEstudios');
@@ -1308,8 +1321,9 @@ function agregarEstudioTemporal() {
         <td>${unidad}</td>
         <td>${rango}</td>
         <td style="text-align: center;">
+            ${archivo ? '📎' : ''}
             <button class="btn-eliminar-estudio" onclick="eliminarEstudioTemp(this)" type="button"
-                    style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+                    style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; margin-left: 4px;">
                 ✕
             </button>
         </td>
@@ -1335,6 +1349,7 @@ function agregarEstudioTemporal() {
     document.getElementById('resultadoEstudio').value = '';
     document.getElementById('unidadEstudio').value = '';
     document.getElementById('rangoEstudio').value = '';
+    document.getElementById('archivoEstudio').value = '';
     document.getElementById('nombreEstudio').focus();
     
     // Actualizar contador
@@ -1723,7 +1738,7 @@ async function eliminarDocumento(docId, nombreArchivo) {
         const response = await fetch(`/api/historias-clinicas/documentos/${docId}`, {
             method: 'DELETE',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+                'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
                 'Content-Type': 'application/json'
             }
         });
