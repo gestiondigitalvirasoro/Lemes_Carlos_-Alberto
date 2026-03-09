@@ -185,10 +185,6 @@ export const login = async (req, res) => {
     });
   }
 };
-      message: 'Error al procesar el login'
-    });
-  }
-};
 
 // ============================================================================
 // CONTROLLER: LOGOUT
