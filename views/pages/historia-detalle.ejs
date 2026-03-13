@@ -742,35 +742,44 @@
                         <h3>Estudios Complementarios <span style="background: #e7f3ff; color: #0066cc; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 8px;" id="estudiosCount"><%= (historia?.consultas?.[0]?.estudios?.length || 0) %></span></h3>
                     </div>
                     <div class="section-body">
-                        <% if (historia && historia.consultas && historia.consultas.length > 0 && historia.consultas[0].estudios?.length > 0) { %>
-                            <div style="overflow-x: auto;">
-                                <table class="table table-hover" style="margin-bottom: 0;">
-                                    <thead style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
-                                        <tr>
-                                            <th style="color: #666; font-weight: 700; padding: 12px;">TIPO ESTUDIO</th>
-                                            <th style="color: #666; font-weight: 700; padding: 12px;">RESULTADO</th>
-                                            <th style="color: #666; font-weight: 700; padding: 12px;">OBSERVACIONES</th>
-                                            <th style="color: #666; font-weight: 700; padding: 12px;">FECHA</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="estudiosTableBody">
+                        <div style="overflow-x: auto;">
+                            <table class="table table-hover" style="margin-bottom: 15px;">
+                                <thead style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                    <tr>
+                                        <th style="color: #666; font-weight: 700; padding: 12px;">TIPO ESTUDIO</th>
+                                        <th style="color: #666; font-weight: 700; padding: 12px;">RESULTADO</th>
+                                        <th style="color: #666; font-weight: 700; padding: 12px;">OBSERVACIONES</th>
+                                        <th style="color: #666; font-weight: 700; padding: 12px;">FECHA</th>
+                                        <th style="color: #666; font-weight: 700; padding: 12px; width: 50px;" id="estudiosAccionesHeader" style="display: none;">ACCIÓN</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="estudiosTableBody">
+                                    <% if (historia && historia.consultas && historia.consultas.length > 0 && historia.consultas[0].estudios?.length > 0) { %>
                                         <% historia.consultas[0].estudios?.forEach((est, idx) => { %>
-                                            <tr data-estudio-id="<%= idx %>" style="border-bottom: 1px solid #f0f0f0;">
+                                            <tr data-estudio-idx="<%= idx %>" style="border-bottom: 1px solid #f0f0f0;">
                                                 <td style="padding: 12px; color: #333; font-weight: 600;"><%= est.tipo_estudio || est.parametro || est.nombre || '-' %></td>
                                                 <td style="padding: 12px; color: #e74c3c; font-weight: 600; font-size: 14px;"><%= est.resultado || '-' %></td>
                                                 <td style="padding: 12px; color: #666;"><%= est.observaciones || '-' %></td>
                                                 <td style="padding: 12px; color: #999; font-size: 13px;"><%= est.fecha_estudio ? new Date(est.fecha_estudio).toLocaleDateString('es-AR') : '-' %></td>
+                                                <td style="padding: 12px; display: none;"></td>
                                             </tr>
                                         <% }); %>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <% } else { %>
-                            <div style="text-align: center; padding: 40px 20px; color: #999;">
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <% if (!historia?.consultas?.[0]?.estudios?.length) { %>
+                            <div id="estudiosEmpty" style="text-align: center; padding: 40px 20px; color: #999;">
                                 <i class="bi bi-flask" style="font-size: 2.5rem; display: block; margin-bottom: 12px; color: #bbb;"></i>
                                 <p style="margin: 0;">Sin estudios complementarios registrados</p>
                             </div>
                         <% } %>
+
+                        <!-- Botón Agregar Estudio (solo en modo edición) -->
+                        <button id="btnAgregarEstudio" onclick="agregarFilaEstudio()" style="background: #007bff; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; display: none; margin-top: 12px;">
+                            <i class="bi bi-plus"></i> Agregar Estudio
+                        </button>
                     </div>
                 </section>
 
@@ -866,6 +875,7 @@
                 document.getElementById('btnGuardar').style.display = 'flex';
                 document.getElementById('btnCancelar').style.display = 'flex';
                 document.getElementById('btnAgregarDiag').style.display = 'inline-block';
+                document.getElementById('btnAgregarEstudio').style.display = 'inline-block';
                 
                 // Habilitar campos
                 const inputs = document.querySelectorAll('input, textarea');
@@ -885,6 +895,50 @@
                 // Actualizar bordes del drop zone
                 dropZone.style.cursor = 'pointer';
                 dropZone.style.opacity = '1';
+
+                // Actualizar tabla de estudios: convertir a filas editables
+                const estudiosBody = document.getElementById('estudiosTableBody');
+                const estudiosRows = document.querySelectorAll('[data-estudio-idx]');
+                
+                if (estudiosRows.length === 0 && !document.getElementById('estudiosEmpty')) {
+                    // No hay filas, esto es normal
+                } else {
+                    // Hacer filas editables
+                    estudiosRows.forEach(row => {
+                        const celdas = row.querySelectorAll('td');
+                        // Convertir celdas a inputs
+                        const tipoEstudio = celdas[0].textContent.trim();
+                        const resultado = celdas[1].textContent.trim();
+                        const observaciones = celdas[2].textContent.trim();
+                        const fecha = celdas[3].textContent.trim();
+                        
+                        row.innerHTML = `
+                            <td style="padding: 8px;">
+                                <input type="text" class="estudio-tipo" value="${tipoEstudio}" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                            </td>
+                            <td style="padding: 8px;">
+                                <input type="text" class="estudio-resultado" value="${resultado}" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; color: #e74c3c; font-weight: 600;">
+                            </td>
+                            <td style="padding: 8px;">
+                                <input type="text" class="estudio-observaciones" value="${observaciones}" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                            </td>
+                            <td style="padding: 8px;">
+                                <input type="date" class="estudio-fecha" value="${convertirFechaToInput(fecha)}" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                            </td>
+                            <td style="padding: 8px;">
+                                <button onclick="eliminarFilaEstudio(this)" style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                                    <i class="bi bi-trash"></i> Eliminar
+                                </button>
+                            </td>
+                        `;
+                    });
+                    
+                    // Mostrar columna de acción en header
+                    const accionHeader = document.getElementById('estudiosAccionesHeader');
+                    if (accionHeader) {
+                        accionHeader.style.display = 'table-cell';
+                    }
+                }
 
                 // Mostrar botones de eliminar en archivos existentes
                 document.querySelectorAll('.file-card').forEach(card => {
@@ -919,6 +973,25 @@
                 return;
             }
 
+            // Recolectar datos de estudios actuales de la tabla
+            const filas = document.querySelectorAll('#estudiosTableBody tr');
+            const estudiosActualizados = [];
+            filas.forEach(fila => {
+                const tipoInput = fila.querySelector('.estudio-tipo');
+                const resultadoInput = fila.querySelector('.estudio-resultado');
+                const obsInput = fila.querySelector('.estudio-observaciones');
+                const fechaInput = fila.querySelector('.estudio-fecha');
+                
+                if (tipoInput && tipoInput.value.trim()) {
+                    estudiosActualizados.push({
+                        tipo_estudio: tipoInput.value.trim(),
+                        resultado: resultadoInput.value.trim(),
+                        observaciones: obsInput.value.trim(),
+                        fecha_estudio: fechaInput.value || new Date().toISOString().split('T')[0]
+                    });
+                }
+            });
+
             const datos = {
                 motivo_consulta: document.getElementById('motivoConsulta').value,
                 anamnesis: document.getElementById('anamnesis').value,
@@ -929,14 +1002,14 @@
                 temperatura: document.getElementById('temperatura').value,
                 // Incluir diagnósticos seleccionados
                 diagnosticos: diagnosticosSeleccionados,
-                // Incluir estudios
-                estudios: estudiosSeleccionados,
+                // Incluir estudios actualizados
+                estudios: estudiosActualizados,
                 // Incluir adjuntos subidos
                 adjuntos: adjuntosSubidos
             };
 
             try {
-                console.log('📤 Guardando historia con ' + diagnosticosSeleccionados.length + ' diagnósticos, ' + estudiosSeleccionados.length + ' estudios y ' + adjuntosSubidos.length + ' archivos:', datos);
+                console.log('📤 Guardando historia con ' + diagnosticosSeleccionados.length + ' diagnósticos, ' + estudiosActualizados.length + ' estudios y ' + adjuntosSubidos.length + ' archivos:', datos);
                 const response = await fetch(`/api/historia/${historiaId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -1146,21 +1219,73 @@
 
         // Cargar estudios existentes al iniciar
         document.addEventListener('DOMContentLoaded', function() {
-            const filas = document.querySelectorAll('[data-estudio-id]');
+            const filas = document.querySelectorAll('[data-estudio-idx]');
             filas.forEach((fila, idx) => {
                 const celdas = fila.querySelectorAll('td');
                 if (celdas.length >= 4) {
                     estudiosSeleccionados.push({
-                        parametro: celdas[0].textContent.trim(),
+                        tipo_estudio: celdas[0].textContent.trim(),
                         resultado: celdas[1].textContent.trim(),
-                        unidad: celdas[2].textContent.trim(),
-                        referencia: celdas[3].textContent.trim(),
-                        fecha: celdas[4].textContent.trim()
+                        observaciones: celdas[2].textContent.trim(),
+                        fecha_estudio: celdas[3].textContent.trim()
                     });
                 }
             });
             console.log(`🔬 Estudios cargados: ${estudiosSeleccionados.length}`);
         });
+
+        function convertirFechaToInput(fechaStr) {
+            // Intenta convertir "15/01/2026" a "2026-01-15"
+            const partes = fechaStr.split('/');
+            if (partes.length === 3) {
+                return `${partes[2]}-${partes[1]}-${partes[0]}`;
+            }
+            return '';
+        }
+
+        function agregarFilaEstudio() {
+            const newRow = document.createElement('tr');
+            newRow.style.borderBottom = '1px solid #f0f0f0';
+            const newId = 'nuevo-' + Date.now();
+            newRow.dataset.estudiadoId = newId;
+            newRow.innerHTML = `
+                <td style="padding: 8px;">
+                    <input type="text" class="estudio-tipo" placeholder="Ej: HbA1c, Glucemia" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                </td>
+                <td style="padding: 8px;">
+                    <input type="text" class="estudio-resultado" placeholder="Ej: 7.8, 142" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; color: #e74c3c; font-weight: 600;">
+                </td>
+                <td style="padding: 8px;">
+                    <input type="text" class="estudio-observaciones" placeholder="Observaciones" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                </td>
+                <td style="padding: 8px;">
+                    <input type="date" class="estudio-fecha" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                </td>
+                <td style="padding: 8px;">
+                    <button onclick="eliminarFilaEstudio(this)" style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                        <i class="bi bi-trash"></i> Eliminar
+                    </button>
+                </td>
+            `;
+            estudiosTableBody.appendChild(newRow);
+            
+            // Si el contenedor está vacío, ocultar el mensaje y mostrar tabla
+            const estudiosEmpty = document.getElementById('estudiosEmpty');
+            if (estudiosEmpty) {
+                estudiosEmpty.style.display = 'none';
+            }
+        }
+
+        function eliminarFilaEstudio(btn) {
+            btn.closest('tr').remove();
+            actualizarEstudiosCuenta();
+        }
+
+        function actualizarEstudiosCuenta() {
+            const count = document.querySelectorAll('[data-estudio-idx], [data-estudiado-id]').length;
+            document.getElementById('estudiosCount').textContent = count.toString();
+            document.getElementById('estudiosCountSidebar').textContent = count.toString();
+        }
 
         // Eventos drag-drop
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
