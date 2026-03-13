@@ -703,33 +703,49 @@
                     </div>
                 </section>
 
-                <!-- CITAS Y SEGUIMIENTO -->
-                <section class="section" id="citas">
+                <!-- CONSULTAS MÉDICAS SELECTOR -->
+                <section class="section" id="consultas-selector">
                     <div class="section-header">
-                        <i class="bi bi-calendar"></i>
-                        <h3>Citas y Seguimiento</h3>
+                        <i class="bi bi-file-text"></i>
+                        <h3>Consultas Médicas</h3>
                     </div>
                     <div class="section-body">
                         <% if (historia && historia.consultas && historia.consultas.length > 0) { %>
-                            <div style="display: flex; flex-direction: column; gap: 12px;">
-                                <% historia.consultas?.slice(0, 3).forEach((cons, idx) => { %>
-                                    <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 3px solid <%= idx === 0 ? '#007bff' : '#6c757d' %>;">
-                                        <div style="font-weight: 700; color: #333; margin-bottom: 5px;">
-                                            <%= cons.fecha %>
-                                        </div>
-                                        <div style="font-size: 12px; color: #666; margin-bottom: 5px;">
-                                            Motivo: <%= cons.motivo_consulta || 'Sin especificar' %>
-                                        </div>
-                                        <small style="color: #999;">
-                                            <%= cons.medico || 'Sin médico asignado' %>
-                                        </small>
+                            <div style="margin-bottom: 16px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Seleccionar Consulta:</label>
+                                <select id="consultaSelector" onchange="cambiarConsulta(this.value)" style="
+                                    width: 100%;
+                                    padding: 10px;
+                                    border: 1px solid #ddd;
+                                    border-radius: 6px;
+                                    font-size: 14px;
+                                    cursor: pointer;
+                                    background: white;
+                                ">
+                                    <% historia.consultas?.forEach((cons, idx) => { %>
+                                        <option value="<%= idx %>" <%= idx === 0 ? 'selected' : '' %>>
+                                            <%= cons.fecha %> - <%= cons.motivo_consulta || 'Consulta' %> (Dr/Dra. <%= cons.medico || 'Sin médico' %>)
+                                        </option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 16px; border-radius: 6px; border-left: 4px solid #007bff;">
+                                <div style="margin-bottom: 12px;">
+                                    <div style="font-weight: 700; color: #333; font-size: 16px; margin-bottom: 8px;">
+                                        📅 <span id="consultaFecha"></span>
                                     </div>
-                                <% }); %>
+                                    <div style="font-size: 13px; color: #666; margin-bottom: 6px;">
+                                        <strong>Motivo:</strong> <span id="consultaMotivo"></span>
+                                    </div>
+                                    <div style="font-size: 13px; color: #666;">
+                                        <strong>Médico:</strong> <span id="consultaMedico"></span>
+                                    </div>
+                                </div>
                             </div>
                         <% } else { %>
                             <div style="text-align: center; padding: 30px; color: #999;">
-                                <i class="bi bi-calendar" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
-                                <p>Sin citas registradas</p>
+                                <i class="bi bi-file-text" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
+                                <p>Sin consultas registradas</p>
                             </div>
                         <% } %>
                     </div>
@@ -854,9 +870,87 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Datos de la historia
+        const historiaData = <%- JSON.stringify(historia || {}) %>;
         const historiaId = '<%= historia?.id || "" %>';
         const pacienteId = '<%= paciente?.id || "" %>';
         let modoEdicion = false;
+        let consultaActualIdx = 0;
+
+        function cambiarConsulta(idx) {
+            consultaActualIdx = parseInt(idx);
+            const consulta = historiaData.consultas?.[consultaActualIdx];
+            
+            if (!consulta) return;
+            
+            // Actualizar información mostrada
+            document.getElementById('consultaFecha').textContent = consulta.fecha || '-';
+            document.getElementById('consultaMotivo').textContent = consulta.motivo_consulta || 'Sin especificar';
+            document.getElementById('consultaMedico').textContent = consulta.medico || 'Sin médico asignado';
+            
+            // Actualizar Signos Vitales
+            document.getElementById('presionSistolica').value = consulta.signos_vitales?.presion_sistolica || '';
+            document.getElementById('presionDiastolica').value = consulta.signos_vitales?.presion_diastolica || '';
+            document.getElementById('frecuenciaCardiaca').value = consulta.signos_vitales?.frecuencia_cardiaca || '';
+            document.getElementById('temperatura').value = consulta.signos_vitales?.temperatura_c || '';
+            document.getElementById('peso').value = consulta.signos_vitales?.peso_kg || '';
+            document.getElementById('talla').value = consulta.signos_vitales?.talla_cm || '';
+            
+            // Actualizar Anamnesis
+            document.getElementById('motivoConsulta').value = consulta.motivo_consulta || '';
+            document.getElementById('anamnesis').value = consulta.anamnesis || '';
+            
+            // Actualizar Impresión
+            document.getElementById('impresion').value = consulta.impresion_clinica || '';
+            
+            // Actualizar Diagnósticos
+            diagnosticosSeleccionados = consulta.diagnosticos || [];
+            const diagContainer = document.getElementById('diagnosticosContainer');
+            diagContainer.innerHTML = '';
+            diagnosticosSeleccionados.forEach(d => {
+                const div = document.createElement('div');
+                div.className = 'diagnostic-card';
+                div.dataset.codigo = d.codigo;
+                div.innerHTML = `
+                    <div>
+                        <strong>${d.codigo}</strong>
+                        <p>${d.descripcion}</p>
+                    </div>
+                    <button class="btn-remove" onclick="removeDiagnostico('${d.codigo}')" style="display: inline-block;">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                `;
+                diagContainer.appendChild(div);
+            });
+            document.getElementById('diagnosticosCount').textContent = diagnosticosSeleccionados.length;
+            
+            // Actualizar Estudios
+            const estudiosBody = document.getElementById('estudiosTableBody');
+            estudiosBody.innerHTML = '';
+            if (consulta.estudios?.length > 0) {
+                consulta.estudios.forEach((est, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.setAttribute('data-estudio-idx', idx);
+                    tr.style.borderBottom = '1px solid #f0f0f0';
+                    tr.innerHTML = `
+                        <td style="padding: 12px; color: #333; font-weight: 600;">${est.tipo_estudio || est.parametro || est.nombre || '-'}</td>
+                        <td style="padding: 12px; color: #e74c3c; font-weight: 600; font-size: 14px;">${est.resultado || '-'}</td>
+                        <td style="padding: 12px; color: #666;">${est.observaciones || '-'}</td>
+                        <td style="padding: 12px; color: #999; font-size: 13px;">${est.fecha_estudio ? new Date(est.fecha_estudio).toLocaleDateString('es-AR') : '-'}</td>
+                        <td style="padding: 12px; display: none;"></td>
+                    `;
+                    estudiosBody.appendChild(tr);
+                });
+                const emptyDiv = document.getElementById('estudiosEmpty');
+                if (emptyDiv) emptyDiv.style.display = 'none';
+            } else {
+                const emptyDiv = document.getElementById('estudiosEmpty');
+                if (emptyDiv) emptyDiv.style.display = 'block';
+            }
+            document.getElementById('estudiosCount').textContent = consulta.estudios?.length || 0;
+            
+            console.log('✅ Consulta #' + consultaActualIdx + ' cargada');
+        }
 
         function volverAtras() {
             window.history.back();
@@ -1198,8 +1292,11 @@
         const fileInput = document.getElementById('fileInput');
         const adjuntosContainer = document.getElementById('adjuntosContainer');
 
-        // Cargar archivos existentes de la BD al iniciar
+        // Inicializar selector de consultas al cargar
         document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar datos de la consulta actual (índice 0)
+            cambiarConsulta(0);
+            
             const archivosExistentes = document.querySelectorAll('[data-id]');
             archivosExistentes.forEach(card => {
                 if (card.dataset.id && card.dataset.id !== '') {
