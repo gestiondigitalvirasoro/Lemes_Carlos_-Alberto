@@ -809,8 +809,8 @@
 
                         <!-- Lista de Adjuntos -->
                         <div id="adjuntosContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;">
-                            <% if (historia?.consultas?.[0]?.adjuntos?.length > 0) { %>
-                                <% historia.consultas[0].adjuntos.forEach(adj => { %>
+                            <% if (historia?.adjuntos?.length > 0) { %>
+                                <% historia.adjuntos.forEach(adj => { %>
                                     <div class="file-card" data-id="<%= adj.id %>" style="
                                         background: white;
                                         border: 1px solid #e0e0e0;
@@ -832,7 +832,7 @@
                             <% } %>
                         </div>
 
-                        <% if (!historia?.consultas?.[0]?.adjuntos?.length) { %>
+                        <% if (!historia?.adjuntos?.length) { %>
                             <div style="text-align: center; padding: 30px; color: #999;">
                                 <i class="bi bi-inbox" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
                                 <p>Sin archivos adjuntos aún</p>
