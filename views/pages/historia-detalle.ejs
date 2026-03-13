@@ -465,11 +465,11 @@
                     <li style="margin-bottom: 8px;"><a href="#anamnesis" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-chat-dots"></i> Anamnesis</a></li>
                     <li style="margin-bottom: 8px;"><a href="#antecedentes" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-book"></i> Antecedentes</a></li>
                     <li style="margin-bottom: 8px;"><a href="#diagnosticos" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-search"></i> Diagnósticos <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;">3</span></a></li>
-                    <li style="margin-bottom: 8px;"><a href="#estudios" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-flask"></i> Estudios <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;" id="estudiosCountSidebar"><%= (historia?.consultas?.[0]?.estudios?.length || 0) %></span></a></li>
-                    <li style="margin-bottom: 8px;"><a href="#documentos" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-paperclip"></i> Adjuntos <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;">4</span></a></li>
+                    <li style="margin-bottom: 8px;"><a href="#tratamiento" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-capsule"></i> Tratamiento</a></li>
                     <li style="margin-bottom: 8px;"><a href="#impresion" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-stethoscope"></i> Impresión</a></li>
                     <li style="margin-bottom: 8px;"><a href="#citas" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-calendar"></i> Citas</a></li>
-                    <li><a href="#tratamiento" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-capsule"></i> Tratamiento</a></li>
+                    <li style="margin-bottom: 8px;"><a href="#estudios" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-flask"></i> Estudios <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;" id="estudiosCountSidebar"><%= (historia?.consultas?.[0]?.estudios?.length || 0) %></span></a></li>
+                    <li><a href="#adjuntos" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-file-image"></i> Adjuntos <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;" id="adjuntosCountSidebar">0</span></a></li>
                 </ul>
             </div>
 
@@ -662,47 +662,6 @@
                     </div>
                 </section>
 
-                <!-- ESTUDIOS COMPLEMENTARIOS -->
-                <section class="section" id="estudios">
-                    <div class="section-header">
-                        <i class="bi bi-flask"></i>
-                        <h3>Estudios Complementarios <span style="background: #e7f3ff; color: #0066cc; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 8px;" id="estudiosCount"><%= (historia?.consultas?.[0]?.estudios?.length || 0) %></span></h3>
-                    </div>
-                    <div class="section-body">
-                        <% if (historia && historia.consultas && historia.consultas.length > 0 && historia.consultas[0].estudios?.length > 0) { %>
-                            <div id="estudiosContainer">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Parámetro</th>
-                                            <th>Resultado</th>
-                                            <th>Unidad</th>
-                                            <th>Referencia</th>
-                                            <th>Fecha</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="estudiosTableBody">
-                                        <% historia.consultas[0].estudios?.forEach((est, idx) => { %>
-                                            <tr data-estudio-id="<%= idx %>">
-                                                <td><%= est.parametro || est.nombre || '-' %></td>
-                                                <td><%= est.resultado || '-' %></td>
-                                                <td><%= est.unidad || '-' %></td>
-                                                <td><%= est.referencia || est.observaciones || '-' %></td>
-                                                <td><%= est.fecha_estudio || est.fecha || '-' %></td>
-                                            </tr>
-                                        <% }); %>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <% } else { %>
-                            <div id="estudiosEmpty" style="text-align: center; padding: 30px; color: #999;">
-                                <i class="bi bi-flask" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
-                                <p>Sin estudios registrados</p>
-                            </div>
-                        <% } %>
-                    </div>
-                </section>
-
                 <!-- TRATAMIENTO -->
                 <section class="section" id="tratamiento">
                     <div class="section-header">
@@ -771,6 +730,45 @@
                             <div style="text-align: center; padding: 30px; color: #999;">
                                 <i class="bi bi-calendar" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
                                 <p>Sin citas registradas</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </section>
+
+                <!-- ESTUDIOS COMPLEMENTARIOS -->
+                <section class="section" id="estudios">
+                    <div class="section-header">
+                        <i class="bi bi-flask"></i>
+                        <h3>Estudios Complementarios <span style="background: #e7f3ff; color: #0066cc; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 8px;" id="estudiosCount"><%= (historia?.consultas?.[0]?.estudios?.length || 0) %></span></h3>
+                    </div>
+                    <div class="section-body">
+                        <% if (historia && historia.consultas && historia.consultas.length > 0 && historia.consultas[0].estudios?.length > 0) { %>
+                            <div style="overflow-x: auto;">
+                                <table class="table table-hover" style="margin-bottom: 0;">
+                                    <thead style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                        <tr>
+                                            <th style="color: #666; font-weight: 700; padding: 12px;">TIPO ESTUDIO</th>
+                                            <th style="color: #666; font-weight: 700; padding: 12px;">RESULTADO</th>
+                                            <th style="color: #666; font-weight: 700; padding: 12px;">OBSERVACIONES</th>
+                                            <th style="color: #666; font-weight: 700; padding: 12px;">FECHA</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="estudiosTableBody">
+                                        <% historia.consultas[0].estudios?.forEach((est, idx) => { %>
+                                            <tr data-estudio-id="<%= idx %>" style="border-bottom: 1px solid #f0f0f0;">
+                                                <td style="padding: 12px; color: #333; font-weight: 600;"><%= est.tipo_estudio || est.parametro || est.nombre || '-' %></td>
+                                                <td style="padding: 12px; color: #e74c3c; font-weight: 600; font-size: 14px;"><%= est.resultado || '-' %></td>
+                                                <td style="padding: 12px; color: #666;"><%= est.observaciones || '-' %></td>
+                                                <td style="padding: 12px; color: #999; font-size: 13px;"><%= est.fecha_estudio ? new Date(est.fecha_estudio).toLocaleDateString('es-AR') : '-' %></td>
+                                            </tr>
+                                        <% }); %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <% } else { %>
+                            <div style="text-align: center; padding: 40px 20px; color: #999;">
+                                <i class="bi bi-flask" style="font-size: 2.5rem; display: block; margin-bottom: 12px; color: #bbb;"></i>
+                                <p style="margin: 0;">Sin estudios complementarios registrados</p>
                             </div>
                         <% } %>
                     </div>
