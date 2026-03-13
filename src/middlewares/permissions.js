@@ -24,7 +24,7 @@ const rolePermissions = {
     pacientes: ['read'],
     personas: ['read'],
     consultas: ['create', 'read', 'update'],
-    turnos: ['create', 'read', 'update'],
+    turnos: ['create', 'read', 'update', 'delete'],
     historias: ['create', 'read', 'update'],
     signos_vitales: ['create', 'read', 'update'],
     documentos: ['create', 'read'],
@@ -39,7 +39,7 @@ const rolePermissions = {
     pacientes: ['create', 'read'], // Dar de alta pacientes
     personas: ['create', 'read'], // Dar de alta personas (clientes)
     consultas: [],
-    turnos: ['create', 'read', 'update'], // Gestionar turnos
+    turnos: ['create', 'read', 'update', 'delete'], // Gestionar y eliminar turnos
     historias: ['read'], // Solo lectura de historias
     signos_vitales: [],
     documentos: [],
@@ -57,17 +57,20 @@ const rolePermissions = {
  */
 export const checkPermission = (resource, action) => {
   return (req, res, next) => {
-    if (!req.usuario) {
+    console.log(`🔐 CheckPermission: resource=${resource}, action=${action}, userRole=${req.user?.role}`);
+    
+    if (!req.user) {
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'Usuario no autenticado'
       });
     }
 
-    const userRole = req.usuario.role || 'user';
+    const userRole = req.user.role || 'user';
     const userPermissions = rolePermissions[userRole];
 
     if (!userPermissions) {
+      console.log(`❌ Rol no reconocido: ${userRole}`);
       return res.status(403).json({
         error: 'Forbidden',
         message: `Rol no reconocido: ${userRole}`
@@ -75,13 +78,17 @@ export const checkPermission = (resource, action) => {
     }
 
     const resourcePerms = userPermissions[resource];
+    console.log(`   Permisos para ${resource}: ${JSON.stringify(resourcePerms)}`);
+    
     if (!resourcePerms || !resourcePerms.includes(action)) {
+      console.log(`❌ Permiso denegado: ${action} not in ${JSON.stringify(resourcePerms)}`);
       return res.status(403).json({
         error: 'Forbidden',
         message: `No tienes permiso para ${action} ${resource}`
       });
     }
 
+    console.log(`✅ Permiso otorgado`);
     next();
   };
 };
@@ -91,14 +98,14 @@ export const checkPermission = (resource, action) => {
  * (Acceso a secciones administrativas generales)
  */
 export const requireStaff = (req, res, next) => {
-  if (!req.usuario) {
+  if (!req.user) {
     return res.status(401).json({
       error: 'Unauthorized',
       message: 'Usuario no autenticado'
     });
   }
 
-  const role = req.usuario.role;
+  const role = req.user.role;
   if (!['admin', 'doctor'].includes(role)) {
     return res.status(403).json({
       error: 'Forbidden',
@@ -113,14 +120,14 @@ export const requireStaff = (req, res, next) => {
  * Middleware: Verificar que es solo Doctor o Admin
  */
 export const requireDoctorOrAdmin = (req, res, next) => {
-  if (!req.usuario) {
+  if (!req.user) {
     return res.status(401).json({
       error: 'Unauthorized',
       message: 'Usuario no autenticado'
     });
   }
 
-  const role = req.usuario.role;
+  const role = req.user.role;
   if (!['admin', 'doctor'].includes(role)) {
     return res.status(403).json({
       error: 'Forbidden',
@@ -135,14 +142,14 @@ export const requireDoctorOrAdmin = (req, res, next) => {
  * Middleware: Verificar que es solo Secretaria
  */
 export const requireSecretaria = (req, res, next) => {
-  if (!req.usuario) {
+  if (!req.user) {
     return res.status(401).json({
       error: 'Unauthorized',
       message: 'Usuario no autenticado'
     });
   }
 
-  const role = req.usuario.role;
+  const role = req.user.role;
   if (role !== 'secretaria') {
     return res.status(403).json({
       error: 'Forbidden',
@@ -157,14 +164,14 @@ export const requireSecretaria = (req, res, next) => {
  * Middleware: Verificar que es Secretaria o Doctor
  */
 export const requireSecretariaOrDoctor = (req, res, next) => {
-  if (!req.usuario) {
+  if (!req.user) {
     return res.status(401).json({
       error: 'Unauthorized',
       message: 'Usuario no autenticado'
     });
   }
 
-  const role = req.usuario.role;
+  const role = req.user.role;
   if (!['doctor', 'secretaria'].includes(role)) {
     return res.status(403).json({
       error: 'Forbidden',

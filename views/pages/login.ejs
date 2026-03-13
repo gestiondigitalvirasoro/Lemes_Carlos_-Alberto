@@ -288,7 +288,7 @@
                     `;
                 } else {
                     // Login exitoso - guardar token en localStorage
-                    localStorage.setItem('auth_token', data.data.token);
+                    localStorage.setItem('token', data.data.access_token);
                     
                     alertContainer.innerHTML = `
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -299,7 +299,7 @@
                     `;
                     
                     // Redirigir según el rol del usuario
-                    const userRole = data.data.usuario.role;
+                    const userRole = data.data.medico.role;
                     let redirectUrl = '/dashboard';
                     
                     if (userRole === 'admin') {

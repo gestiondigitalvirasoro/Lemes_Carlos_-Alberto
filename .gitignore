@@ -50,3 +50,6 @@ logs/
 *.zip
 *.tar.gz
 *.rar
+
+_backup/
+__backup/

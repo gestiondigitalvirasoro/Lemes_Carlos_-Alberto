@@ -7,14 +7,14 @@
 
 const roleMiddleware = (rolesPermitidos = []) => {
   return (req, res, next) => {
-    if (!req.usuario) {
+    if (!req.user) {
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'Usuario no autenticado'
       });
     }
 
-    if (rolesPermitidos.length > 0 && !rolesPermitidos.includes(req.usuario.role)) {
+    if (rolesPermitidos.length > 0 && !rolesPermitidos.includes(req.user.role)) {
       return res.status(403).json({
         error: 'Forbidden',
         message: `Acceso denegado. Roles permitidos: ${rolesPermitidos.join(', ')}`

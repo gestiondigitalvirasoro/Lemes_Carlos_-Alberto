@@ -1,6 +1,6 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
-import { login, logout, me, crearUsuario, cambiarContrasena, signup } from '../controllers/auth.js';
+import { login, logout, me, signup, updateProfile } from '../controllers/auth.js';
 import { authMiddleware, roleMiddleware } from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -74,48 +74,9 @@ router.post('/logout', logout);
 router.get('/me', authMiddleware, me);
 
 /**
- * POST /api/auth/cambiar-contrasena
- * Cambiar contraseña del usuario actual
+ * PUT /api/auth/profile
+ * Actualizar perfil del usuario
  */
-router.post(
-  '/cambiar-contrasena',
-  authMiddleware,
-  [
-    body('contraseñaActual').notEmpty().withMessage('Contraseña actual requerida'),
-    body('contraseñaNueva')
-      .isLength({ min: 6 })
-      .withMessage('Contraseña nueva debe tener al menos 6 caracteres')
-  ],
-  validarErrores,
-  cambiarContrasena
-);
-
-// ============================================================================
-// RUTAS PROTEGIDAS - Solo ADMIN
-// ============================================================================
-
-/**
- * POST /api/auth/crear-usuario
- * Crear nuevo usuario (Solo admin)
- */
-router.post(
-  '/crear-usuario',
-  authMiddleware,
-  roleMiddleware(['admin']),
-  [
-    body('email').isEmail().withMessage('Email inválido'),
-    body('password')
-      .isLength({ min: 6 })
-      .withMessage('Contraseña debe tener al menos 6 caracteres'),
-    body('nombre').notEmpty().withMessage('Nombre requerido'),
-    body('apellido').notEmpty().withMessage('Apellido requerido'),
-    body('role')
-      .optional()
-      .isIn(['admin', 'doctor', 'secretaria'])
-      .withMessage('Rol inválido')
-  ],
-  validarErrores,
-  crearUsuario
-);
+router.put('/profile', authMiddleware, updateProfile);
 
 export default router;

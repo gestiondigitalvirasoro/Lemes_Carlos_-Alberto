@@ -1,0 +1,595 @@
+<!-- HISTORIA CLÍNICA - DISEÑO BOOTSTRAP DASHBOARD -->
+<div class="historia-clinica-container d-flex" style="height: 100vh;">
+    <!-- SIDEBAR IZQUIERDO -->
+    <aside class="patient-sidebar">
+        <!-- Avatar del Paciente -->
+        <div class="patient-header">
+            <div class="avatar-circle">
+                <% 
+                    const nom = paciente?.nombre || 'P';
+                    const ape = paciente?.apellido || 'P';
+                    const initials = (nom.charAt(0) + ape.charAt(0)).toUpperCase();
+                %>
+                <%= initials %>
+            </div>
+            <h3 class="patient-name"><%= paciente?.nombre || 'Sin nombre' %> <%= paciente?.apellido || 'Sin apellido' %></h3>
+            <p class="patient-age"><%= paciente?.edad || 'N/A' %> años · <%= paciente?.genero === 'M' ? 'H' : paciente?.genero === 'F' ? 'M' : 'N/A' %> · <%= paciente?.fecha_nacimiento || 'N/A' %></p>
+            <p class="patient-dni">#<%= paciente?.DNI || 'N/A' %></p>
+        </div>
+
+        <!-- Condiciones Actuales -->
+        <div class="conditions-section">
+            <% if (paciente?.condiciones && paciente.condiciones.length > 0) { %>
+                <% paciente.condiciones.forEach(cond => { %>
+                    <span class="condition-badge"><%= cond %></span>
+                <% }); %>
+            <% } %>
+        </div>
+
+        <!-- Signos Vitales Resumen -->
+        <div class="vitals-summary">
+            <h5>Signos Vitales Actuales</h5>
+            <div class="vital-item">
+                <span class="vital-label">Glucosa</span>
+                <span class="vital-value">-</span>
+                <span class="vital-unit">mg/dL</span>
+            </div>
+            <div class="vital-item">
+                <span class="vital-label">Presión</span>
+                <span class="vital-value">-</span>
+                <span class="vital-unit">mmHg</span>
+            </div>
+            <div class="vital-item">
+                <span class="vital-label">Frecuencia Cardíaca</span>
+                <span class="vital-value">-</span>
+                <span class="vital-unit">lpm</span>
+            </div>
+            <div class="vital-item">
+                <span class="vital-label">IMC</span>
+                <span class="vital-value">-</span>
+                <span class="vital-unit">kg/m²</span>
+            </div>
+        </div>
+
+        <!-- Navegación de Secciones -->
+        <div class="sections-nav">
+            <h5>Secciones</h5>
+            <ul>
+                <li><a href="#signos-vitales" class="section-link active"><i class="bi bi-heart-pulse"></i> Signos Vitales</a></li>
+                <li><a href="#anamnesis" class="section-link"><i class="bi bi-chat-dots"></i> Anamnesis</a></li>
+                <li><a href="#antecedentes" class="section-link"><i class="bi bi-book"></i> Antecedentes</a></li>
+                <li><a href="#diagnosticos" class="section-link"><i class="bi bi-search"></i> Diagnósticos</a></li>
+                <li><a href="#estudios" class="section-link"><i class="bi bi-flask"></i> Estudios</a></li>
+                <li><a href="#documentos" class="section-link"><i class="bi bi-paperclip"></i> Documentos</a></li>
+                <li><a href="#tratamiento" class="section-link"><i class="bi bi-capsule"></i> Tratamiento</a></li>
+            </ul>
+        </div>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="historia-content flex-grow-1 d-flex flex-column" style="margin-left: 280px; width: calc(100% - 280px); background: #f8f9fa;">
+        <!-- HEADER -->
+        <div class="content-header bg-white border-bottom">
+            <div class="container-fluid p-4">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h2 class="mb-0">Historia Clínica</h2>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-outline-secondary me-2" onclick="volverAtras()">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </button>
+                        <button class="btn btn-primary" id="btnEditar" onclick="enableEditMode()">
+                            <i class="bi bi-pencil"></i> Editar
+                        </button>
+                        <button class="btn btn-success d-none" id="btnGuardar" onclick="saveChanges()">
+                            <i class="bi bi-check2-circle"></i> Guardar
+                        </button>
+                        <button class="btn btn-secondary d-none" id="btnCancelar" onclick="cancelEditMode()">
+                            <i class="bi bi-x-lg"></i> Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SELECTOR DE CONSULTAS -->
+        <div class="bg-light border-bottom p-3">
+            <div class="container-fluid">
+                <% if (historia?.consultas && historia.consultas.length > 0) { %>
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <label class="form-label mb-0">Consulta:</label>
+                        </div>
+                        <div class="col-md-5">
+                            <select id="consultaSelect" class="form-select form-select-sm" onchange="changeConsulta(this.value)">
+                                <% historia.consultas.forEach((c, idx) => { %>
+                                    <option value="<%= idx %>" <%= idx === 0 ? 'selected' : '' %>>
+                                        <%= c.fecha ? new Date(c.fecha).toLocaleDateString('es-AR') : 'Consulta ' + (idx + 1) %>
+                                        · <%= c.motivo_consulta?.substring(0, 40) || 'Sin motivo' %>
+                                    </option>
+                                <% }); %>
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <small class="text-muted">Total: <%= historia.consultas.length %> consulta(s)</small>
+                        </div>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- CONTENIDO SCROLLEABLE -->
+        <div class="flex-grow-1 overflow-auto p-4">
+            <div class="container-fluid">
+                <!-- ===== SIGNOS VITALES CARD ===== -->
+                <div class="card mb-4 shadow-sm" id="signos-vitales">
+                    <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-heart-pulse text-danger me-3" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <h5 class="mb-0">Signos Vitales</h5>
+                                <small class="text-muted">Registro vital de esta consulta</small>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#svContent">
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div class="collapse show" id="svContent">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <!-- Presión Arterial -->
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="border rounded p-3 bg-light">
+                                        <div class="border-top border-danger" style="height: 4px; margin: -12px -12px 10px -12px;"></div>
+                                        <label class="form-label small fw-bold text-uppercase">Presión Arterial</label>
+                                        <input type="text" class="form-control form-control-sm mb-2" id="viPresion" readonly placeholder="138/88">
+                                        <small class="text-muted">Normal: <120/80</small>
+                                        <div class="mt-2">
+                                            <span class="badge bg-danger" id="presionStatus">⚠ Elevada</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Frecuencia Cardíaca -->
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="border rounded p-3 bg-light">
+                                        <div class="border-top border-info" style="height: 4px; margin: -12px -12px 10px -12px;"></div>
+                                        <label class="form-label small fw-bold text-uppercase">Frecuencia Cardíaca</label>
+                                        <input type="text" class="form-control form-control-sm mb-2" id="viFC" readonly placeholder="74">
+                                        <small class="text-muted">Normal: 60-100 lpm</small>
+                                        <div class="mt-2">
+                                            <span class="badge bg-success" id="fcStatus">✓ Normal</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Temperatura -->
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="border rounded p-3 bg-light">
+                                        <div class="border-top border-warning" style="height: 4px; margin: -12px -12px 10px -12px;"></div>
+                                        <label class="form-label small fw-bold text-uppercase">Temperatura</label>
+                                        <input type="text" class="form-control form-control-sm mb-2" id="viTemp" readonly placeholder="36.5">
+                                        <small class="text-muted">Normal: 36.1 - 37.2 °C</small>
+                                        <div class="mt-2">
+                                            <span class="badge bg-success" id="tempStatus">✓ Normal</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Saturación O2 -->
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="border rounded p-3 bg-light">
+                                        <div class="border-top border-success" style="height: 4px; margin: -12px -12px 10px -12px;"></div>
+                                        <label class="form-label small fw-bold text-uppercase">Saturación O₂</label>
+                                        <input type="text" class="form-control form-control-sm mb-2" id="viSatO2" readonly placeholder="97">
+                                        <small class="text-muted">Normal: 95-100%</small>
+                                        <div class="mt-2">
+                                            <span class="badge bg-success" id="sato2Status">✓ Normal</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== ANAMNESIS CARD ===== -->
+                <div class="card mb-4 shadow-sm" id="anamnesis">
+                    <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-chat-dots text-primary me-3" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <h5 class="mb-0">Anamnesis</h5>
+                                <small class="text-muted">Motivo de consulta y antecedentes actuales</small>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#anamContent">
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div class="collapse show" id="anamContent">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Motivo de Consulta Principal</label>
+                                <input type="text" class="form-control" id="motivoConsulta" readonly placeholder="Control diabetes tipo 2 y ajuste de medicación">
+                            </div>
+                            <div>
+                                <label class="form-label fw-bold">Enfermedad Actual</label>
+                                <textarea class="form-control" id="enfermedadActual" rows="4" readonly placeholder="Paciente con diabetes mellitus tipo 2..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== ANTECEDENTES PATOLÓGICOS CARD ===== -->
+                <div class="card mb-4 shadow-sm" id="antecedentes">
+                    <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-book text-info me-3" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <h5 class="mb-0">Antecedentes Patológicos</h5>
+                                <small class="text-muted">Personales, familiares y quirúrgicos</small>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#antContent">
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div class="collapse show" id="antContent">
+                        <div class="card-body">
+                            <div id="antecedentesList">
+                                <p class="text-muted text-center">No hay antecedentes registrados</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== DIAGNÓSTICOS CARD ===== -->
+                <div class="card mb-4 shadow-sm" id="diagnosticos">
+                    <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-search text-success me-3" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <h5 class="mb-0">Diagnósticos</h5>
+                                <small class="text-muted">Diagnósticos principales y secundarios</small>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#diagContent">
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div class="collapse show" id="diagContent">
+                        <div class="card-body">
+                            <p class="text-muted text-center">Sin diagnósticos registrados</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== ESTUDIOS CARD ===== -->
+                <div class="card mb-4 shadow-sm" id="estudios">
+                    <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-flask text-warning me-3" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <h5 class="mb-0">Estudios</h5>
+                                <small class="text-muted">Laboratorio e imagenología</small>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#estContent">
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div class="collapse show" id="estContent">
+                        <div class="card-body">
+                            <p class="text-muted text-center">Sin estudios registrados</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== DOCUMENTOS CARD ===== -->
+                <div class="card mb-4 shadow-sm" id="documentos">
+                    <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-paperclip text-secondary me-3" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <h5 class="mb-0">Documentos</h5>
+                                <small class="text-muted">Archivos y anexos adjuntos</small>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#docContent">
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div class="collapse show" id="docContent">
+                        <div class="card-body">
+                            <p class="text-muted text-center">Sin documentos adjuntos</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== TRATAMIENTO CARD ===== -->
+                <div class="card mb-4 shadow-sm" id="tratamiento">
+                    <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-capsule text-danger me-3" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <h5 class="mb-0">Tratamiento</h5>
+                                <small class="text-muted">Medicamentos y recomendaciones</small>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#tratContent">
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div class="collapse show" id="tratContent">
+                        <div class="card-body">
+                            <p class="text-muted text-center">Sin tratamiento registrado</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="bg-white border-top p-3 text-center text-muted small">
+            <p class="mb-0">Historia Clínica · <%= paciente?.nombre %> · Última consulta: <span id="lastConsultaDate">-</span></p>
+        </div>
+    </main>
+</div>
+
+<!-- ===== ESTILOS BOOTSTRAP + CUSTOMIZACIÓN ===== -->
+<style>
+    * { box-sizing: border-box; }
+    
+    body { 
+        margin: 0; 
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    .historia-clinica-container {
+        width: 100%;
+        background: #f8f9fa;
+    }
+
+    /* SIDEBAR */
+    .patient-sidebar {
+        width: 280px;
+        background: linear-gradient(180deg, #1a3a3a 0%, #0d1f1f 100%);
+        color: white;
+        padding: 30px 20px;
+        overflow-y: auto;
+        border-right: 2px solid #5CAEA3;
+        position: fixed;
+        height: 100vh;
+        z-index: 1000;
+    }
+
+    .patient-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #5CAEA3;
+    }
+
+    .avatar-circle {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: bold;
+        margin: 0 auto 15px;
+        box-shadow: 0 4px 12px rgba(217, 127, 127, 0.3);
+    }
+
+    .patient-name {
+        margin: 0 0 5px;
+        font-size: 16px;
+        font-weight: 600;
+        color: white;
+    }
+
+    .patient-age {
+        font-size: 12px;
+        color: #bbb;
+        margin: 0;
+    }
+
+    .patient-dni {
+        font-size: 11px;
+        color: #999;
+        margin-top: 5px;
+    }
+
+    .conditions-section {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 25px;
+    }
+
+    .condition-badge {
+        background: rgba(217, 127, 127, 0.2);
+        color: #D97F7F;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .vitals-summary {
+        margin-bottom: 30px;
+    }
+
+    .vitals-summary h5 {
+        font-size: 12px;
+        font-weight: 600;
+        margin: 0 0 15px;
+        text-transform: uppercase;
+        color: #999;
+    }
+
+    .vital-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 13px;
+    }
+
+    .vital-label {
+        color: #bbb;
+    }
+
+    .vital-value {
+        font-weight: 600;
+        color: #5CAEA3;
+    }
+
+    .vital-unit {
+        color: #999;
+        font-size: 11px;
+    }
+
+    .sections-nav {
+        margin-top: 30px;
+    }
+
+    .sections-nav h5 {
+        font-size: 12px;
+        font-weight: 600;
+        margin: 0 0 15px;
+        text-transform: uppercase;
+        color: #999;
+    }
+
+    .sections-nav ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .section-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #bbb;
+        text-decoration: none;
+        padding: 10px 15px;
+        border-radius: 6px;
+        transition: all 0.3s;
+        font-size: 13px;
+    }
+
+    .section-link:hover {
+        background: rgba(217, 127, 127, 0.2);
+        color: #D97F7F;
+    }
+
+    .section-link.active {
+        background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%);
+        color: white;
+    }
+
+    .historia-content {
+        background: #f8f9fa;
+    }
+
+    .content-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+    }
+
+    .card-header {
+        border-bottom: 1px solid #e9ecef;
+        padding: 0.75rem 1rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .border-danger {
+        border-color: #dc3545 !important;
+    }
+
+    .border-info {
+        border-color: #0dcaf0 !important;
+    }
+
+    .border-warning {
+        border-color: #ffc107 !important;
+    }
+
+    .border-success {
+        border-color: #198754 !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .patient-sidebar {
+            position: relative;
+            width: 100%;
+            height: auto;
+            border-right: none;
+            border-bottom: 2px solid #5CAEA3;
+        }
+
+        .historia-content {
+            margin-left: 0 !important;
+            width: 100% !important;
+        }
+
+        .col-md-6,
+        .col-md-3 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+    }
+</style>
+
+<!-- SCRIPTS -->
+<script>
+    function volverAtras() {
+        window.history.back();
+    }
+
+    function enableEditMode() {
+        alert('Modo edición aún no implementado');
+    }
+
+    function saveChanges() {
+        alert('Guardar aún no implementado');
+    }
+
+    function cancelEditMode() {
+        location.reload();
+    }
+
+    function changeConsulta(idx) {
+        // Cambiar consulta
+        console.log('Consulta seleccionada:', idx);
+    }
+
+    // Cargar datos al iniciar
+    document.addEventListener('DOMContentLoaded', function() {
+        // Aquí se cargarían los datos dinámicos
+        console.log('Historia clínica cargada');
+    });
+</script>

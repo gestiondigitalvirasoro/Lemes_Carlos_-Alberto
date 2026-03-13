@@ -1,38 +1,33 @@
-import jwt from 'jsonwebtoken';
-
 /**
- * Middleware: Solo doctores pueden acceder
- * - Verifica JWT
- * - Verifica que role = 'doctor'
- * - Rechaza acceso a admin
+ * Middleware: Verificar que el usuario es doctor
+ * IMPORTANTE: Debe ir DESPUÉS del authMiddleware que establece req.user
  */
 export const doctorAuthMiddleware = (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-
-    if (!token) {
+    // Verificar que req.user existe (debe ser establecido por authMiddleware)
+    if (!req.user) {
       return res.status(401).json({
         error: 'Unauthorized',
-        message: 'Se requiere autenticación'
+        message: 'Usuario no autenticado'
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
     // Verificar que sea doctor
-    if (decoded.role !== 'doctor') {
+    if (req.user.role !== 'doctor') {
+      console.log(`❌ Usuario ${req.user.email} no es doctor. Role:`, req.user.role);
       return res.status(403).json({
         error: 'Forbidden',
         message: 'Solo doctores pueden acceder a este módulo'
       });
     }
 
-    req.usuario = decoded;
+    console.log(`✅ Doctor autorizado: ${req.user.email}`);
     next();
   } catch (error) {
+    console.error('Doctor Auth Error:', error);
     return res.status(401).json({
       error: 'Unauthorized',
-      message: 'Token inválido o expirado'
+      message: 'Error en autenticación'
     });
   }
 };

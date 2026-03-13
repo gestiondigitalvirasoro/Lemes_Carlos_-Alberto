@@ -5,6 +5,8 @@ import {
   iniciarConsulta,
   finalizarConsulta,
   registrarSignosVitales,
+  actualizarConsultaMedica,
+  crearEstudio,
   getProximasCitas,
   getHistorialConsultas,
   getGraficosEvolucion,
@@ -13,6 +15,7 @@ import {
   generarOrdenMedica,
   generarCertificado
 } from '../controllers/doctor.js';
+import { authMiddleware } from '../middlewares/auth.js';
 import { doctorAuthMiddleware } from '../middlewares/doctorAuth.js';
 
 const router = express.Router();
@@ -27,72 +30,85 @@ const router = express.Router();
  * GET /api/doctor/dashboard
  * Dashboard clínico del doctor
  */
-router.get('/dashboard', doctorAuthMiddleware, getDashboard);
+router.get('/dashboard', authMiddleware, doctorAuthMiddleware, getDashboard);
 
 /**
  * GET /api/doctor/paciente/:pacienteId/historia
  * Historia clínica completa del paciente
  */
-router.get('/paciente/:pacienteId/historia', doctorAuthMiddleware, getHistoriaClinica);
+router.get('/paciente/:pacienteId/historia', authMiddleware, doctorAuthMiddleware, getHistoriaClinica);
 
 /**
  * POST /api/doctor/consulta/iniciar
  * Iniciar consulta con un paciente
  */
-router.post('/consulta/iniciar', doctorAuthMiddleware, iniciarConsulta);
+router.post('/consulta/iniciar', authMiddleware, doctorAuthMiddleware, iniciarConsulta);
 
 /**
  * POST /api/doctor/consulta/finalizar
  * Finalizar consulta y crear historia clínica
  */
-router.post('/consulta/finalizar', doctorAuthMiddleware, finalizarConsulta);
+router.post('/consulta/finalizar', authMiddleware, doctorAuthMiddleware, finalizarConsulta);
 
 /**
  * POST /api/doctor/signos-vitales
  * Registrar signos vitales (peso, talla, TA, FC, temp, glucemia, etc)
  */
-router.post('/signos-vitales', doctorAuthMiddleware, registrarSignosVitales);
+router.post('/signos-vitales', authMiddleware, doctorAuthMiddleware, registrarSignosVitales);
+
+/**
+ * PUT /api/doctor/consulta/actualizar
+ * Actualizar CONSULTA_MEDICA (motivo, resumen, anamnesis)
+ * CORRECTO: Guarda en la tabla consultas_medicas, NO en historias_clinicas
+ */
+router.put('/consulta/actualizar', authMiddleware, doctorAuthMiddleware, actualizarConsultaMedica);
+
+/**
+ * POST /api/doctor/estudios
+ * Crear estudio complementario
+ */
+router.post('/estudios', authMiddleware, doctorAuthMiddleware, crearEstudio);
 
 /**
  * GET /api/doctor/proximas-citas/:pacienteId
  * Próximas citas del paciente
  */
-router.get('/proximas-citas/:pacienteId', doctorAuthMiddleware, getProximasCitas);
+router.get('/proximas-citas/:pacienteId', authMiddleware, doctorAuthMiddleware, getProximasCitas);
 
 /**
  * GET /api/doctor/historial-consultas/:pacienteId
  * Historial de consultas del paciente
  */
-router.get('/historial-consultas/:pacienteId', doctorAuthMiddleware, getHistorialConsultas);
+router.get('/historial-consultas/:pacienteId', authMiddleware, doctorAuthMiddleware, getHistorialConsultas);
 
 /**
  * GET /api/doctor/graficos/evolucion/:pacienteId
  * Datos para gráficos de evolución (peso, glucemia, TA, IMC)
  */
-router.get('/graficos/evolucion/:pacienteId', doctorAuthMiddleware, getGraficosEvolucion);
+router.get('/graficos/evolucion/:pacienteId', authMiddleware, doctorAuthMiddleware, getGraficosEvolucion);
 
 /**
  * GET /api/doctor/citas-timeline/:pacienteId
  * Citas próximas formateadas para timeline
  */
-router.get('/citas-timeline/:pacienteId', doctorAuthMiddleware, getCitasTimeline);
+router.get('/citas-timeline/:pacienteId', authMiddleware, doctorAuthMiddleware, getCitasTimeline);
 
 /**
  * POST /api/doctor/receta/generar
  * Generar receta médica para descargar/imprimir
  */
-router.post('/receta/generar', doctorAuthMiddleware, generarReceta);
+router.post('/receta/generar', authMiddleware, doctorAuthMiddleware, generarReceta);
 
 /**
  * POST /api/doctor/orden-medica/generar
  * Generar orden médica para estudios
  */
-router.post('/orden-medica/generar', doctorAuthMiddleware, generarOrdenMedica);
+router.post('/orden-medica/generar', authMiddleware, doctorAuthMiddleware, generarOrdenMedica);
 
 /**
  * POST /api/doctor/certificado/generar
  * Generar certificado médico
  */
-router.post('/certificado/generar', doctorAuthMiddleware, generarCertificado);
+router.post('/certificado/generar', authMiddleware, doctorAuthMiddleware, generarCertificado);
 
 export default router;

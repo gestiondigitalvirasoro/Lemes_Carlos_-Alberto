@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendar Turno</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #f5f7fa; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        
+        .contenedor-agendar {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            min-height: 100vh;
+        }
+        
+        .sidebar-agendar {
+            background: linear-gradient(180deg, #1a3a3a 0%, #0d1f1f 100%);
+            color: white;
+            padding: 30px 20px;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+        
+        .titulo-sidebar {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 25px;
+            color: #5CAEA3;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .pasos {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .paso {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #a0aec0;
+            border-left: 3px solid transparent;
+        }
+        
+        .paso.activo {
+            background: rgba(92, 174, 163, 0.3);
+            border-left-color: #5CAEA3;
+            color: #5CAEA3;
+            font-weight: 600;
+        }
+        
+        .paso-numero {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            background: #1a3a3a;
+            border-radius: 50%;
+            border: 2px solid rgba(92, 174, 163, 0.5);
+            font-size: 12px;
+            font-weight: 700;
+        }
+        
+        .paso.activo .paso-numero {
+            background: #5CAEA3;
+            border-color: #5CAEA3;
+            color: white;
+        }
+        
+        .contenido-agendar {
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        .encabezado-contenido {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .titulo-contenido h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a3a3a;
+            margin: 0;
+        }
+        
+        .btn-volver {
+            background: #e2e8f0;
+            color: #1a3a3a;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .btn-volver:hover {
+            background: #cbd5e1;
+        }
+        
+        .seccion-agendar {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
+        .titulo-seccion {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1a3a3a;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .titulo-seccion i {
+            font-size: 20px;
+            color: #D97F7F;
+        }
+        
+        .formulario-grupo {
+            margin-bottom: 20px;
+        }
+        
+        .formulario-grupo label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #1a3a3a;
+            font-size: 13px;
+        }
+        
+        .formulario-grupo input,
+        .formulario-grupo select,
+        .formulario-grupo textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        
+        .formulario-grupo input:focus,
+        .formulario-grupo select:focus,
+        .formulario-grupo textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .formulario-grupo input[readonly] {
+            background: #f8f9fa;
+            cursor: not-allowed;
+        }
+        
+        .btn-buscar {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .btn-buscar:hover {
+            background: #2563eb;
+        }
+        
+        .btn-crear-turno {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .btn-crear-turno:hover {
+            background: #059669;
+        }
+        
+        .btn-crear-turno:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+        
+        .alerta {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .alerta.exito {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+            display: block;
+        }
+        
+        .alerta.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+            display: block;
+        }
+        
+        .alerta.info {
+            background: #f0fdf4;
+            color: #166534;
+            border-left: 4px solid #10b981;
+            display: block;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .contenedor-agendar {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar-agendar {
+                max-height: none;
+            }
+            
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="contenedor-agendar">
+        <!-- SIDEBAR CON PASOS -->
+        <aside class="sidebar-agendar">
+            <div class="titulo-sidebar">
+                <i class="bi bi-calendar-check"></i>
+                Agendar Turno
+            </div>
+            
+            <ol class="pasos">
+                <li class="paso activo" data-paso="1">
+                    <span class="paso-numero">1</span>
+                    <span>Buscar Persona</span>
+                </li>
+                <li class="paso" data-paso="2">
+                    <span class="paso-numero">2</span>
+                    <span>Datos Persona</span>
+                </li>
+                <li class="paso" data-paso="3">
+                    <span class="paso-numero">3</span>
+                    <span>Seleccionar Doctor</span>
+                </li>
+                <li class="paso" data-paso="4">
+                    <span class="paso-numero">4</span>
+                    <span>Fecha y Hora</span>
+                </li>
+                <li class="paso" data-paso="5">
+                    <span class="paso-numero">5</span>
+                    <span>Confirmar Turno</span>
+                </li>
+            </ol>
+        </aside>
+        
+        <!-- CONTENIDO PRINCIPAL -->
+        <main class="contenido-agendar">
+            <div class="encabezado-contenido">
+                <div class="titulo-contenido">
+                    <h2>Agendar Nuevo Turno</h2>
+                    <p>Busca o registra una nueva persona para agendar turno</p>
+                </div>
+                <a href="/doctor/turnos" class="btn-volver">
+                    <i class="bi bi-arrow-left"></i>
+                    Volver
+                </a>
+            </div>
+            
+            <!-- SECCIÓN 1: BUSCAR PERSONA -->
+            <section class="seccion-agendar" id="seccion-1">
+                <div class="titulo-seccion">
+                    <i class="bi bi-search"></i>
+                    Paso 1: Buscar Persona por DNI
+                </div>
+                
+                <div class="alerta" id="alerta"></div>
+                
+                <div class="formulario-grupo">
+                    <label for="dni_buscar">DNI de la Persona</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" id="dni_buscar" placeholder="Ej: 12345678" style="flex: 1;">
+                        <button class="btn-buscar" onclick="buscarPersona()">
+                            <i class="bi bi-search"></i>
+                            Buscar
+                        </button>
+                    </div>
+                </div>
+                
+                <p style="color: #666; font-size: 12px; margin-top: 10px;">
+                    💡 Si la persona existe, se cargarán sus datos. Si no existe, podrás completar el formulario para crearla.
+                </p>
+            </section>
+            
+            <!-- SECCIÓN 2: DATOS PERSONA -->
+            <section class="seccion-agendar" id="seccion-2">
+                <div class="titulo-seccion">
+                    <i class="bi bi-person"></i>
+                    Paso 2: Datos de la Persona
+                </div>
+                
+                <div class="grid-2">
+                    <div class="formulario-grupo">
+                        <label for="persona_nombre">Nombre *</label>
+                        <input type="text" id="persona_nombre" placeholder="Ej: Juan">
+                    </div>
+                    <div class="formulario-grupo">
+                        <label for="persona_apellido">Apellido *</label>
+                        <input type="text" id="persona_apellido" placeholder="Ej: Pérez">
+                    </div>
+                </div>
+                
+                <div class="grid-2">
+                    <div class="formulario-grupo">
+                        <label for="persona_dni">DNI (No editable)</label>
+                        <input type="number" id="persona_dni" readonly>
+                    </div>
+                    <div class="formulario-grupo">
+                        <label for="persona_fecha_nacimiento">Fecha de Nacimiento</label>
+                        <input type="date" id="persona_fecha_nacimiento">
+                    </div>
+                </div>
+                
+                <div class="grid-2">
+                    <div class="formulario-grupo">
+                        <label for="persona_telefono">Teléfono</label>
+                        <input type="tel" id="persona_telefono" placeholder="Ej: +54 9 11 6234 5678">
+                    </div>
+                    <div class="formulario-grupo">
+                        <label for="persona_email">Email</label>
+                        <input type="email" id="persona_email" placeholder="nombre@ejemplo.com">
+                    </div>
+                </div>
+                
+                <div class="formulario-grupo">
+                    <label for="persona_direccion">Dirección</label>
+                    <input type="text" id="persona_direccion" placeholder="Ej: Calle 123, Departamento 4B">
+                </div>
+                
+                <div class="grid-2">
+                    <div class="formulario-grupo">
+                        <label for="persona_obra_social">Obra Social</label>
+                        <input type="text" id="persona_obra_social" placeholder="Ej: IOSE">
+                    </div>
+                    <div class="formulario-grupo">
+                        <label for="persona_numero_afiliado">Número de Afiliado</label>
+                        <input type="text" id="persona_numero_afiliado" placeholder="Ej: 123456789AB">
+                    </div>
+                </div>
+            </section>
+            
+            <!-- SECCIÓN 3: SELECCIONAR DOCTOR -->
+            <section class="seccion-agendar" id="seccion-3">
+                <div class="titulo-seccion">
+                    <i class="bi bi-stethoscope"></i>
+                    Paso 3: Seleccionar Doctor
+                </div>
+                
+                <div class="formulario-grupo">
+                    <label for="medico_id">Doctor *</label>
+                    <select id="medico_id">
+                        <option value="">-- Seleccionar Doctor --</option>
+                        <option value="1">Dr. Carlos Alberto Lemes</option>
+                    </select>
+                </div>
+            </section>
+            
+            <!-- SECCIÓN 4: FECHA Y HORA -->
+            <section class="seccion-agendar" id="seccion-4">
+                <div class="titulo-seccion">
+                    <i class="bi bi-calendar-event"></i>
+                    Paso 4: Fecha y Hora del Turno
+                </div>
+                
+                <div class="grid-2">
+                    <div class="formulario-grupo">
+                        <label for="turno_fecha">Fecha del Turno *</label>
+                        <input type="date" id="turno_fecha">
+                    </div>
+                    <div class="formulario-grupo">
+                        <label for="turno_hora">Hora del Turno *</label>
+                        <input type="time" id="turno_hora">
+                    </div>
+                </div>
+                
+                <div class="formulario-grupo">
+                    <label for="turno_motivo">Motivo de la Consulta</label>
+                    <textarea id="turno_motivo" rows="3" placeholder="Ej: Consulta por dolor de cabeza..."></textarea>
+                </div>
+                
+                <div class="formulario-grupo">
+                    <label for="turno_observaciones">Observaciones Adicionales</label>
+                    <textarea id="turno_observaciones" rows="3" placeholder="Ej: Es la primera vez que viene..."></textarea>
+                </div>
+            </section>
+            
+            <!-- SECCIÓN 5: CONFIRMAR Y CREAR -->
+            <section class="seccion-agendar" id="seccion-5">
+                <div class="titulo-seccion">
+                    <i class="bi bi-check2-circle"></i>
+                    Paso 5: Confirmar y Crear Turno
+                </div>
+                
+                <div id="resumen-turno" style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: none;">
+                    <h5 style="margin-bottom: 15px; color: #1a3a3a;">Resumen del Turno</h5>
+                    <div id="resumen-contenido"></div>
+                </div>
+                
+                <button class="btn-crear-turno" onclick="crearTurno()">
+                    <i class="bi bi-calendar-plus"></i>
+                    Crear Turno
+                </button>
+            </section>
+        </main>
+    </div>
+    
+    <script>
+        // ========================================================================
+        // VARIABLES GLOBALES
+        // ========================================================================
+        let personaEncontrada = null;
+        
+        // ========================================================================
+        // BUSCAR PERSONA POR DNI
+        // ========================================================================
+        async function buscarPersona() {
+            const dni = document.getElementById('dni_buscar').value;
+            const alerta = document.getElementById('alerta');
+            
+            if (!dni) {
+                mostrarAlerta('Por favor ingresa un DNI para buscar', 'error');
+                return;
+            }
+            
+            try {
+                mostrarAlerta('Buscando persona...', 'info');
+                
+                const response = await fetch(`/api/personas/search?dni=${dni}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.persona) {
+                    personaEncontrada = data.persona;
+                    cargarPersonaEnFormulario(data.persona);
+                    mostrarAlerta('✅ Persona encontrada. Puedes editar sus datos si es necesario.', 'exito');
+                } else {
+                    personaEncontrada = null;
+                    limpiarPersonaEnFormulario();
+                    mostrarAlerta('❌ Persona no encontrada. Completa el formulario para crear una nueva.', 'info');
+                }
+            } catch (error) {
+                mostrarAlerta('Error al buscar: ' + error.message, 'error');
+            }
+        }
+        
+        // ========================================================================
+        // CARGAR PERSONA EN FORMULARIO
+        // ========================================================================
+        function cargarPersonaEnFormulario(persona) {
+            document.getElementById('persona_nombre').value = persona.nombre || '';
+            document.getElementById('persona_apellido').value = persona.apellido || '';
+            document.getElementById('persona_dni').value = persona.dni || '';
+            document.getElementById('persona_fecha_nacimiento').value = persona.fecha_nacimiento || '';
+            document.getElementById('persona_telefono').value = persona.telefono || '';
+            document.getElementById('persona_email').value = persona.email || '';
+            document.getElementById('persona_direccion').value = persona.direccion || '';
+            document.getElementById('persona_obra_social').value = persona.obra_social || '';
+            document.getElementById('persona_numero_afiliado').value = persona.numero_afiliado || '';
+        }
+        
+        // ========================================================================
+        // LIMPIAR FORMULARIO PERSONA
+        // ========================================================================
+        function limpiarPersonaEnFormulario() {
+            document.getElementById('persona_nombre').value = '';
+            document.getElementById('persona_apellido').value = '';
+            document.getElementById('persona_dni').value = '';
+            document.getElementById('persona_fecha_nacimiento').value = '';
+            document.getElementById('persona_telefono').value = '';
+            document.getElementById('persona_email').value = '';
+            document.getElementById('persona_direccion').value = '';
+            document.getElementById('persona_obra_social').value = '';
+            document.getElementById('persona_numero_afiliado').value = '';
+        }
+        
+        // ========================================================================
+        // CREAR TURNO
+        // ========================================================================
+        async function crearTurno() {
+            // Validar campos obligatorios
+            const nombre = document.getElementById('persona_nombre').value?.trim();
+            const apellido = document.getElementById('persona_apellido').value?.trim();
+            const dni = document.getElementById('persona_dni').value?.trim();
+            const medico_id = document.getElementById('medico_id').value;
+            const fecha = document.getElementById('turno_fecha').value;
+            const hora = document.getElementById('turno_hora').value;
+            
+            if (!nombre) {
+                alert('⚠️ Nombre de la persona es obligatorio');
+                return;
+            }
+            if (!apellido) {
+                alert('⚠️ Apellido de la persona es obligatorio');
+                return;
+            }
+            if (!dni) {
+                alert('⚠️ DNI de la persona es obligatorio');
+                return;
+            }
+            if (!medico_id) {
+                alert('⚠️ Debes seleccionar un doctor');
+                return;
+            }
+            if (!fecha) {
+                alert('⚠️ Debes seleccionar una fecha');
+                return;
+            }
+            if (!hora) {
+                alert('⚠️ Debes seleccionar una hora');
+                return;
+            }
+            
+            try {
+                const datosAgendar = {
+                    persona_nombre: nombre,
+                    persona_apellido: apellido,
+                    persona_dni: parseInt(dni),
+                    persona_fecha_nacimiento: document.getElementById('persona_fecha_nacimiento').value || null,
+                    persona_telefono: document.getElementById('persona_telefono').value || null,
+                    persona_email: document.getElementById('persona_email').value || null,
+                    persona_direccion: document.getElementById('persona_direccion').value || null,
+                    persona_obra_social: document.getElementById('persona_obra_social').value || null,
+                    persona_numero_afiliado: document.getElementById('persona_numero_afiliado').value || null,
+                    medico_id: parseInt(medico_id),
+                    fecha: new Date(fecha).toISOString(),
+                    hora: hora,
+                    motivo: document.getElementById('turno_motivo').value || null,
+                    observaciones: document.getElementById('turno_observaciones').value || null
+                };
+                
+                console.log('📝 Datos a enviar:', datosAgendar);
+                
+                const response = await fetch('/api/turnos/agendar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(datosAgendar)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('✅ Turno creado exitosamente con ID: ' + data.turno.id);
+                    setTimeout(() => {
+                        window.location.href = '/turnos';
+                    }, 2000);
+                } else {
+                    alert('❌ Error: ' + (data.message || 'No se pudo crear el turno'));
+                }
+            } catch (error) {
+                alert('❌ Error al crear turno: ' + error.message);
+            }
+        }
+        
+        // ========================================================================
+        // UTILIDADES
+        // ========================================================================
+        function mostrarAlerta(mensaje, tipo) {
+            const alerta = document.getElementById('alerta');
+            alerta.textContent = mensaje;
+            alerta.className = 'alerta ' + tipo;
+            setTimeout(() => {
+                alerta.className = 'alerta';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

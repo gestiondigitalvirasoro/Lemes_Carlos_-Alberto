@@ -13,23 +13,61 @@ export const crearHistoriaClinica = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
+    // ========================================================================
+    // 📋 EXTRAER DATOS DE HISTORIA CLÍNICA
+    // ========================================================================
     const {
       paciente_id,
-      doctor_id,
+      doctor_id: doctor_id_body,
       turno_id,
+      motivo_consulta,
+      anamnesis,
+      antecedentes,
       diagnostico,
       tratamiento,
       medicamentos,
-      antecedentes,
       examen_fisico,
       observaciones,
       peso,
       talla
     } = req.body;
 
-    // Validar que paciente existe
+    // ========================================================================
+    // 🔐 OBTENER DOCTOR_ID
+    // ========================================================================
+    let doctor_id = doctor_id_body;
+    if (!doctor_id && req.user && req.user.medicoId) {
+      console.log('📌 doctor_id obtenido de req.user.medicoId:', req.user.medicoId);
+      doctor_id = req.user.medicoId;
+    }
+    
+    if (!doctor_id) {
+      return res.status(400).json({
+        error: 'Bad request',
+        message: 'doctor_id es requerido o no se encontró el usuario autenticado'
+      });
+    }
+
+    // ========================================================================
+    // 📌 VALIDAR DATOS OBLIGATORIOS
+    // ========================================================================
+    if (!paciente_id) {
+      return res.status(400).json({
+        error: 'Bad request',
+        message: 'paciente_id es requerido para crear historia clínica'
+      });
+    }
+
+    if (!motivo_consulta || motivo_consulta.trim() === '') {
+      return res.status(400).json({
+        error: 'Bad request',
+        message: 'Motivo de Consulta es obligatorio'
+      });
+    }
+
     const paciente = await prisma.paciente.findUnique({
-      where: { id: BigInt(paciente_id) }
+      where: { id: BigInt(paciente_id) },
+      select: { id: true }
     });
 
     if (!paciente) {
@@ -39,7 +77,9 @@ export const crearHistoriaClinica = async (req, res) => {
       });
     }
 
-    // Validar que doctor existe
+    // ========================================================================
+    // 📌 VALIDAR DOCTOR
+    // ========================================================================
     const doctor = await prisma.usuario.findUnique({
       where: { id: BigInt(doctor_id) },
       select: { id: true, role: true }
@@ -52,10 +92,13 @@ export const crearHistoriaClinica = async (req, res) => {
       });
     }
 
-    // Validar turno si se proporciona
+    // ========================================================================
+    // ✅ VALIDAR TURNO SI SE PROPORCIONA
+    // ========================================================================
     if (turno_id) {
       const turno = await prisma.turno.findUnique({
-        where: { id: BigInt(turno_id) }
+        where: { id: BigInt(turno_id) },
+        select: { id: true }
       });
 
       if (!turno) {
@@ -66,59 +109,81 @@ export const crearHistoriaClinica = async (req, res) => {
       }
     }
 
-    // Calcular IMC si se proporcionan peso y talla
+    // ========================================================================
+    // 📊 CALCULAR IMC SI ES POSIBLE
+    // ========================================================================
     let imc = null;
     if (peso && talla) {
-      const tallaEnMetros = talla / 100; // Asumir talla en cm
+      const tallaEnMetros = talla / 100;
       imc = (peso / (tallaEnMetros * tallaEnMetros)).toFixed(2);
     }
 
+    // ========================================================================
+    // 💾 CREAR HISTORIA CLÍNICA
+    // ========================================================================
     const historiaClinica = await prisma.historiaClinica.create({
       data: {
         paciente_id: BigInt(paciente_id),
-        doctor_id: BigInt(doctor_id),
+        creada_por_medico_id: BigInt(doctor_id),
         turno_id: turno_id ? BigInt(turno_id) : null,
-        diagnostico,
-        tratamiento,
-        medicamentos,
-        antecedentes,
-        examen_fisico,
-        observaciones
+        motivo_consulta: motivo_consulta || null,
+        anamnesis: anamnesis || null,
+        antecedentes: antecedentes || null,
+        diagnostico: diagnostico || null,
+        tratamiento: tratamiento || null,
+        medicamentos: medicamentos || null,
+        examen_fisico: examen_fisico || null,
+        observaciones: observaciones || null
       },
       select: {
         id: true,
         paciente_id: true,
-        doctor_id: true,
+        creada_por_medico_id: true,
         turno_id: true,
-        fecha: true,
+        motivo_consulta: true,
+        anamnesis: true,
+        antecedentes: true,
         diagnostico: true,
         tratamiento: true,
         medicamentos: true,
-        antecedentes: true,
         examen_fisico: true,
         observaciones: true,
-        created_at: true,
-        updated_at: true
+        fecha_creacion: true,
+        fecha_modificacion: true
       }
     });
 
+    console.log('✅ Historia clínica creada exitosamente:', historiaClinica.id);
+
+    // ========================================================================
+    // 🎉 RESPUESTA FINAL
+    // ========================================================================
     return res.status(201).json({
       success: true,
       message: 'Historia clínica creada exitosamente',
-      data: {
-        ...historiaClinica,
+      historia: {
         id: historiaClinica.id.toString(),
         paciente_id: historiaClinica.paciente_id.toString(),
-        doctor_id: historiaClinica.doctor_id.toString(),
+        doctor_id: historiaClinica.creada_por_medico_id.toString(),
         turno_id: historiaClinica.turno_id?.toString() || null,
+        motivo_consulta: historiaClinica.motivo_consulta,
+        anamnesis: historiaClinica.anamnesis,
+        antecedentes: historiaClinica.antecedentes,
+        diagnostico: historiaClinica.diagnostico,
+        tratamiento: historiaClinica.tratamiento,
+        medicamentos: historiaClinica.medicamentos,
+        examen_fisico: historiaClinica.examen_fisico,
+        observaciones: historiaClinica.observaciones,
+        fecha_creacion: historiaClinica.fecha_creacion,
+        fecha_modificacion: historiaClinica.fecha_modificacion,
         imc: imc
       }
     });
   } catch (error) {
-    console.error('Error al crear historia clínica:', error);
+    console.error('❌ Error al crear historia clínica:', error);
     return res.status(500).json({
       error: 'Internal server error',
-      message: 'Error al crear la historia clínica'
+      message: 'Error al crear la historia clínica: ' + error.message
     });
   }
 };
@@ -332,6 +397,25 @@ export const actualizarHistoriaClinica = async (req, res) => {
       saturacion_o2
     });
 
+    // Validar que al menos un campo tenga contenido
+    const tieneContenido = 
+      (motivo_consulta && motivo_consulta.trim() !== '') ||
+      (anamnesis && anamnesis.trim() !== '') ||
+      (antecedentes && antecedentes.trim() !== '') ||
+      (diagnostico_principal && diagnostico_principal.trim() !== '') ||
+      (impresion_clinica && impresion_clinica.trim() !== '') ||
+      (presion_arterial && presion_arterial.trim() !== '') ||
+      (frecuencia_cardiaca && frecuencia_cardiaca.trim() !== '') ||
+      (temperatura && temperatura.trim() !== '') ||
+      (saturacion_o2 && saturacion_o2.trim() !== '');
+
+    if (!tieneContenido) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debes completar al menos un campo para guardar la historia clínica'
+      });
+    }
+
     // Parsear presión arterial (ej: "138/88" -> sistólica=138, diastólica=88)
     let presion_sistolica, presion_diastolica = null;
     if (presion_arterial && presion_arterial.includes('/')) {
@@ -483,21 +567,42 @@ export const registrarDiagnostico = async (req, res) => {
       });
     }
 
-    // Si es principal, desmarcar otros diagnósticos como principal en ESTA historia
+    // Obtener o crear la primera consulta médica de esta historia
+    let consulta = await prisma.consultaMedica.findFirst({
+      where: {
+        historia_clinica_id: BigInt(historia_id)
+      }
+    });
+
+    // Si no existe consulta, crearla
+    if (!consulta) {
+      consulta = await prisma.consultaMedica.create({
+        data: {
+          historia_clinica_id: BigInt(historia_id),
+          medico_id: BigInt(req.user.medicoId),
+          fecha: new Date(),
+          motivo_consulta: 'Consulta de registro de diagnósticos',
+          resumen: ''
+        }
+      });
+      console.log('📝 Nueva consulta creada para diagnóstico:', consulta.id);
+    }
+
+    // Si es principal, desmarcar otros diagnósticos como principal en ESTA consulta
     if (principal) {
       await prisma.diagnostico.updateMany({
         where: {
-          historia_clinica_id: BigInt(historia_id),
+          consulta_id: BigInt(consulta.id),
           principal: true
         },
         data: { principal: false }
       });
     }
 
-    // Crear el diagnóstico vinculado directamente a la historia
+    // Crear el diagnóstico vinculado a la consulta
     const diagnostico = await prisma.diagnostico.create({
       data: {
-        historia_clinica_id: BigInt(historia_id),
+        consulta_id: BigInt(consulta.id),
         codigo_cie10: codigo_cie10.toUpperCase(),
         descripcion: descripcion.charAt(0).toUpperCase() + descripcion.slice(1),
         principal: principal || false

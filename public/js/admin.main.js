@@ -4,7 +4,7 @@
 
 // Obtener token del localStorage (se guarda al hacer login)
 function getAuthToken() {
-    return localStorage.getItem('auth_token');
+    return localStorage.getItem('token');
 }
 
 // Hacer logout
@@ -58,7 +58,7 @@ async function apiCall(url, options = {}) {
 
         // Si es 401, redirigir a login
         if (response.status === 401) {
-            localStorage.removeItem('auth_token');
+            localStorage.removeItem('token');
             window.location.href = '/login';
             return null;
         }

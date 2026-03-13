@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendar Turno</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: linear-gradient(135deg, #f5f7fa 0%, #e2e8f0 100%);
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .contenedor-agendar {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .encabezado {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0;
+        }
+
+        .encabezado h1 {
+            font-size: 36px;
+            font-weight: 700;
+            color: #1a3a3a;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .encabezado p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .formulario-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            padding: 40px 35px;
+            margin-bottom: 30px;
+        }
+
+        .seccion-form {
+            margin-bottom: 35px;
+        }
+
+        .seccion-form:last-child {
+            margin-bottom: 0;
+        }
+
+        .titulo-seccion {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a3a3a;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .titulo-seccion i {
+            font-size: 22px;
+            color: #D97F7F;
+        }
+
+        .grid-2-cols {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group label .required {
+            color: #ef4444;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            display: block;
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-group input[type="date"],
+        .form-group input[type="time"] {
+            position: relative;
+        }
+
+        .info-dni {
+            background: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            padding: 12px 15px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #0369a1;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .info-dni.activo {
+            display: block;
+        }
+
+        .info-dni.persona-existe {
+            background: #ecfdf5;
+            border-left-color: #10b981;
+            color: #065f46;
+        }
+
+        .info-dni.persona-nueva {
+            background: #fef3c7;
+            border-left-color: #f59e0b;
+            color: #92400e;
+        }
+
+        .botones-acciones {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 35px;
+        }
+
+        .btn-custom {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .btn-guardar {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-guardar:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-cancelar {
+            background: #e2e8f0;
+            color: #333;
+        }
+
+        .btn-cancelar:hover {
+            background: #cbd5e1;
+        }
+
+        .alerta {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .alerta.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+            display: block;
+        }
+
+        .alerta.exito {
+            background: #dcfce7;
+            color: #166534;
+            border-left: 4px solid #10b981;
+            display: block;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #1a3a3a 0%, #0d1f1f 100%);
+            padding: 15px 30px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-radius: 0;
+        }
+
+        .navbar-brand {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2-cols {
+                grid-template-columns: 1fr;
+            }
+
+            .formulario-card {
+                padding: 25px 20px;
+            }
+
+            .encabezado h1 {
+                font-size: 28px;
+            }
+
+            .botones-acciones {
+                flex-direction: column;
+            }
+
+            .btn-custom {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <div class="navbar">
+        <div class="navbar-brand">
+            <i class="bi bi-calendar-event"></i>
+            LEMES Medical System
+        </div>
+        <div class="navbar-user">
+            <span><%= user.nombre %> <%= user.apellido %></span>
+            <a href="/api/auth/logout" style="color: #D97F7F; text-decoration: none;">
+                <i class="bi bi-box-arrow-right"></i> Salir
+            </a>
+        </div>
+    </div>
+
+    <div class="contenedor-agendar">
+        <!-- ENCABEZADO -->
+        <div class="encabezado">
+            <h1>
+                <i class="bi bi-calendar2-plus"></i>
+                Agendar Turno
+            </h1>
+            <p>Registra una nueva cita médica para un paciente</p>
+        </div>
+
+        <!-- FORMULARIO -->
+        <div class="formulario-card">
+            <!-- ALERTAS -->
+            <div id="alerta" class="alerta"></div>
+
+            <form id="formularioAgendar" onsubmit="guardarTurno(event)">
+                <!-- ================================ -->
+                <!-- SECCIÓN 1: DATOS DE PERSONA    -->
+                <!-- ================================ -->
+                <div class="seccion-form">
+                    <h3 class="titulo-seccion">
+                        <i class="bi bi-person-check"></i>
+                        Información del Paciente
+                    </h3>
+
+                    <!-- DNI (Trigger para búsqueda) -->
+                    <div class="form-group">
+                        <label for="persona_dni">DNI <span class="required">*</span></label>
+                        <input 
+                            type="text" 
+                            id="persona_dni" 
+                            name="persona_dni" 
+                            placeholder="Ej: 12345678"
+                            required
+                            onchange="buscarPersonaPorDNI()"
+                        />
+                        <div id="info-dni" class="info-dni"></div>
+                    </div>
+
+                    <!-- NOMBRE Y APELLIDO -->
+                    <div class="grid-2-cols">
+                        <div class="form-group">
+                            <label for="persona_nombre">Nombre <span class="required">*</span></label>
+                            <input 
+                                type="text" 
+                                id="persona_nombre" 
+                                name="persona_nombre" 
+                                placeholder="Ej: Juan"
+                                required
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="persona_apellido">Apellido <span class="required">*</span></label>
+                            <input 
+                                type="text" 
+                                id="persona_apellido" 
+                                name="persona_apellido" 
+                                placeholder="Ej: García"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <!-- EMAIL Y TELÉFONO -->
+                    <div class="grid-2-cols">
+                        <div class="form-group">
+                            <label for="persona_email">Email</label>
+                            <input 
+                                type="email" 
+                                id="persona_email" 
+                                name="persona_email" 
+                                placeholder="Ej: juan@ejemplo.com"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="persona_telefono">Teléfono</label>
+                            <input 
+                                type="tel" 
+                                id="persona_telefono" 
+                                name="persona_telefono" 
+                                placeholder="Ej: 1123456789"
+                            />
+                        </div>
+                    </div>
+
+                    <!-- FECHA DE NACIMIENTO Y SEXO -->
+                    <div class="grid-2-cols">
+                        <div class="form-group">
+                            <label for="persona_fecha_nacimiento">Fecha de Nacimiento</label>
+                            <input 
+                                type="date" 
+                                id="persona_fecha_nacimiento" 
+                                name="persona_fecha_nacimiento"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="persona_sexo">Sexo</label>
+                            <select id="persona_sexo" name="persona_sexo">
+                                <option value="">-- Seleccionar --</option>
+                                <option value="M">Masculino (M)</option>
+                                <option value="F">Femenino (F)</option>
+                                <option value="O">Otro (O)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- DIRECCIÓN -->
+                    <div class="form-group">
+                        <label for="persona_direccion">Dirección</label>
+                        <input 
+                            type="text" 
+                            id="persona_direccion" 
+                            name="persona_direccion" 
+                            placeholder="Ej: Av. Principal 123"
+                        />
+                    </div>
+
+                    <!-- OBRA SOCIAL -->
+                    <div class="grid-2-cols">
+                        <div class="form-group">
+                            <label for="persona_obra_social">Obra Social</label>
+                            <input 
+                                type="text" 
+                                id="persona_obra_social" 
+                                name="persona_obra_social" 
+                                placeholder="Ej: IOMA"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="persona_numero_afiliado">Nº Afiliado</label>
+                            <input 
+                                type="text" 
+                                id="persona_numero_afiliado" 
+                                name="persona_numero_afiliado" 
+                                placeholder="Ej: 123456"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================================ -->
+                <!-- SECCIÓN 2: DATOS DEL TURNO     -->
+                <!-- ================================ -->
+                <div class="seccion-form">
+                    <h3 class="titulo-seccion">
+                        <i class="bi bi-calendar-event"></i>
+                        Detalles de la Cita
+                    </h3>
+
+                    <!-- DOCTOR -->
+                    <div class="form-group">
+                        <label for="medico_id">Doctor <span class="required">*</span></label>
+                        <select id="medico_id" name="medico_id" required>
+                            <option value="">-- Seleccionar Doctor --</option>
+                            <% if (doctores && doctores.length > 0) { %>
+                                <% doctores.forEach(doc => { %>
+                                    <option value="<%= doc.id %>">
+                                        Dr. <%= doc.nombre %> <%= doc.apellido %>
+                                        <% if (doc.especialidad) { %>
+                                            - <%= doc.especialidad %>
+                                        <% } %>
+                                    </option>
+                                <% }); %>
+                            <% } %>
+                        </select>
+                    </div>
+
+                    <!-- FECHA Y HORA -->
+                    <div class="grid-2-cols">
+                        <div class="form-group">
+                            <label for="fecha">Fecha <span class="required">*</span></label>
+                            <input 
+                                type="date" 
+                                id="fecha" 
+                                name="fecha" 
+                                required
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="hora">Hora <span class="required">*</span></label>
+                            <input 
+                                type="time" 
+                                id="hora" 
+                                name="hora" 
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <!-- MOTIVO Y OBSERVACIONES -->
+                    <div class="form-group">
+                        <label for="motivo">Motivo de la Consulta</label>
+                        <textarea 
+                            id="motivo" 
+                            name="motivo" 
+                            rows="3" 
+                            placeholder="Ej: Control de hipertensión"
+                        ></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="observaciones">Observaciones</label>
+                        <textarea 
+                            id="observaciones" 
+                            name="observaciones" 
+                            rows="3" 
+                            placeholder="Ej: Paciente presenta síntomas de..."
+                        ></textarea>
+                    </div>
+                </div>
+
+                <!-- BOTONES -->
+                <div class="botones-acciones">
+                    <button type="submit" class="btn-custom btn-guardar">
+                        <i class="bi bi-check-circle"></i>
+                        Guardar Turno
+                    </button>
+                    <a href="/doctor/turnos" class="btn-custom btn-cancelar">
+                        <i class="bi bi-x-circle"></i>
+                        Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // BÚSQUEDA DE PERSONA POR DNI
+        // ============================================================
+        async function buscarPersonaPorDNI() {
+            const dni = document.getElementById('persona_dni').value;
+            const infoDni = document.getElementById('info-dni');
+
+            if (!dni || dni.trim() === '') {
+                infoDni.classList.remove('activo');
+                return;
+            }
+
+            try {
+                console.log('🔍 Buscando persona con DNI:', dni);
+                
+                const response = await fetch(`/api/personas/search?dni=${encodeURIComponent(dni)}`, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Persona encontrada:', data);
+
+                    if (data.persona) {
+                        // ✅ Persona existe - rellenar datos
+                        infoDni.innerHTML = `<i class="bi bi-check-circle"></i> Persona encontrada - Datos se cargarán automáticamente`;
+                        infoDni.classList.add('activo', 'persona-existe');
+                        
+                        document.getElementById('persona_nombre').value = data.persona.nombre || '';
+                        document.getElementById('persona_apellido').value = data.persona.apellido || '';
+                        document.getElementById('persona_email').value = data.persona.email || '';
+                        document.getElementById('persona_telefono').value = data.persona.telefono || '';
+                        document.getElementById('persona_direccion').value = data.persona.direccion || '';
+                        document.getElementById('persona_obra_social').value = data.persona.obra_social || '';
+                        document.getElementById('persona_numero_afiliado').value = data.persona.numero_afiliado || '';
+                        if (data.persona.fecha_nacimiento) {
+                            document.getElementById('persona_fecha_nacimiento').value = data.persona.fecha_nacimiento.split('T')[0];
+                        }
+                        if (data.persona.sexo) {
+                            document.getElementById('persona_sexo').value = data.persona.sexo;
+                        }
+                    } else {
+                        // ℹ️ Persona no existe - formulario listo para crear
+                        infoDni.innerHTML = `<i class="bi bi-info-circle"></i> Persona nueva - Se creará al guardar`;
+                        infoDni.classList.add('activo', 'persona-nueva');
+                        infoDni.classList.remove('persona-existe');
+                    }
+                } else {
+                    // ℹ️ Persona no existe
+                    infoDni.innerHTML = `<i class="bi bi-info-circle"></i> Persona nueva - Se creará al guardar`;
+                    infoDni.classList.add('activo', 'persona-nueva');
+                    infoDni.classList.remove('persona-existe');
+                }
+            } catch (error) {
+                console.error('❌ Error al buscar persona:', error);
+                infoDni.classList.remove('activo');
+            }
+        }
+
+        // ============================================================
+        // GUARDAR TURNO
+        // ============================================================
+        async function guardarTurno(event) {
+            event.preventDefault();
+            
+            console.log('💾 Guardando turno...');
+            
+            const alerta = document.getElementById('alerta');
+            alerta.classList.remove('error', 'exito');
+            alerta.innerHTML = '';
+
+            // ========================================
+            // VALIDAR CAMPOS OBLIGATORIOS
+            // ========================================
+            const persona_nombre = document.getElementById('persona_nombre').value.trim();
+            const persona_apellido = document.getElementById('persona_apellido').value.trim();
+            const persona_dni = document.getElementById('persona_dni').value.trim();
+            const medico_id = document.getElementById('medico_id').value;
+            const fecha = document.getElementById('fecha').value;
+            const hora = document.getElementById('hora').value;
+
+            if (!persona_nombre || !persona_apellido || !persona_dni || !medico_id || !fecha || !hora) {
+                alerta.innerHTML = '<i class="bi bi-exclamation-circle"></i> Completa todos los campos requeridos';
+                alerta.classList.add('error');
+                return;
+            }
+
+            // ========================================
+            // RECOLECTAR DATOS DEL FORMULARIO
+            // ========================================
+            const datosAgendar = {
+                persona_nombre: persona_nombre,
+                persona_apellido: persona_apellido,
+                persona_dni: persona_dni,
+                persona_email: document.getElementById('persona_email').value || null,
+                persona_telefono: document.getElementById('persona_telefono').value || null,
+                persona_fecha_nacimiento: document.getElementById('persona_fecha_nacimiento').value || null,
+                persona_sexo: document.getElementById('persona_sexo').value || null,
+                persona_direccion: document.getElementById('persona_direccion').value || null,
+                persona_obra_social: document.getElementById('persona_obra_social').value || null,
+                persona_numero_afiliado: document.getElementById('persona_numero_afiliado').value || null,
+                medico_id: parseInt(medico_id),
+                fecha: fecha,
+                hora: hora,
+                motivo: document.getElementById('motivo').value || null,
+                observaciones: document.getElementById('observaciones').value || null
+            };
+
+            console.log('📝 Datos a enviar:', datosAgendar);
+
+            try {
+                // ========================================
+                // ENVIAR AL SERVIDOR
+                // ========================================
+                const response = await fetch('/api/turnos/agendar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(datosAgendar)
+                });
+
+                console.log('📤 Respuesta servidor:', response.status);
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('❌ Error al guardar:', error);
+                    
+                    alerta.innerHTML = `<i class="bi bi-x-circle"></i> Error: ${error.message || 'No se pudo guardar el turno'}`;
+                    alerta.classList.add('error');
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('✅ Turno guardado:', data);
+
+                alerta.innerHTML = `<i class="bi bi-check-circle"></i> ¡Turno agendado exitosamente! Redirigiendo...`;
+                alerta.classList.add('exito');
+
+                // Redirigir a lista de turnos después de 2 segundos
+                setTimeout(() => {
+                    window.location.href = '/turnos';
+                }, 2000);
+
+            } catch (error) {
+                console.error('❌ Error al agendar turno:', error);
+                alerta.innerHTML = `<i class="bi bi-exclamation-circle"></i> Error al guardar: ${error.message}`;
+                alerta.classList.add('error');
+            }
+        }
+
+        // Setear fecha mínima a hoy
+        document.addEventListener('DOMContentLoaded', function() {
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('fecha').min = hoy;
+        });
+    </script>
+</body>
+</html>

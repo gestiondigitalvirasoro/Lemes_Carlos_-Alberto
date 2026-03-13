@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis Turnos</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; display: flex; }
+    
+    .sidebar {
+      width: 280px; background: linear-gradient(180deg, #1a3a3a 0%, #0d1f1f 100%); color: white; 
+      padding: 30px 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.1); position: fixed; height: 100vh; 
+      overflow-y: auto; z-index: 1000;
+    }
+    .sidebar-brand { display: flex; flex-direction: column; align-items: center; margin-bottom: 40px; 
+      border-bottom: 2px solid #5CAEA3; padding-bottom: 20px; }
+    .sidebar-brand i { font-size: 1.8rem; margin-bottom: 8px; }
+    .sidebar-brand h4 { margin: 0; font-size: 1.3rem; font-weight: 700; letter-spacing: 1px; }
+    .sidebar-brand p { margin: 5px 0 0 0; font-size: 0.75rem; opacity: 0.8; text-transform: uppercase; }
+    
+    .sidebar-nav { display: flex; flex-direction: column; gap: 15px; }
+    .sidebar-nav .nav-item { margin: 0; }
+    .sidebar-nav a { color: #bbb; text-decoration: none; padding: 10px 15px; border-radius: 6px; 
+      transition: all 0.3s; display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+    .sidebar-nav a:hover { background: rgba(217, 127, 127, 0.2); color: #D97F7F; }
+    .sidebar-nav a.active { background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; }
+    .sidebar-nav a i { width: 20px; text-align: center; }
+    
+    .sidebar-divider { margin: 1.5rem 0; border: none; border-top: 1px solid rgba(255,255,255,0.2); }
+    
+    .user-info { padding: 15px; background: rgba(255,255,255,0.1); border-radius: 6px; margin-top: auto; text-align: center; }
+    .user-info .user-name { font-weight: 600; margin: 5px 0; font-size: 0.9rem; }
+    .user-info .user-email { font-size: 0.75rem; opacity: 0.8; margin: 3px 0; }
+    .user-info .user-role { display: inline-block; font-size: 0.75rem; background: rgba(255,255,255,0.2); 
+      padding: 3px 8px; border-radius: 3px; margin-top: 8px; font-weight: 600; }
+    
+    .logout-btn { display: block; width: calc(100% - 20px); margin: 15px 10px; padding: 10px; 
+      background: rgba(217, 127, 127, 0.2); color: #D97F7F; border: 1px solid rgba(217, 127, 127, 0.3); 
+      border-radius: 6px; text-decoration: none; text-align: center; font-size: 0.9rem; cursor: pointer; 
+      font-weight: 600; transition: all 0.3s; }
+    .logout-btn:hover { background: rgba(217, 127, 127, 0.3); color: #D97F7F; }
+    
+    .main-content { margin-left: 280px; flex: 1; padding: 30px; overflow-y: auto; }
+    
+    .page-header { margin-bottom: 30px; }
+    .page-header h1 { font-size: 2.5rem; color: #1a3a3a; display: flex; align-items: center; gap: 12px; font-weight: 700; }
+    .page-header p { margin-top: 8px; color: #666; font-size: 1.1rem; }
+    
+    .filters-section { background: white; border-radius: 12px; padding: 20px; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 30px; }
+    .filter-group { margin-bottom: 15px; }
+    .filter-group:last-child { margin-bottom: 0; }
+    .filter-group label { display: block; margin-bottom: 8px; color: #495057; font-weight: 500; }
+    .filter-group select, .filter-group input { width: 100%; padding: 10px; border: 1px solid #dee2e6; 
+      border-radius: 8px; font-size: 0.95rem; }
+    .filter-group select:focus, .filter-group input:focus { border-color: #D97F7F; 
+      box-shadow: 0 0 0 0.2rem rgba(217, 127, 127, 0.25); }
+    
+    .turnos-section { background: white; border-radius: 12px; padding: 25px; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    
+    .section-title { font-size: 1.2rem; font-weight: 700; color: #1a3a3a; margin-bottom: 20px; 
+      display: flex; align-items: center; gap: 10px; }
+    .section-title i { color: #D97F7F; }
+    
+    .table { margin-bottom: 0; }
+    .table thead { background: #f8f9fa; border-bottom: 2px solid #d97f7f; }
+    .table thead th { color: #1a3a3a; font-weight: 600; padding: 15px; border: none; font-size: 0.9rem; 
+      text-transform: uppercase; letter-spacing: 0.5px; }
+    .table tbody td { padding: 15px; vertical-align: middle; border-color: #f8f9fa; color: #555; }
+    .table tbody tr { transition: background-color 0.2s ease; }
+    .table tbody tr:hover { background-color: #f9f9f9; }
+    
+    .estado-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; 
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .estado-PENDIENTE { background: #FFC107; color: #000; }
+    .estado-CONFIRMADO { background: #28A745; color: white; }
+    .estado-EN_CONSULTA { background: #17A2B8; color: white; }
+    .estado-ATENDIDA { background: #28A745; color: white; }
+    .estado-CANCELADA { background: #DC3545; color: white; }
+    
+    .estado-select { padding: 8px 12px; border: 2px solid #E0E0E0; border-radius: 6px; 
+      font-size: 0.9rem; cursor: pointer; background: white; color: #333; 
+      transition: all 0.2s ease; }
+    .estado-select:hover { border-color: #5CAEA3; background-color: rgba(92, 174, 163, 0.05); }
+    .estado-select:focus { outline: none; border-color: #5CAEA3; box-shadow: 0 0 0 3px rgba(92, 174, 163, 0.1); }
+    .estado-select option { padding: 8px; }
+    
+    .btn-action { padding: 8px 12px; font-size: 0.85rem; margin: 0 4px; border-radius: 6px; 
+      text-decoration: none; transition: all 0.2s ease; border: none; cursor: pointer; }
+    .btn-action.btn-info { background: rgba(92, 174, 163, 0.2); color: #5CAEA3; }
+    .btn-action.btn-info:hover { background: rgba(92, 174, 163, 0.3); color: #5CAEA3; transform: translateY(-2px); }
+    .btn-action.btn-warning { background: rgba(217, 127, 127, 0.2); color: #D97F7F; }
+    .btn-action.btn-warning:hover { background: rgba(217, 127, 127, 0.3); color: #D97F7F; transform: translateY(-2px); }
+    
+    .btn-agendar { background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); border: none; 
+      color: white; padding: 12px 30px; font-weight: 600; border-radius: 6px; transition: all 0.3s; 
+      text-decoration: none; display: inline-block; }
+    .btn-agendar:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(217, 127, 127, 0.3); color: white; }
+    
+    .loading-spinner { text-align: center; padding: 40px; color: #D97F7F; }
+    .loading-spinner .spinner-border { width: 48px; height: 48px; color: #D97F7F; }
+    
+    .error-message { background: #f8d7da; border: 1px solid #f5c2c7; color: #842029; padding: 15px; 
+      border-radius: 8px; margin-bottom: 20px; }
+    .error-message i { margin-right: 10px; }
+    
+    .empty-state { text-align: center; padding: 40px; color: #999; }
+    .empty-state i { font-size: 3rem; color: #D97F7F; margin-bottom: 15px; display: block; }
+    
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; height: auto; position: static; }
+      .main-content { margin-left: 0; }
+      .page-header h1 { font-size: 1.8rem; }
+      .table thead th, .table tbody td { padding: 10px 5px; font-size: 0.85rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <i class="fas fa-clinic-medical"></i>
+      <h4>LEMES</h4>
+      <p>Sistema Médico</p>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-item">
+        <a href="/doctor/dashboard" class="nav-link">
+          <i class="fas fa-chart-line"></i>
+          <span>Dashboard</span>
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="/doctor/pacientes" class="nav-link">
+          <i class="fas fa-users"></i>
+          <span>Pacientes</span>
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="/doctor/turnos" class="nav-link active">
+          <i class="fas fa-calendar-check"></i>
+          <span>Turnos</span>
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="/historias" class="nav-link">
+          <i class="fas fa-notes-medical"></i>
+          <span>Historias Clínicas</span>
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="/doctor/agendar-turno" class="nav-link">
+          <i class="fas fa-plus-circle"></i>
+          <span>Agendar Turno</span>
+        </a>
+      </div>
+    </nav>
+
+    <hr class="sidebar-divider">
+
+    <div class="user-info">
+      <div class="user-name"><%= user.nombre %> <%= user.apellido %></div>
+      <div class="user-email"><%= user.email %></div>
+      <div class="user-role"><%= user.rol %></div>
+    </div>
+
+    <a href="/logout" class="logout-btn">
+      <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+    </a>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Page Header -->
+    <div class="page-header">
+      <h1><i class="fas fa-calendar-alt"></i> Mis Turnos</h1>
+      <p>Gestiona tus citas médicas</p>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters-section">
+      <div class="row">
+        <div class="col-md-6 col-lg-3">
+          <div class="filter-group">
+            <label for="filtroNombre">Nombre de Persona</label>
+            <input type="text" id="filtroNombre" class="form-control" placeholder="Buscar por nombre...">
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="filter-group">
+            <label for="filtroEstado">Estado</label>
+            <select id="filtroEstado" class="form-select">
+              <option value="">Todos los estados</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="filter-group">
+            <label for="filtroFecha">Fecha</label>
+            <input type="date" id="filtroFecha" class="form-control">
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="filter-group">
+            <label>&nbsp;</label>
+            <a href="/doctor/agendar-turno" class="btn btn-agendar w-100">
+              <i class="fas fa-plus"></i> Agendar Turno
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla de Turnos -->
+    <div class="turnos-section">
+      <div class="section-title">
+        <i class="fas fa-list"></i> Listado de Turnos
+      </div>
+
+      <div id="cargando" class="loading-spinner" style="display: none;">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p style="margin-top: 1rem;">Cargando turnos...</p>
+      </div>
+
+      <div id="error" class="error-message" style="display: none;"></div>
+
+      <div class="table-responsive">
+        <table class="table" id="turnosTable">
+          <thead>
+            <tr>
+              <th>Persona</th>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="turnosBody">
+          </tbody>
+        </table>
+      </div>
+
+      <div id="vacio" class="empty-state" style="display: none;">
+        <i class="fas fa-inbox"></i>
+        <h4>No hay turnos</h4>
+        <p>No tienes turnos agendados. <a href="/doctor/agendar-turno">Agenda uno ahora</a></p>
+      </div>
+    </div>
+    
+    <!-- Contenedores para modales -->
+    <div id="detalleModalContainer"></div>
+    <div id="modalConfirmarContainer"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Loading Overlay Global -->
+  <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 30px; border-radius: 10px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+      <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem; margin-bottom: 1rem;">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+      <p id="loadingText" style="margin: 0; color: #333; font-weight: 500;">Procesando...</p>
+    </div>
+  </div>
+
+  <script>
+    // Funciones globales de loading
+    function mostrarLoading(texto = 'Procesando...') {
+      const overlay = document.getElementById('loadingOverlay');
+      const loadingText = document.getElementById('loadingText');
+      if (overlay && loadingText) {
+        loadingText.textContent = texto;
+        overlay.style.display = 'flex';
+      }
+    }
+
+    function ocultarLoading() {
+      const overlay = document.getElementById('loadingOverlay');
+      if (overlay) {
+        overlay.style.display = 'none';
+      }
+    }
+
+    let turnosGlobales = [];
+    let estadosTurnos = []; // GLOBAL - accesible en todas las funciones
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await cargarEstados();
+      await cargarTurnos();
+      inicializarFiltros();
+    });
+
+    async function cargarTurnos() {
+      mostrarLoading('Cargando turnos...');
+      const cargando = document.getElementById('cargando');
+      const error = document.getElementById('error');
+      const vacio = document.getElementById('vacio');
+      const tabla = document.getElementById('turnosBody');
+
+      cargando.style.display = 'block';
+      error.style.display = 'none';
+      vacio.style.display = 'none';
+      tabla.innerHTML = '';
+
+      try {
+        const response = await fetch('/api/doctor-todos-turnos', {
+          credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Error al cargar turnos');
+
+        const datos = await response.json();
+        
+        if (!datos.success || !datos.data || datos.data.length === 0) {
+          vacio.style.display = 'block';
+          cargando.style.display = 'none';
+          ocultarLoading();
+          return;
+        }
+
+        turnosGlobales = datos.data;
+        mostrarTurnos(turnosGlobales);
+      } catch (err) {
+        console.error('Error:', err);
+        error.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${err.message}`;
+        error.style.display = 'block';
+      } finally {
+        cargando.style.display = 'none';
+        ocultarLoading();
+      }
+    }
+
+    function mostrarTurnos(turnos) {
+      const tabla = document.getElementById('turnosBody');
+      const vacio = document.getElementById('vacio');
+
+      if (!turnos || turnos.length === 0) {
+        vacio.style.display = 'block';
+        tabla.innerHTML = '';
+        return;
+      }
+
+      // Ordenar por fecha y hora (más próximo primero)
+      const turnosOrdenados = [...turnos].sort((a, b) => {
+        const dateA = new Date(a.fecha + 'T' + a.hora);
+        const dateB = new Date(b.fecha + 'T' + b.hora);
+        return dateA - dateB;
+      });
+
+      vacio.style.display = 'none';
+      tabla.innerHTML = turnosOrdenados.map((turno, idx) => {
+        const pacienteInfo = turno.persona;
+        const estadoMap = {
+          'PENDIENTE': 'bg-warning',
+          'CONFIRMADO': 'bg-success',
+          'EN_CONSULTA': 'bg-info',
+          'ATENDIDA': 'bg-success',
+          'CANCELADA': 'bg-danger'
+        };
+
+        let selectHtml = '';
+        const estadoActual = turno.estado?.nombre || 'PENDIENTE';
+        
+        if (estadoActual === 'CANCELADA') {
+          // Para CANCELADA, sin botones ni select
+          selectHtml = '';
+        } else {
+          // Para otros estados, mostrar SELECT + botones Ver/Modificar
+          let opciones = '';
+          if (estadoActual === 'PENDIENTE') {
+            opciones = `<option value="">-- Seleccionar --</option>
+              <option value="CONFIRMADO">CONFIRMADO</option>
+              <option value="CANCELADA">CANCELADA</option>
+              <option value="ELIMINAR" style="color: red;">ELIMINAR</option>`;
+          } else if (estadoActual === 'CONFIRMADO') {
+            opciones = `<option value="">-- Seleccionar --</option>
+              <option value="EN_CONSULTA">EN CONSULTA</option>
+              <option value="CANCELADA">CANCELADA</option>`;
+          } else if (estadoActual === 'EN_CONSULTA') {
+            opciones = `<option value="">-- Seleccionar --</option>
+              <option value="ATENDIDA">ATENDIDA</option>`;
+          } else if (estadoActual === 'ATENDIDA') {
+            opciones = `<option value="">-- Seleccionar --</option>`;
+          }
+          
+          const pacienteInfo2 = turno.persona || {};
+          selectHtml = `<select class="estado-select" onchange="cambiarEstado('${turno.id}', this.value)">${opciones}</select>
+            <button class="btn-action btn-info" onclick="verDetalle('${turno.id}', '${pacienteInfo2?.nombre}', '${pacienteInfo2?.apellido}', '${pacienteInfo2?.dni}', '${pacienteInfo2?.email || ''}', '${pacienteInfo2?.telefono || ''}', '${pacienteInfo2?.paciente?.obra_social || ''}', '${pacienteInfo2?.paciente?.numero_afiliado || ''}', '${pacienteInfo2?.paciente?.observaciones_generales || ''}', '${turno.fecha || ''}', '${turno.hora || ''}', '${estadoActual}', '${turno.observaciones || ''}')" title="Ver detalles">
+              <i class="fas fa-eye"></i> Ver
+            </button>
+            <button class="btn-action btn-warning" onclick="editarTurno('${turno.id}')" title="Modificar turno">
+              <i class="fas fa-pencil-alt"></i> Modificar
+            </button>`;
+        }
+        
+        return `
+        <tr>
+          <td>
+            <strong>${pacienteInfo?.nombre || '-'} ${pacienteInfo?.apellido || '-'}</strong><br>
+            <small class="text-muted">DNI: ${pacienteInfo?.dni || '-'}</small><br>
+            <small class="text-muted">Tel: ${pacienteInfo?.telefono || '-'}</small>
+          </td>
+          <td>
+            <strong>${turno.fecha || '-'}</strong>
+          </td>
+          <td>
+            <strong>${turno.hora || '-'}</strong>
+          </td>
+          <td>
+            <span class="estado-badge estado-${turno.estado?.nombre || 'PENDIENTE'}">${turno.estado?.nombre?.replace(/_/g, ' ') || 'PENDIENTE'}</span>
+          </td>
+          <td>${selectHtml}</td>
+        </tr>
+        `;
+      }).join('');
+    }
+
+    function filtrarTurnos() {
+      mostrarLoading('Filtrando turnos...');
+      setTimeout(() => {
+        const nombre = document.getElementById('filtroNombre').value.toLowerCase().trim() || '';
+        const estado = document.getElementById('filtroEstado').value.toUpperCase().trim() || '';
+        const fechaInput = document.getElementById('filtroFecha').value || ''; // Formato: YYYY-MM-DD
+        
+        const filtrados = turnosGlobales.filter(t => {
+          // Filtro por nombre (busca en nombre O apellido)
+          let coincideNombre = true;
+          if (nombre) {
+            const personaNombre = (t.persona?.nombre || '').toLowerCase();
+            const personaApellido = (t.persona?.apellido || '').toLowerCase();
+            coincideNombre = personaNombre.includes(nombre) || personaApellido.includes(nombre);
+          }
+          
+          // Filtro por estado (ahora t.estado es un objeto { id, nombre })
+          const coincideEstado = !estado || t.estado?.nombre === estado;
+          
+          // Filtro por fecha (convertir formato DD/MM/YYYY a YYYY-MM-DD para comparación)
+          let coincideFecha = true;
+          if (fechaInput) {
+            const [day, month, year] = t.fecha.split('/');
+            const fechaBD = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+            coincideFecha = fechaBD === fechaInput;
+          }
+          
+          return coincideNombre && coincideEstado && coincideFecha;
+        });
+        
+        console.log(`Filtrado: nombre="${nombre}", estado="${estado}", fecha="${fechaInput}" - Resultados: ${filtrados.length}`);
+        mostrarTurnos(filtrados);
+        ocultarLoading();
+      }, 100);
+    }
+
+    async function cambiarEstado(turnoId, nuevoEstado) {
+      // Validar que no sea el mismo estado
+      const turnoActual = turnosGlobales.find(t => String(t.id) === String(turnoId));
+      if (!turnoActual) {
+        alert('❌ Turno no encontrado');
+        return;
+      }
+
+      const estadoActual = turnoActual.estado?.nombre || turnoActual.estado;
+      if (estadoActual === nuevoEstado) {
+        return; // No hacer nada si es el mismo estado
+      }
+
+      // Si es ELIMINAR
+      if (nuevoEstado === 'ELIMINAR') {
+        if (!confirm('⚠️ ¿Estás seguro que deseas ELIMINAR este turno? Esta acción no se puede deshacer.')) {
+          await cargarTurnos();
+          return;
+        }
+        
+        mostrarLoading('Eliminando turno...');
+        try {
+          const response = await fetch(`/api/turnos/${turnoId}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+          });
+
+          if (!response.ok) {
+            throw new Error(`Error ${response.status} al eliminar turno`);
+          }
+
+          const resultado = await response.json();
+          if (resultado.success) {
+            alert('✅ Turno eliminado correctamente');
+            await cargarTurnos();
+          } else {
+            throw new Error(resultado.message || 'Error al eliminar');
+          }
+        } catch (error) {
+          ocultarLoading();
+          alert('❌ Error al eliminar turno: ' + error.message);
+          await cargarTurnos();
+        }
+        return;
+      }
+
+      // Si el nuevo estado es CONFIRMADO, abrir formulario en modal
+      if (nuevoEstado === 'CONFIRMADO') {
+        console.log('🔄 Abriendo formulario de confirmación para turno:', turnoId);
+        abrirModalConfirmarTurno(turnoId);
+        return;
+      }
+
+      // Si el nuevo estado es FINALIZADA, verificar que exista historia clínica
+      if (nuevoEstado === 'FINALIZADA') {
+        console.log('📋 Verificando historia clínica para turno:', turnoId);
+        mostrarLoading('Verificando historia clínica...');
+        
+        try {
+          const response = await fetch(`/api/turnos/${turnoId}/tiene-historia-clinica`, {
+            method: 'GET',
+            credentials: 'include'
+          });
+
+          const resultado = await response.json();
+          console.log('📥 Resultado de verificación:', resultado);
+
+          if (!resultado.tiene_historia) {
+            ocultarLoading();
+            alert('❌ No es posible finalizar el turno\n\nPrimero debe crear una Historia Clínica para este paciente.\nLa historia se crea durante la consulta.');
+            // Revertir el dropdown al estado anterior
+            await cargarTurnos();
+            return;
+          }
+
+          ocultarLoading();
+          console.log('✅ Historia clínica encontrada, procediendo con FINALIZADA');
+        } catch (error) {
+          ocultarLoading();
+          console.error('Error al verificar historia clínica:', error);
+          alert('❌ Error al verificar la historia clínica: ' + error.message);
+          await cargarTurnos();
+          return;
+        }
+      }
+
+      // Para otros estados, cambiar directamente
+      if (!confirm(`¿Está seguro que desea cambiar el estado de "${estadoActual}" a "${nuevoEstado}"?`)) {
+        return;
+      }
+
+      mostrarLoading(`Cambiando estado a ${nuevoEstado}...`);
+      try {
+        console.log(`📤 Enviando cambio de estado: turnoId=${turnoId}, nuevoEstado=${nuevoEstado}`);
+        
+        const response = await fetch(`/api/turnos/${turnoId}/estado`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({ estado: nuevoEstado })
+        });
+
+        console.log(`📥 Response status: ${response.status}, ok: ${response.ok}`);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Response body:', errorText);
+          throw new Error(`Error ${response.status}: ${errorText}`);
+        }
+
+        const resultado = await response.json();
+        console.log('📨 Respuesta del servidor:', resultado);
+        
+        if (resultado.success) {
+          alert('✅ Estado actualizado a ' + nuevoEstado);
+          console.log('✅ Estado actualizado:', nuevoEstado);
+          // Recargar turnos para reflejar el cambio
+          await cargarTurnos();
+        } else {
+          throw new Error(resultado.message || 'Error desconocido del servidor');
+        }
+      } catch (error) {
+        console.error('❌ Error completo:', error);
+        alert('❌ Error al cambiar estado: ' + error.message);
+        // Recargar la tabla para evitar inconsistencias
+        await cargarTurnos();
+      } finally {
+        ocultarLoading();
+      }
+    }
+
+    // Cargar estados desde backend
+    async function cargarEstados() {
+      try {
+        console.log('📥 Cargando estados desde /api/estados-turnos...');
+        const response = await fetch('/api/estados-turnos', {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          console.error(`❌ Error en respuesta: ${response.status}`);
+          throw new Error(`HTTP Error: ${response.status}`);
+        }
+        
+        const datos = await response.json();
+        console.log('✅ Respuesta recibida:', datos);
+        
+        if (datos.success && datos.data && datos.data.length > 0) {
+          estadosTurnos = datos.data;
+          console.log(`✅ ${estadosTurnos.length} estados cargados:`, estadosTurnos.map(e => e.nombre));
+          
+          // Actualizar select de filtros
+          const selectEstado = document.getElementById('filtroEstado');
+          if (selectEstado) {
+            const optionActual = selectEstado.value;
+            selectEstado.innerHTML = '<option value="">Todos los estados</option>';
+            estadosTurnos.forEach(estado => {
+              const option = document.createElement('option');
+              option.value = estado.nombre;
+              option.textContent = estado.nombre.replace(/_/g, ' ');
+              selectEstado.appendChild(option);
+            });
+            selectEstado.value = optionActual;
+            console.log('✅ Select de filtros actualizado');
+          }
+        } else {
+          console.error('❌ Respuesta sin datos:', datos);
+          estadosTurnos = [];
+        }
+      } catch (err) {
+        console.error('❌ Error al cargar estados:', err);
+        estadosTurnos = [];
+      }
+    }
+
+    // Inicializar event listeners para filtros
+    function inicializarFiltros() {
+      const filtroNombre = document.getElementById('filtroNombre');
+      const filtroEstado = document.getElementById('filtroEstado');
+      const filtroFecha = document.getElementById('filtroFecha');
+
+      if (filtroNombre) filtroNombre.addEventListener('input', filtrarTurnos);
+      if (filtroEstado) filtroEstado.addEventListener('change', filtrarTurnos);
+      if (filtroFecha) filtroFecha.addEventListener('change', filtrarTurnos);
+
+      console.log('✅ Event listeners de filtros inicializados');
+    }
+
+    function verDetalle(turnoId, nombre, apellido, dni, email, telefono, obraSocial, numeroAfiliado, observaciones, fecha, hora, estado, turnoObservaciones) {
+      console.log('📋 Detalles:', { email, obraSocial, observaciones });
+      
+      // Crear modal HTML
+      const modalHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 9999;" onclick="cerrarDetalleModal()">
+          <div style="background: white; border-radius: 12px; padding: 30px; width: 90%; max-width: 600px; max-height: 85vh; overflow-y: auto; box-shadow: 0 5px 30px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+            <button onclick="cerrarDetalleModal()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer;">✕</button>
+            
+            <h3 style="color: #2c3e50; margin-bottom: 20px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+              📋 TURNO ID: ${turnoId}
+            </h3>
+            
+            <div style="margin-bottom: 20px;">
+              <h4 style="color: #2980b9; margin-bottom: 12px;">👤 PACIENTE</h4>
+              <div style="background: #ecf0f1; padding: 12px; border-radius: 8px; font-size: 14px;">
+                <div style="margin-bottom: 8px;"><strong>Nombre:</strong> ${nombre} ${apellido}</div>
+                <div style="margin-bottom: 8px;"><strong>DNI:</strong> ${dni}</div>
+                <div style="margin-bottom: 8px;"><strong>Email:</strong> ${email && email !== 'N/A' && email !== '' ? email : '<em style="color: #7f8c8d;">No registrado</em>'}</div>
+                <div><strong>Teléfono:</strong> ${telefono || '<em style="color: #7f8c8d;">No registrado</em>'}</div>
+              </div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+              <h4 style="color: #2980b9; margin-bottom: 12px;">🏥 DATOS DE SALUD</h4>
+              <div style="background: #ecf0f1; padding: 12px; border-radius: 8px; font-size: 14px;">
+                <div style="margin-bottom: 8px;"><strong>Obra Social:</strong> ${obraSocial && obraSocial !== 'N/A' && obraSocial !== '' ? obraSocial : '<em style="color: #7f8c8d;">No registrada</em>'}</div>
+                <div style="margin-bottom: 8px;"><strong>Afiliado:</strong> ${numeroAfiliado || '<em style="color: #7f8c8d;">No registrado</em>'}</div>
+                <div><strong>Observaciones:</strong> ${observaciones && observaciones !== 'N/A' && observaciones !== '' ? observaciones : '<em style="color: #7f8c8d;">Ninguna</em>'}</div>
+              </div>
+            </div>
+            
+            <div>
+              <h4 style="color: #2980b9; margin-bottom: 12px;">📅 TURNO</h4>
+              <div style="background: #ecf0f1; padding: 12px; border-radius: 8px; font-size: 14px;">
+                <div style="margin-bottom: 8px;"><strong>Fecha:</strong> ${fecha || 'N/A'}</div>
+                <div style="margin-bottom: 8px;"><strong>Hora:</strong> ${hora || 'N/A'}</div>
+                <div style="margin-bottom: 8px;"><strong>Estado:</strong> <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background: ${estado === 'PENDIENTE' ? '#f39c12' : estado === 'CONFIRMADO' ? '#27ae60' : estado === 'ATENDIDA' ? '#27ae60' : estado === 'CANCELADA' ? '#e74c3c' : '#95a5a6'}; color: white; font-weight: bold;">${estado || 'N/A'}</span></div>
+                <div><strong>Observaciones:</strong> ${turnoObservaciones && turnoObservaciones !== 'N/A' && turnoObservaciones !== '' ? turnoObservaciones : '<em style="color: #7f8c8d;">Ninguna</em>'}</div>
+              </div>
+            </div>
+            
+            <button onclick="cerrarDetalleModal()" style="margin-top: 20px; padding: 12px 30px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold;">
+              Cerrar
+            </button>
+          </div>
+        </div>
+      `;
+      
+      // Crear div temporal para el modal
+      let detalleModal = document.getElementById('detalleModalContainer');
+      if (detalleModal) {
+        detalleModal.innerHTML = modalHTML;
+      }
+    }
+    
+    function cerrarDetalleModal() {
+      const modal = document.getElementById('detalleModalContainer');
+      if (modal) {
+        modal.innerHTML = '';
+      }
+    }
+    
+    function editarTurno(turnoId) {
+      window.location.href = `/doctor/agendar-turno?editar=${turnoId}`;
+    }
+
+    // ============================================================================
+    // MODAL DE CONFIRMACIÓN DE TURNO CON DATOS DE SALUD
+    // ============================================================================
+    async function abrirModalConfirmarTurno(turnoId) {
+      mostrarLoading('Cargando datos del paciente...');
+      console.log('🏥 Abriendo modal de confirmación para turno:', turnoId);
+      
+      try {
+        // Obtener datos del paciente
+        const response = await fetch(`/api/turnos/${turnoId}/paciente-datos`, {
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error ${response.status} al obtener datos del paciente`);
+        }
+
+        const pacienteData = await response.json();
+        console.log('📥 Datos del paciente recibidos:', pacienteData);
+
+        if (!pacienteData.success || !pacienteData.paciente) {
+          throw new Error(pacienteData.message || 'No se pudieron cargar los datos del paciente');
+        }
+
+        ocultarLoading();
+
+        const pacienteInfo = pacienteData.paciente;
+        const persona = pacienteInfo.persona;
+        const datosSalud = pacienteInfo.datos_salud;
+
+        // Crear HTML del modal de confirmación
+        const modalHTML = `
+          <div id="modalConfirmarBackdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 9999;" onclick="cerrarModalConfirmar()">
+            <div id="modalConfirmarContent" style="background: white; border-radius: 12px; padding: 30px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+              <button onclick="cerrarModalConfirmar()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 28px; cursor: pointer; color: #999;">✕</button>
+              
+              <h2 style="color: #1a3a3a; margin-bottom: 10px; border-bottom: 3px solid #10b981; padding-bottom: 12px;">
+                <i class="bi bi-check-circle" style="color: #10b981;"></i> Confirmar Turno
+              </h2>
+              <p style="color: #666; margin-bottom: 25px; font-size: 14px;">Completa los datos de salud del paciente para confirmar el turno</p>
+
+              <!-- DATOS DEL PACIENTE -->
+              <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 15px; margin-bottom: 25px;">
+                <h4 style="color: #059669; margin-bottom: 10px; font-size: 14px;">👤 PACIENTE</h4>
+                <div style="font-size: 14px; color: #333;">
+                  <p style="margin: 5px 0;"><strong>${persona.nombre} ${persona.apellido}</strong></p>
+                  <p style="margin: 5px 0; color: #666;">DNI: ${persona.dni}</p>
+                </div>
+              </div>
+
+              <!-- FORMULARIO DE DATOS DE SALUD -->
+              <form id="formConfirmarTurno" onsubmit="return false;">
+                <div style="margin-bottom: 20px;">
+                  <label style="display: block; font-weight: 600; color: #333; margin-bottom: 8px;">
+                    <i class="bi bi-hospital"></i> Obra Social
+                  </label>
+                  <input type="text" id="confirmObraSocial" placeholder="Ej: OSDE, PAMI" 
+                    value="${datosSalud.obra_social || ''}" 
+                    style="width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 14px; transition: border 0.3s;">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                  <label style="display: block; font-weight: 600; color: #333; margin-bottom: 8px;">
+                    <i class="bi bi-card-text"></i> Número de Afiliado
+                  </label>
+                  <input type="text" id="confirmNumeroAfiliado" placeholder="123456789" 
+                    value="${datosSalud.numero_afiliado || ''}" 
+                    style="width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 14px; transition: border 0.3s;">
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                  <label style="display: block; font-weight: 600; color: #333; margin-bottom: 8px;">
+                    <i class="bi bi-chat-dots"></i> Observaciones Generales
+                  </label>
+                  <textarea id="confirmObservaciones" rows="3" placeholder="Notas generales sobre el paciente..." 
+                    style="width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 14px; resize: vertical; transition: border 0.3s;">${datosSalud.observaciones_generales || ''}</textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                  <button type="button" onclick="cerrarModalConfirmar()" 
+                    style="padding: 12px 24px; background: #e2e8f0; color: #1a3a3a; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: background 0.3s;">
+                    ❌ Cancelar
+                  </button>
+                  <button type="button" onclick="enviarConfirmacionTurno(${turnoId})" 
+                    style="padding: 12px 24px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: background 0.3s;">
+                    ✅ Confirmar Turno
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+
+        // Insertar modal en el DOM
+        const modalContainer = document.getElementById('modalConfirmarContainer');
+        if (modalContainer) {
+          modalContainer.innerHTML = modalHTML;
+        } else {
+          const container = document.createElement('div');
+          container.id = 'modalConfirmarContainer';
+          container.innerHTML = modalHTML;
+          document.body.appendChild(container);
+        }
+
+      } catch (error) {
+        ocultarLoading();
+        console.error('❌ Error al abrir modal:', error);
+        alert('❌ Error al abrir formulario: ' + error.message);
+      }
+    }
+
+    function cerrarModalConfirmar() {
+      const container = document.getElementById('modalConfirmarContainer');
+      if (container) {
+        container.innerHTML = '';
+      }
+      // Refrescar la página para revertir cambios en el SELECT
+      setTimeout(() => location.reload(), 500);
+    }
+
+    async function enviarConfirmacionTurno(turnoId) {
+      const obraSocial = document.getElementById('confirmObraSocial').value;
+      const numeroAfiliado = document.getElementById('confirmNumeroAfiliado').value;
+      const observaciones = document.getElementById('confirmObservaciones').value;
+
+      console.log('📤 Enviando confirmación:', { turnoId, obraSocial, numeroAfiliado, observaciones });
+
+      try {
+        const response = await fetch(`/api/turnos/${turnoId}/confirmar-llegada`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            obra_social: obraSocial || null,
+            numero_afiliado: numeroAfiliado || null
+          })
+        });
+
+        const resultado = await response.json();
+        console.log('📥 Respuesta:', resultado);
+
+        if (!response.ok) {
+          throw new Error(resultado.message || 'Error al confirmar turno');
+        }
+
+        if (resultado.success) {
+          alert('✅ ¡Turno confirmado exitosamente!');
+          // Cerrar modal y refrescar después de 1 segundo
+          document.getElementById('modalConfirmarContainer').innerHTML = '';
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          throw new Error(resultado.message || 'Error desconocido');
+        }
+      } catch (error) {
+        console.error('❌ Error:', error);
+        alert('❌ Error al confirmar turno: ' + error.message);
+      }
+    }
+
+    // ============================================================================
+    // CONFIRMAR LLEGADA DEL PACIENTE
+    // ============================================================================
+    function abrirConfirmarLlegada(turnoId, paciente, turno) {
+      document.getElementById('modalTurnoId').value = turnoId;
+      document.getElementById('modalPacienteNombre').value = paciente.nombre + ' ' + paciente.apellido;
+      document.getElementById('modalPacienteDni').value = paciente.dni;
+      document.getElementById('modalPacienteTelefono').value = paciente.telefono || '';
+      document.getElementById('modalFecha').value = new Date(turno.fecha).toLocaleDateString('es-AR');
+      document.getElementById('modalHora').value = turno.hora;
+      document.getElementById('modalObraSocial').value = paciente.paciente?.obra_social || '';
+      document.getElementById('modalNumeroAfiliado').value = paciente.paciente?.numero_afiliado || '';
+      
+      const modal = new bootstrap.Modal(document.getElementById('modalConfirmarLlegada'));
+      modal.show();
+    }
+
+    function guardarConfirmacionLlegada() {
+      const turnoId = document.getElementById('modalTurnoId').value;
+      const obraSocial = document.getElementById('modalObraSocial').value;
+      const numeroAfiliado = document.getElementById('modalNumeroAfiliado').value;
+      
+      fetch(`/api/turnos/${turnoId}/confirmar-llegada`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          obra_social: obraSocial,
+          numero_afiliado: numeroAfiliado
+        }),
+        credentials: 'include'
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          alert('✅ Llegada confirmada exitosamente');
+          bootstrap.Modal.getInstance(document.getElementById('modalConfirmarLlegada')).hide();
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          alert('❌ Error: ' + (data.error || 'No se pudo confirmar la llegada'));
+        }
+      })
+      .catch(e => alert('Error: ' + e.message));
+    }
+  </script>
+
+<!-- Modal Confirmar Llegada -->
+<div class="modal fade" id="modalConfirmarLlegada" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar Llegada del Paciente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formConfirmarLlegada">
+          <input type="hidden" id="modalTurnoId" value="">
+          
+          <div class="mb-3">
+            <label class="form-label">Paciente</label>
+            <input type="text" id="modalPacienteNombre" class="form-control" readonly>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">DNI</label>
+            <input type="text" id="modalPacienteDni" class="form-control" readonly>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Teléfono</label>
+            <input type="text" id="modalPacienteTelefono" class="form-control" readonly>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Fecha</label>
+              <input type="text" id="modalFecha" class="form-control" readonly>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Hora</label>
+              <input type="text" id="modalHora" class="form-control" readonly>
+            </div>
+          </div>
+          
+          <hr class="my-4">
+          
+          <div class="mb-3">
+            <label class="form-label">Obra Social</label>
+            <input type="text" id="modalObraSocial" class="form-control">
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Número de Afiliado</label>
+            <input type="text" id="modalNumeroAfiliado" class="form-control">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="guardarConfirmacionLlegada()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

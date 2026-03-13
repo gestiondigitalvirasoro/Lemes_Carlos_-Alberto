@@ -10,7 +10,7 @@ export const iniciarConsultaDesdeTurno = async (req, res) => {
   try {
     const { turno_id } = req.params;
     const { motivo_consulta, resumen, observaciones } = req.body;
-    const medico_id_jwt = req.usuario?.id; // Del JWT
+    const medico_id_jwt = req.user?.id; // Del JWT
 
     // Obtener Turno
     const turno = await prisma.turno.findUnique({
@@ -62,6 +62,11 @@ export const iniciarConsultaDesdeTurno = async (req, res) => {
     }
 
     // ========== PASO 3: Crear Consulta ==========
+    // Obtener estado COMPLETADA
+    const estadoCompletada = await prisma.estadoConsulta.findFirst({
+      where: { nombre: 'COMPLETADA' }
+    });
+
     const consulta = await prisma.consultaMedica.create({
       data: {
         historia_clinica_id: historia.id,
@@ -70,7 +75,7 @@ export const iniciarConsultaDesdeTurno = async (req, res) => {
         fecha: turno.fecha,
         motivo_consulta: motivo_consulta || turno.observaciones || 'Consulta médica',
         resumen: resumen || null,
-        estado: 'ATENDIDA'
+        estado_id: estadoCompletada?.id || 4n
       },
       include: {
         historia: {
@@ -96,7 +101,7 @@ export const iniciarConsultaDesdeTurno = async (req, res) => {
     // Actualizar estado del Turno
     await prisma.turno.update({
       where: { id: BigInt(turno_id) },
-      data: { estado: 'COMPLETA' }
+      data: { estado: 'FINALIZADA' }
     });
 
     return res.status(201).json({
@@ -214,13 +219,13 @@ export const obtenerConsultaMedica = async (req, res) => {
                 persona: true
               }
             },
-            signos_vitales: true,
-            diagnosticos: true,
-            estudios: true,
             documentos: true,
             antecedentes: true
           }
         },
+        signos_vitales: true,
+        diagnosticos: true,
+        estudios: true,
         medico: {
           select: {
             id: true,

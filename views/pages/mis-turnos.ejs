@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Turnos - LEMES</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .container-main {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header-section {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-content h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .header-content p {
+      color: #666;
+      margin: 0;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-agendar {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-agendar:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      color: white;
+    }
+
+    .filters {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filters select, .filters input {
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      padding: 10px 15px;
+      font-size: 14px;
+    }
+
+    .turno-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border-left: 5px solid #667eea;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .turno-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .turno-card.pendiente {
+      border-left-color: #FFC107;
+    }
+
+    .turno-card.confirmado {
+      border-left-color: #28A745;
+    }
+
+    .turno-card.cancelado {
+      border-left-color: #DC3545;
+    }
+
+    .turno-card.en-consulta {
+      border-left-color: #007BFF;
+    }
+
+    .turno-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .turno-fecha {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .turno-estado {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .estado-pendiente {
+      background: #FFC10720;
+      color: #FFC107;
+    }
+
+    .estado-confirmado {
+      background: #28a74520;
+      color: #28A745;
+    }
+
+    .estado-cancelado {
+      background: #DC354520;
+      color: #DC3545;
+    }
+
+    .estado-en-consulta {
+      background: #007BFF20;
+      color: #007BFF;
+    }
+
+    .turno-detalles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .detalle-item {
+      display: flex;
+      gap: 12px;
+    }
+
+    .detalle-icon {
+      font-size: 20px;
+      color: #667eea;
+      flex-shrink: 0;
+    }
+
+    .detalle-content h6 {
+      margin: 0;
+      font-size: 12px;
+      color: #999;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .detalle-content p {
+      margin: 4px 0 0 0;
+      color: #333;
+      font-weight: 500;
+    }
+
+    .turno-acciones {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+    }
+
+    .btn-accion {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-cancelar {
+      background: #DC354530;
+      color: #DC3545;
+    }
+
+    .btn-cancelar:hover {
+      background: #DC3545;
+      color: white;
+    }
+
+    .btn-detalles {
+      background: #667eea30;
+      color: #667eea;
+    }
+
+    .btn-detalles:hover {
+      background: #667eea;
+      color: white;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .empty-state-icon {
+      font-size: 60px;
+      color: #ddd;
+      margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+      color: #999;
+      margin-bottom: 10px;
+    }
+
+    .empty-state p {
+      color: #bbb;
+    }
+
+    /* Modal Styles */
+    .modal-backdrop {
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content {
+      border-radius: 12px;
+      border: none;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 20px 30px;
+    }
+
+    .modal-header .btn-close {
+      filter: brightness(0) invert(1);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .btn-submit {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      color: white;
+    }
+
+    .alert-success, .alert-error {
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    @media (max-width: 768px) {
+      .header-section {
+        flex-direction: column;
+        text-align: center;
+        gap: 20px;
+      }
+
+      .turno-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-main">
+    <!-- Header -->
+    <div class="header-section">
+      <div class="header-content">
+        <h1><i class="bi bi-calendar-check"></i> Turnos</h1>
+        <p>Gestiona y visualiza tus citas médicas</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-agendar" onclick="abrirModalAgendar()">
+          <i class="bi bi-plus-circle"></i> Agendar Turno
+        </button>
+        <button class="btn-agendar" style="background: #6c757d;" onclick="cargarTurnos()">
+          <i class="bi bi-arrow-clockwise"></i> Actualizar
+        </button>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters">
+      <select id="filtroEstado">
+        <option value="">Todos los estados</option>
+        <option value="PENDIENTE">Pendiente</option>
+        <option value="CONFIRMADO">Confirmado</option>
+        <option value="EN_CONSULTA">En Consulta</option>
+        <option value="CANCELADO">Cancelado</option>
+      </select>
+
+      <select id="filtroMedico">
+        <option value="">Todos los médicos</option>
+      </select>
+
+      <input type="date" id="filtroFecha" placeholder="Filtrar por fecha">
+    </div>
+
+    <!-- Contenedor de Turnos -->
+    <div id="turnosContainer"></div>
+  </div>
+
+  <!-- Modal Agendar Turno -->
+  <div class="modal fade" id="modalAgendar" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-calendar-plus"></i> Agendar Nuevo Turno</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="alertContainer"></div>
+          
+          <form id="formAgendar" onsubmit="submitFormAgendar(event)">
+            <!-- Datos del Paciente -->
+            <h6 style="margin-bottom: 20px; color: #667eea; font-weight: 700;">
+              <i class="bi bi-person"></i> Datos del Paciente
+            </h6>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="nombre">Nombre *</label>
+                <input type="text" id="nombre" name="nombre" required>
+              </div>
+              <div class="form-group">
+                <label for="apellido">Apellido *</label>
+                <input type="text" id="apellido" name="apellido" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="dni">DNI *</label>
+                <input type="number" id="dni" name="dni" required>
+              </div>
+              <div class="form-group">
+                <label for="telefono">Teléfono</label>
+                <input type="tel" id="telefono" name="telefono">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email">
+              </div>
+              <div class="form-group">
+                <label for="fecha_nacimiento">Fecha de Nacimiento</label>
+                <input type="date" id="fecha_nacimiento" name="fecha_nacimiento">
+              </div>
+            </div>
+
+            <!-- Datos de Cobertura -->
+            <h6 style="margin-bottom: 20px; margin-top: 30px; color: #667eea; font-weight: 700;">
+              <i class="bi bi-shield-check"></i> Cobertura (Opcional)
+            </h6>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="obra_social">Obra Social</label>
+                <input type="text" id="obra_social" name="obra_social">
+              </div>
+              <div class="form-group">
+                <label for="numero_afiliado">Nº Afiliado</label>
+                <input type="text" id="numero_afiliado" name="numero_afiliado">
+              </div>
+            </div>
+
+            <!-- Datos del Turno -->
+            <h6 style="margin-bottom: 20px; margin-top: 30px; color: #667eea; font-weight: 700;">
+              <i class="bi bi-clock"></i> Detalles del Turno
+            </h6>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="medico_id">Médico *</label>
+                <select id="medico_id" name="medico_id" required>
+                  <option value="">Selecciona un médico</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="fecha">Fecha *</label>
+                <input type="date" id="fecha" name="fecha" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="hora">Hora *</label>
+                <input type="time" id="hora" name="hora" required>
+              </div>
+              <div class="form-group">
+                <label for="motivo">Motivo de Consulta</label>
+                <input type="text" id="motivo" name="motivo" placeholder="Ej: Control, Seguimiento...">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="observaciones">Observaciones</label>
+              <textarea id="observaciones" name="observaciones" rows="3" placeholder="Notas adicionales..."></textarea>
+            </div>
+
+            <button type="submit" class="btn-submit">
+              <i class="bi bi-check-circle"></i> Agendar Turno
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Variables globales
+    let turnosGlobales = [];
+    let medicosDisponibles = [];
+    const modal = new bootstrap.Modal(document.getElementById('modalAgendar'), { backdrop: 'static' });
+    const filtroEstado = document.getElementById('filtroEstado');
+    const filtroMedico = document.getElementById('filtroMedico');
+    const filtroFecha = document.getElementById('filtroFecha');
+    const turnosContainer = document.getElementById('turnosContainer');
+    const alertContainer = document.getElementById('alertContainer');
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', () => {
+      cargarTurnos();
+      cargarMedicos();
+      
+      filtroEstado.addEventListener('change', filtrarTurnos);
+      filtroMedico.addEventListener('change', filtrarTurnos);
+      filtroFecha.addEventListener('change', filtrarTurnos);
+    });
+
+    // Cargar turnos
+    async function cargarTurnos() {
+      try {
+        const response = await fetch('/api/mis-turnos');
+        const resultado = await response.json();
+
+        if (resultado.success) {
+          turnosGlobales = resultado.data;
+          renderizarTurnos(turnosGlobales);
+        } else {
+          mostrarError('Error al cargar turnos: ' + resultado.error);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarError('Error de conexión. Intenta nuevamente.');
+      }
+    }
+
+    // Cargar médicos disponibles
+    async function cargarMedicos() {
+      try {
+        // Esto debería venir de una API, por ahora usamos los que ya hay en turnos
+        const response = await fetch('/api/mis-turnos');
+        const resultado = await response.json();
+
+        if (resultado.success && resultado.data.length > 0) {
+          medicosDisponibles = [...new Set(resultado.data.map(t => JSON.stringify(t.medico)))].map(m => JSON.parse(m));
+          
+          const selectMedico = document.getElementById('medico_id');
+          medicosDisponibles.forEach(medico => {
+            const option = document.createElement('option');
+            option.value = medico.id || medico.nombre;
+            option.textContent = `${medico.nombre} ${medico.apellido} (${medico.especialidad})`;
+            selectMedico.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    function filtrarTurnos() {
+      const estado = filtroEstado.value;
+      const medico = filtroMedico.value;
+      const fecha = filtroFecha.value;
+
+      let turnosFiltrados = turnosGlobales;
+
+      if (estado) {
+        turnosFiltrados = turnosFiltrados.filter(t => t.estado === estado);
+      }
+
+      if (medico) {
+        turnosFiltrados = turnosFiltrados.filter(t => 
+          `${t.medico?.nombre} ${t.medico?.apellido}` === medico
+        );
+      }
+
+      if (fecha) {
+        turnosFiltrados = turnosFiltrados.filter(t => t.fecha === fecha);
+      }
+
+      renderizarTurnos(turnosFiltrados);
+    }
+
+    function renderizarTurnos(turnos) {
+      if (turnos.length === 0) {
+        turnosContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon"><i class="bi bi-calendar-x"></i></div>
+            <h3>No hay turnos</h3>
+            <p>No encontramos turnos que cumplan con los filtros seleccionados.</p>
+          </div>
+        `;
+        return;
+      }
+
+      turnosContainer.innerHTML = turnos.map(turno => `
+        <div class="turno-card ${(turno.estado || '').toLowerCase().replace('_', '-')}">
+          <div class="turno-header">
+            <div class="turno-fecha">
+              <i class="bi bi-calendar"></i>
+              ${formatearFecha(turno.fecha)} a las ${turno.hora || 'N/A'}
+            </div>
+            <span class="turno-estado estado-${(turno.estado || '').toLowerCase().replace('_', '-')}">
+              ${turno.estado || 'SIN ESTADO'}
+            </span>
+          </div>
+
+          <div class="turno-detalles">
+            <div class="detalle-item">
+              <div class="detalle-icon"><i class="bi bi-person-fill"></i></div>
+              <div class="detalle-content">
+                <h6>Médico</h6>
+                <p>${turno.medico?.nombre || 'Sin asignar'} ${turno.medico?.apellido || ''}</p>
+              </div>
+            </div>
+
+            <div class="detalle-item">
+              <div class="detalle-icon"><i class="bi bi-stethoscope"></i></div>
+              <div class="detalle-content">
+                <h6>Especialidad</h6>
+                <p>${turno.medico?.especialidad || '-'}</p>
+              </div>
+            </div>
+
+            <div class="detalle-item">
+              <div class="detalle-icon"><i class="bi bi-file-text"></i></div>
+              <div class="detalle-content">
+                <h6>Motivo</h6>
+                <p>${turno.motivo || '-'}</p>
+              </div>
+            </div>
+          </div>
+
+          ${turno.observaciones ? `
+            <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+              <strong style="color: #667eea;">Observaciones:</strong>
+              <p style="margin: 5px 0 0 0; color: #666;">${turno.observaciones}</p>
+            </div>
+          ` : ''}
+
+          <div class="turno-acciones">
+            ${turno.estado === 'PENDIENTE' ? `
+              <button class="btn-accion btn-cancelar" onclick="cancelarTurno(${turno.id})">
+                <i class="bi bi-x-circle"></i> Cancelar
+              </button>
+            ` : ''}
+            <button class="btn-accion btn-detalles" onclick="verDetalles(${turno.id})">
+              <i class="bi bi-eye"></i> Detalles
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function formatearFecha(fechaStr) {
+      const fecha = new Date(fechaStr + 'T00:00:00');
+      return fecha.toLocaleDateString('es-AR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    }
+
+    function abrirModalAgendar() {
+      document.getElementById('formAgendar').reset();
+      alertContainer.innerHTML = '';
+      modal.show();
+    }
+
+    async function submitFormAgendar(event) {
+      event.preventDefault();
+
+      const formData = {
+        nombre: document.getElementById('nombre').value,
+        apellido: document.getElementById('apellido').value,
+        dni: document.getElementById('dni').value,
+        telefono: document.getElementById('telefono').value,
+        email: document.getElementById('email').value,
+        fecha_nacimiento: document.getElementById('fecha_nacimiento').value,
+        obra_social: document.getElementById('obra_social').value,
+        numero_afiliado: document.getElementById('numero_afiliado').value,
+        medico_id: document.getElementById('medico_id').value,
+        fecha: document.getElementById('fecha').value,
+        hora: document.getElementById('hora').value,
+        motivo: document.getElementById('motivo').value,
+        observaciones: document.getElementById('observaciones').value
+      };
+
+      try {
+        const response = await fetch('/api/agendar-turno', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+
+        const resultado = await response.json();
+
+        if (resultado.success) {
+          alertContainer.innerHTML = `
+            <div class="alert-success">
+              <i class="bi bi-check-circle"></i> ¡Turno agendado exitosamente!
+            </div>
+          `;
+          setTimeout(() => {
+            modal.hide();
+            cargarTurnos();
+          }, 1500);
+        } else {
+          alertContainer.innerHTML = `
+            <div class="alert-error">
+              <i class="bi bi-exclamation-circle"></i> Error: ${resultado.error || resultado.message}
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alertContainer.innerHTML = `
+          <div class="alert-error">
+            <i class="bi bi-exclamation-circle"></i> Error de conexión. Intenta nuevamente.
+          </div>
+        `;
+      }
+    }
+
+    function verDetalles(turnoId) {
+      console.log('Ver detalles del turno:', turnoId);
+    }
+
+    function cancelarTurno(turnoId) {
+      if (confirm('¿Estás seguro de que deseas cancelar este turno?')) {
+        console.log('Cancelar turno:', turnoId);
+      }
+    }
+
+    function mostrarError(message) {
+      turnosContainer.innerHTML = `
+        <div class="alert-error" style="padding: 20px; border-radius: 8px;">
+          <i class="bi bi-exclamation-triangle"></i> ${message}
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>

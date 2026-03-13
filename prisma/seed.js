@@ -23,107 +23,104 @@ async function main() {
   await prisma.diagnostico.deleteMany({});
   await prisma.signoVital.deleteMany({});
   await prisma.estudioComplementario.deleteMany({});
+  await prisma.tratamiento.deleteMany({});
+  await prisma.anamnesis.deleteMany({});
   await prisma.consultaMedica.deleteMany({});
   await prisma.turno.deleteMany({});
+  await prisma.antecedente.deleteMany({});
   await prisma.historiaClinica.deleteMany({});
   await prisma.paciente.deleteMany({});
   await prisma.persona.deleteMany({});
-  await prisma.usuario.deleteMany({});
+  await prisma.medico.deleteMany({});
   await prisma.estadoConsulta.deleteMany({});
   await prisma.estadoTurno.deleteMany({});
 
   // ============================================================
-  // 1️⃣  CREAR USUARIOS EN SUPABASE AUTH + BD LOCAL
+  // 1️⃣  CREAR MEDICOS EN SUPABASE AUTH + BD LOCAL
   // ============================================================
   
-  const usuariosData = [
-    { email: 'doctor@lemes.com', password: 'doctor123', nombre: 'Juan', apellido: 'García', role: 'doctor', especialidad: 'Medicina General', telefono: '1234567890' },
-    { email: 'cardiologo@lemes.com', password: 'doctor123', nombre: 'María', apellido: 'López', role: 'doctor', especialidad: 'Cardiología', telefono: '0987654321' },
-    { email: 'secretaria@lemes.com', password: 'secretaria123', nombre: 'Ana', apellido: 'Martínez', role: 'secretaria', telefono: '5555555555' }
+  const medicosData = [
+    { email: 'doctor@lemes.com', password: 'doctor123', nombre: 'Carlos', apellido: 'Lemes Alberto', role: 'doctor', especialidad: 'Medicina General y Familiar', subespecialidad: 'Especialista en Endocrinología', telefono: '1234567890' }
   ];
 
-  const usuarios = [];
+  const medicos = [];
 
-  for (const userData of usuariosData) {
-    let userId = null;
+  for (const medicoData of medicosData) {
+    let supabaseId = null;
 
     // 1️⃣ Intentar crear en Supabase Auth
-    console.log(`📝 Creando usuario en Supabase: ${userData.email}`);
+    console.log(`📝 Creando usuario en Supabase: ${medicoData.email}`);
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: userData.email,
-      password: userData.password,
+      email: medicoData.email,
+      password: medicoData.password,
       email_confirm: true
     });
 
     if (authError) {
       // Si el usuario ya existe en Supabase, intenta obtenerlo
       if (authError.message.includes('already been registered')) {
-        console.log(`⚠️  Usuario ya existe en Supabase: ${userData.email}`);
+        console.log(`⚠️  Usuario ya existe en Supabase: ${medicoData.email}`);
         const { data: { users }, error: searchError } = await supabase.auth.admin.listUsers();
         if (searchError) {
           console.error(`❌ No se pudo buscar usuario:`, searchError.message);
           continue;
         }
-        const existingUser = users.find(u => u.email === userData.email);
+        const existingUser = users.find(u => u.email === medicoData.email);
         if (existingUser) {
-          userId = existingUser.id;
-          console.log(`✅ Usuario encontrado en Supabase: ${userData.email}`);
+          supabaseId = existingUser.id;
+          console.log(`✅ Usuario encontrado en Supabase: ${medicoData.email}`);
         }
       } else {
-        console.error(`❌ Error en Supabase para ${userData.email}:`, authError.message);
+        console.error(`❌ Error en Supabase para ${medicoData.email}:`, authError.message);
         continue;
       }
     } else {
-      userId = authData.user.id;
-      console.log(`✅ Usuario creado en Supabase: ${userData.email}`);
+      supabaseId = authData.user.id;
+      console.log(`✅ Usuario creado en Supabase: ${medicoData.email}`);
     }
 
-    if (!userId) {
-      console.error(`❌ No se obtuvo ID para ${userData.email}`);
+    if (!supabaseId) {
+      console.error(`❌ No se obtuvo ID para ${medicoData.email}`);
       continue;
     }
 
-    // 2️⃣ Crear en BD local
-    const usuarioBD = await prisma.usuario.create({
+    // 2️⃣ Crear Medico en BD local
+    const medicos_bd = await prisma.medico.create({
       data: {
-        email: userData.email,
-        password_hash: userId, // Guardar UUID de Supabase
-        nombre: userData.nombre,
-        apellido: userData.apellido,
-        role: userData.role,
-        especialidad: userData.especialidad || null,
-        telefono: userData.telefono,
+        supabase_id: supabaseId, // UUID de Supabase Auth
+        email: medicoData.email,
+        nombre: medicoData.nombre,
+        apellido: medicoData.apellido,
+        role: medicoData.role,
+        especialidad: medicoData.especialidad || null,
+        telefono: medicoData.telefono || null,
         activo: true
       }
     });
 
-    usuarios.push(usuarioBD);
-    console.log(`✅ Usuario en BD: ${userData.email}`);
+    medicos.push(medicos_bd);
+    console.log(`✅ Medico en BD: ${medicoData.email}`);
   }
 
-  if (usuarios.length !== 3) {
-    console.error('⚠️  Solo se crearon ' + usuarios.length + ' usuarios de 3 esperados');
+  if (medicos.length !== 1) {
+    console.error('⚠️  Solo se crearon ' + medicos.length + ' medico(s) de 1 esperado(s)');
   }
 
-  const doctor1 = usuarios[0];
-  const doctor2 = usuarios[1];
-  const secretaria = usuarios[2];
+  const doctor1 = medicos[0];
 
-  console.log('✅ Médicos y secretaria creados');
+  console.log('✅ Doctor Lemes, Carlos Alberto creado');
 
-  // 2. Crear Estados de Turnos
+  // 2. Crear Estados de Turnos (SIMPLIFICADOS: 4 ESTADOS)
   console.log('\n📋 Creando estados de turnos...');
   
   const estadosTurno = {
-    PENDIENTE: await prisma.estadoTurno.create({ data: { nombre: 'PENDIENTE', descripcion: 'Turno pendiente de confirmación', activo: true } }),
-    CONFIRMADO: await prisma.estadoTurno.create({ data: { nombre: 'CONFIRMADO', descripcion: 'Turno confirmado', activo: true } }),
-    EN_CONSULTA: await prisma.estadoTurno.create({ data: { nombre: 'EN_CONSULTA', descripcion: 'En consulta actualmente', activo: true } }),
-    COMPLETA: await prisma.estadoTurno.create({ data: { nombre: 'COMPLETA', descripcion: 'Consulta completada', activo: true } }),
-    CANCELADA: await prisma.estadoTurno.create({ data: { nombre: 'CANCELADA', descripcion: 'Turno cancelado', activo: false } }),
-    NO_PRESENTADO: await prisma.estadoTurno.create({ data: { nombre: 'NO_PRESENTADO', descripcion: 'Paciente no se presentó', activo: false } })
+    PENDIENTE: await prisma.estadoTurno.create({ data: { nombre: 'PENDIENTE', descripcion: 'Turno pendiente sin confirmar', activo: true } }),
+    EN_CONSULTA: await prisma.estadoTurno.create({ data: { nombre: 'EN_CONSULTA', descripcion: 'Consulta en progreso', activo: true } }),
+    FINALIZADA: await prisma.estadoTurno.create({ data: { nombre: 'FINALIZADA', descripcion: 'Consulta completada', activo: true } }),
+    CANCELADA: await prisma.estadoTurno.create({ data: { nombre: 'CANCELADA', descripcion: 'Turno cancelado o paciente no asistió', activo: false } })
   };
   
-  console.log('✅ Estados de Turnos creados (6 estados)');
+  console.log('✅ Estados de Turnos creados (4 estados: PENDIENTE, EN_CONSULTA, FINALIZADA, CANCELADA)');
 
   // 3. Crear Estados de Consultas
   console.log('📋 Creando estados de consultas...');
@@ -227,7 +224,7 @@ async function main() {
   const historia2 = await prisma.historiaClinica.create({
     data: {
       paciente_id: paciente2.id,
-      creada_por_medico_id: doctor2.id,
+      creada_por_medico_id: doctor1.id,
       fecha_apertura: new Date(),
       activa: true
     }
@@ -325,7 +322,7 @@ async function main() {
       tipo_estudio: 'ECG',
       resultado: 'Ritmo sinusal normal',
       observaciones: 'Sin alteraciones',
-      medico_id: doctor2.id,
+      medico_id: doctor1.id,
       fecha_estudio: new Date()
     }
   });
@@ -354,18 +351,18 @@ async function main() {
       fecha: hoy,
       hora: '09:00',
       estado_id: estadosTurno.EN_CONSULTA.id, // Turno activo - en consulta ahora
-      creado_por_secretaria_id: secretaria.id
+      creado_por_secretaria_id: doctor1.id
     }
   });
 
   const turno2 = await prisma.turno.create({
     data: {
       persona_id: persona2.id,
-      medico_id: doctor2.id,
+      medico_id: doctor1.id,
       fecha: hoy,
       hora: '10:30',
-      estado_id: estadosTurno.COMPLETA.id, // Turno terminado
-      creado_por_secretaria_id: secretaria.id
+      estado_id: estadosTurno.FINALIZADA.id, // Turno terminado
+      creado_por_secretaria_id: doctor1.id
     }
   });
 
@@ -375,8 +372,8 @@ async function main() {
       medico_id: doctor1.id,
       fecha: hoy,
       hora: '14:00',
-      estado_id: estadosTurno.CONFIRMADO.id, // Turno próximo confirmado
-      creado_por_secretaria_id: secretaria.id
+      estado_id: estadosTurno.PENDIENTE.id, // Turno próximo sin confirmar
+      creado_por_secretaria_id: doctor1.id
     }
   });
 
@@ -398,7 +395,7 @@ async function main() {
   const consulta2 = await prisma.consultaMedica.create({
     data: {
       historia_clinica_id: historia2.id,
-      medico_id: doctor2.id,
+      medico_id: doctor1.id,
       turno_id: turno2.id,
       fecha: new Date(),
       motivo_consulta: 'Seguimiento diabetes',

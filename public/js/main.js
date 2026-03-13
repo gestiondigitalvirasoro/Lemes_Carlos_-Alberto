@@ -102,7 +102,13 @@ async function loadTurnos() {
     try {
         const response = await apiCall('/api/turnos');
         if (response.success) {
-            renderturnosTable(response.data);
+            // Ordenar por fecha y hora más próximo primero
+            const turnosOrdenados = response.data.sort((a, b) => {
+                const dateA = new Date(a.fecha + 'T' + a.hora);
+                const dateB = new Date(b.fecha + 'T' + b.hora);
+                return dateA - dateB;
+            });
+            renderturnosTable(turnosOrdenados);
         }
     } catch (error) {
         showAlert('Error al cargar turnos', 'danger');
@@ -141,29 +147,40 @@ function renderturnosTable(turnos) {
     const tbody = document.querySelector('.table tbody');
     if (!tbody) return;
     
-    tbody.innerHTML = turnos.map(t => `
+    tbody.innerHTML = turnos.map(t => {
+        const fechaFormato = new Date(t.fecha).toLocaleDateString('es-AR');
+        const paciente = t.persona;
+        const pacienteInfo = paciente.paciente ? `
+            <strong>${paciente.nombre} ${paciente.apellido}</strong><br>
+            <small>DNI: ${paciente.dni}</small><br>
+            <small>Tel: ${paciente.telefono || 'N/A'}</small><br>
+            <small>Obra Social: ${paciente.paciente.obra_social || 'N/A'}</small>
+        ` : `${paciente.nombre} ${paciente.apellido}`;
+        
+        return `
         <tr>
-            <td>${new Date(t.fecha_hora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</td>
-            <td>${t.paciente?.nombre || 'N/A'}</td>
-            <td>${t.doctor?.nombre || 'N/A'}</td>
-            <td>Medicina General</td>
-            <td>${t.motivo}</td>
+            <td>${fechaFormato}<br><strong>${t.hora}</strong></td>
+            <td>${pacienteInfo}</td>
+            <td>${t.medico?.nombre || 'N/A'} ${t.medico?.apellido || ''}</td>
+            <td>${t.medico?.especialidad || 'General'}</td>
+            <td>${t.observaciones || 'N/A'}</td>
             <td>
-                <span class="badge ${getEstadoBadgeClass(t.estado)}">${t.estado}</span>
+                <span class="badge ${getEstadoBadgeClass(t.estado.nombre)}">${t.estado.nombre}</span>
             </td>
             <td>
-                <button class="btn btn-sm btn-outline-info">
-                    <i class="bi bi-info-circle"></i>
+                <button class="btn btn-sm btn-outline-info" onclick="verTurnoDetalle(${t.id}, '${paciente.nombre}', '${paciente.apellido}', '${paciente.dni}', '${paciente.email}', '${paciente.telefono}', '${paciente.paciente?.obra_social || ''}', '${paciente.paciente?.numero_afiliado || ''}', '${paciente.paciente?.observaciones_generales || ''}')" title="Ver detalles">
+                    <i class="bi bi-eye"></i> Ver
                 </button>
-                <button class="btn btn-sm btn-outline-warning">
-                    <i class="bi bi-pencil"></i>
+                <button class="btn btn-sm btn-outline-warning" onclick="editarTurno(${t.id})" title="Modificar turno">
+                    <i class="bi bi-pencil"></i> Modificar
                 </button>
                 <button class="btn btn-sm btn-outline-danger">
                     <i class="bi bi-x"></i>
                 </button>
             </td>
         </tr>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Helper functions
@@ -215,8 +232,32 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Export para uso global
-window.app = app;
-window.apiCall = apiCall;
-window.login = login;
-window.logout = logout;
+// ========================================================================
+// FUNCIONES PARA TURNOS
+// ========================================================================
+function verTurnoDetalle(id, nombre, apellido, dni, email, telefono, obraSocial, numeroAfiliado, observaciones) {
+    const detalle = `
+        <div style="padding: 20px;">
+            <h4>Datos del Paciente</h4>
+            <table class="table table-sm">
+                <tr><td><strong>Nombre:</strong></td><td>${nombre} ${apellido}</td></tr>
+                <tr><td><strong>DNI:</strong></td><td>${dni}</td></tr>
+                <tr><td><strong>Email:</strong></td><td>${email || 'N/A'}</td></tr>
+                <tr><td><strong>Teléfono:</strong></td><td>${telefono || 'N/A'}</td></tr>
+                <tr><td><strong>Obra Social:</strong></td><td>${obraSocial || 'N/A'}</td></tr>
+                <tr><td><strong>Número Afiliado:</strong></td><td>${numeroAfiliado || 'N/A'}</td></tr>
+                <tr><td><strong>Observaciones:</strong></td><td>${observaciones || 'N/A'}</td></tr>
+            </table>
+        </div>
+    `;
+    
+    // Mostrar modal o alert con los detalles
+    alert(`TURNO ID: ${id}\n\n${nombre} ${apellido}\nDNI: ${dni}\nTelephone: ${telefono}\nObra Social: ${obraSocial}\nAfiliado: ${numeroAfiliado}`);
+}
+
+function editarTurno(id) {
+    // Redirigir a página de edición o abrir modal
+    window.location.href = `/doctor/agendar-turno?editar=${id}`;
+}
+
+

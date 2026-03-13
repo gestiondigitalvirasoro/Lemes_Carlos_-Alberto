@@ -16,25 +16,25 @@ export const obtenerEstadisticas = async (req, res) => {
       where: { activo: true }
     });
 
-    // Turnos hoy (pendientes y confirmados)
+    // Turnos hoy (pendientes)
     const turnosHoy = await prisma.turno.count({
       where: {
         fecha: {
           gte: inicioHoy,
           lte: finHoy
         },
-        estado: { in: ['PENDIENTE', 'CONFIRMADO'] }
+        estado: { in: ['PENDIENTE'] }
       }
     });
 
-    // Turnos atendidos hoy
+    // Turnos finalizados hoy
     const turnosAtendidosHoy = await prisma.turno.count({
       where: {
         fecha: {
           gte: inicioHoy,
           lte: finHoy
         },
-        estado: 'ATENDIDO'
+        estado: 'FINALIZADA'
       }
     });
 
@@ -45,7 +45,7 @@ export const obtenerEstadisticas = async (req, res) => {
           gte: inicioHoy,
           lte: finHoy
         },
-        estado: { in: ['CANCELADO', 'AUSENTE'] }
+        estado: 'CANCELADA'
       }
     });
 

@@ -7,7 +7,7 @@
 export const requireRole = (allowedRoles) => {
   return (req, res, next) => {
     try {
-      const usuario = req.usuario;
+      const usuario = req.user;
 
       if (!usuario) {
         return res.status(401).json({

@@ -146,6 +146,10 @@
           <i class="bi bi-people"></i>
           Pacientes
         </a>
+        <a href="/doctor/turnos">
+          <i class="bi bi-calendar-check"></i>
+          Turnos
+        </a>
       </nav>
 
       <div class="sidebar-footer">
@@ -297,17 +301,20 @@
             </div>
 
             <div class="mb-3">
-              <label for="alta-paciente-select" class="form-label">Seleccionar Paciente</label>
-              <select class="form-select" id="alta-paciente-select" required>
+              <label for="alta-paciente-select" class="form-label">Seleccionar Paciente *</label>
+              <select class="form-select" id="alta-paciente-select" required onchange="validarSeleccionPaciente()">
                 <option value="">-- Seleccionar paciente --</option>
                 <% if (pacientes && pacientes.length > 0) { %>
                   <% pacientes.forEach(function(p) { %>
-                    <option value="<%= p.id %>" data-nombre="<%= p.nombre %>" data-dni="<%= p.dni %>">
-                      <%= p.nombre %> (DNI: <%= p.dni %>)
+                    <option value="<%= p.id %>" data-nombre="<%= p.nombre %>" data-dni="<%= p.dni %>" data-tiene-historia="<%= p.tiene_historia %>">
+                      <%= p.nombre %> (DNI: <%= p.dni %>) <%= p.tiene_historia ? '✓' : '(Nuevo)' %>
                     </option>
                   <% }); %>
                 <% } %>
               </select>
+              <small id="selectWarning" style="color: #dc3545; margin-top: 8px; display: none;">
+                <i class="bi bi-exclamation-triangle"></i> Este paciente aún no tiene historia clínica. Crea una primera.
+              </small>
             </div>
             <div class="mb-3">
               <label for="alta-motivo" class="form-label">Motivo de Consulta</label>
@@ -343,6 +350,27 @@
 
     function hideLoading() {
       document.getElementById('loaderOverlay').classList.remove('active');
+    }
+
+    // Validar si el paciente seleccionado tiene historia clínica
+    function validarSeleccionPaciente() {
+      const select = document.getElementById('alta-paciente-select');
+      const opcionSeleccionada = select.options[select.selectedIndex];
+      const tieneHistoria = opcionSeleccionada.getAttribute('data-tiene-historia') === 'true';
+      const btnIniciar = document.getElementById('btnIniciarConsulta');
+      const warning = document.getElementById('selectWarning');
+
+      if (select.value && !tieneHistoria) {
+        // Paciente nuevo sin historia
+        warning.style.display = 'block';
+        btnIniciar.disabled = true;
+        btnIniciar.style.opacity = '0.5';
+      } else {
+        // Paciente con historia o sin seleccionar
+        warning.style.display = 'none';
+        btnIniciar.disabled = false;
+        btnIniciar.style.opacity = '1';
+      }
     }
 
     function filtrarTabla() {

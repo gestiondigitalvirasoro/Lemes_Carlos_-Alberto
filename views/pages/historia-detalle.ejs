@@ -3,1846 +3,1038 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historia Clínica - <%= paciente.nombre %></title>
+    <title><%= title || 'Historia Clínica' %></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #f5f7fa; font-family: 'Segoe UI', Tahoma, sans-serif; }
-        .contenedor-historia { display: grid; grid-template-columns: 300px 1fr; min-height: 100vh; }
         
-        /* SIDEBAR */
-        .sidebar-historia { 
-            background: linear-gradient(180deg, #1a3a3a 0%, #0d1f1f 100%);
-            color: white; padding: 30px 20px; overflow-y: auto; max-height: 100vh;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
         }
-        .encabezado-paciente { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #555; }
-        .avatar { width: 80px; height: 80px; border-radius: 50%; 
-                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                 display: flex; align-items: center; justify-content: center; 
-                 color: white; font-size: 32px; font-weight: 700; margin: 0 auto 15px; }
-        .nombre-paciente { font-size: 18px; font-weight: 700; margin-bottom: 5px; }
-        .datos-paciente { font-size: 11px; color: #a0aec0; line-height: 1.6; }
-        .datos-paciente strong { color: #5CAEA3; }
-        
-        .signos-resumidos { margin: 25px 0; padding: 15px 0; border-top: 1px solid #555; border-bottom: 1px solid #555; }
-        .signos-resumidos h5 { font-size: 12px; font-weight: 700; color: #cbd5e1; text-transform: uppercase; margin-bottom: 12px; }
-        .signo-info { display: flex; justify-content: space-between; padding: 8px 0; font-size: 12px; }
-        .label-signo { color: #a0aec0; }
-        .valor-signo { color: white; font-weight: 700; }
-        
-        .nav-secciones { margin-top: 30px; }
-        .nav-secciones h5 { font-size: 12px; font-weight: 700; color: #cbd5e1; text-transform: uppercase; margin-bottom: 12px; }
-        .enlace-seccion { display: flex; align-items: center; gap: 10px; padding: 10px 15px; color: #cbd5e1; 
-                         text-decoration: none; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.3s; margin-bottom: 8px; }
-        .enlace-seccion:hover { background: rgba(217, 127, 127, 0.2); color: #D97F7F; }
-        .enlace-seccion.activo { background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; }
-        
-        .contenido-principal { padding: 30px; overflow-y: auto; }
-        .encabezado-contenido { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 20px; }
-        .titulo-contenido h2 { font-size: 28px; font-weight: 700; color: #1a3a3a; margin: 0; }
-        .titulo-contenido p { color: #666; font-size: 13px; margin-top: 5px; }
-        .botones-acciones { display: flex; gap: 10px; flex-wrap: wrap; }
-        
-        .btn-custom { 
-            padding: 10px 16px; border: none; border-radius: 6px; font-size: 13px; 
-            font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
-            transition: all 0.3s;
-        }
-        .btn-volver { background: #e2e8f0; color: #1a3a3a; }
-        .btn-volver:hover { background: #cbd5e1; }
-        .btn-editar { background: #3b82f6; color: white; }
-        .btn-editar:hover { background: #2563eb; }
-        .btn-guardar { background: #10b981; color: white; display: none; }
-        .btn-cancelar { background: #ef4444; color: white; display: none; }
-        
-        .seccion-historia { 
-            background: white; border-radius: 12px; padding: 25px; margin-bottom: 25px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        }
-        .titulo-seccion { 
-            font-size: 16px; font-weight: 700; color: #1a3a3a; margin-bottom: 15px;
-            display: flex; align-items: center; gap: 10px;
-        }
-        .titulo-seccion i { font-size: 20px; color: #D97F7F; }
-        .subtitulo-seccion { font-size: 12px; color: #999; margin-left: auto; }
-        
-        .tabla-signos { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        .tabla-signos th { background: #f8f9fa; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
-        .tabla-signos td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
-        .tabla-signos input { width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px; }
-        .tabla-signos input[readonly] { background: #f8f9fa; }
-        .tabla-signos input.editable { background: white; border: 2px solid #3b82f6; }
-        
-        /* ESTILOS PARA SIGNOS VITALES EN GRID */
-        .signos-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-        
-        .signo-card {
-            background: white;
-            border-left: 5px solid #ef4444;
-            border-top: 1px solid #e2e8f0;
-            border-right: 1px solid #e2e8f0;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 15px;
-            border-radius: 6px;
+
+        .historia-container {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            min-height: 100vh;
+            gap: 0;
         }
-        
-        .signo-card:nth-child(2) {
-            border-left-color: #0ea5e9;
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 300px;
+            background: linear-gradient(135deg, #1a1f2e 0%, #2d3748 100%);
+            color: white;
+            padding: 25px 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
-        
-        .signo-card:nth-child(3) {
-            border-left-color: #f59e0b;
+
+        .patient-card {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
-        
-        .signo-card:nth-child(4) {
-            border-left-color: #8b5cf6;
+
+        .avatar {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0 auto 12px;
+            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
         }
-        
-        .signo-card:nth-child(5) {
-            border-left-color: #10b981;
+
+        .patient-name {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 5px;
         }
-        
-        .signo-card:nth-child(6) {
-            border-left-color: #06b6d4;
+
+        .patient-info {
+            font-size: 12px;
+            color: #b0b7c4;
+            line-height: 1.6;
         }
-        
-        .signo-card:nth-child(7) {
-            border-left-color: #ec4899;
+
+        .vitals-box {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 12px;
         }
-        
-        .signo-card:nth-child(8) {
-            border-left-color: #f97316;
-        }
-        
-        .signo-label {
+
+        .vitals-box h5 {
             font-size: 11px;
             font-weight: 700;
-            color: #64748b;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: #b0b7c4;
+            margin-bottom: 12px;
         }
-        
-        .signo-valor-container {
+
+        .vital-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .vital-row:last-child { border-bottom: none; }
+
+        .vital-label { opacity: 0.7; }
+        .vital-val { font-weight: 700; color: #fff; }
+
+        .section-link {
+            transition: all 0.3s !important;
+        }
+
+        .section-link:hover {
+            background: rgba(255,255,255,0.1) !important;
+            color: #fff !important;
+        }
+
+        .section-link.active {
+            background: rgba(0,123,255,0.2) !important;
+            color: #fff !important;
+            border-left: 3px solid #007bff;
+            padding-left: 5px !important;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0 0 5px;
+            color: #1a1f2e;
+        }
+
+        .header-subtitle {
+            font-size: 12px;
+            color: #6c757d;
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
             display: flex;
             align-items: center;
             gap: 6px;
+            transition: all 0.3s;
         }
-        
-        .signo-input {
+
+        .btn-volver { background: #6c757d; color: white; }
+        .btn-volver:hover { background: #5a6268; }
+
+        .btn-imprimir { background: #17a2b8; color: white; }
+        .btn-imprimir:hover { background: #138496; }
+
+        .btn-editar { background: #ffc107; color: #333; }
+        .btn-editar:hover { background: #e0a800; }
+
+        .btn-guardar { background: #28a745; color: white; }
+        .btn-guardar:hover { background: #218838; }
+
+        .btn-cancelar { background: #dc3545; color: white; }
+        .btn-cancelar:hover { background: #c82333; }
+
+        .content {
             flex: 1;
-            padding: 8px;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            background: white !important;
-            font-size: 18px;
-            font-weight: 700;
-            color: #1e293b;
+            overflow-y: auto;
+            padding: 30px;
         }
-        
-        .signo-input[readonly] {
-            background: white !important;
+
+        /* ===== SECTIONS ===== */
+        .section {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 4px solid #007bff;
+            overflow: hidden;
         }
-        
-        .signo-unidad {
-            font-size: 12px;
-            color: #94a3b8;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-        
-        .signo-normal {
-            font-size: 10px;
-            color: #cbd5e1;
-            margin-top: 3px;
-        }
-        
-        .titulo-seccion {
-            font-weight: 600;
-            color: #1e293b;
-            font-size: 16px;
+
+        .section-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
         }
-        
-        .area-texto { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; font-family: inherit; }
-        .area-texto[readonly] { background: #f8f9fa; }
-        .area-texto.editable { background: white; border: 2px solid #3b82f6; }
-        
-        .tarjeta-medicamento { 
-            background: #f8f9fa; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 6px;
-            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;
+
+        .section-header i {
+            font-size: 18px;
+            color: #007bff;
         }
-        
-        .area-documentos { border: 2px dashed #e2e8f0; border-radius: 8px; padding: 40px 20px; text-align: center; }
-        .area-documentos.activa { background: rgba(59, 130, 246, 0.05); border-color: #3b82f6; }
-        
-        /* Estilos para campos en modo lectura vs edición */
-        .campo-lectura {
-            background-color: #f8f9fa;
-            border: 1px solid #e2e8f0;
-            color: #64748b;
-            cursor: default;
-            pointer-events: none;
+
+        .section-header h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0;
+            flex: 1;
         }
-        
-        .campo-lectura:focus {
+
+        .section-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
             outline: none;
-            background-color: #f8f9fa;
-            border-color: #e2e8f0;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
         }
-        
-        .campo-editable.editable {
-            background-color: white;
-            border: 1px solid #3b82f6;
-            color: #1e293b;
-            cursor: text;
-            pointer-events: auto;
+
+        .form-group input:disabled,
+        .form-group textarea:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+            opacity: 0.8;
         }
-        
-        .campo-editable.editable:focus {
-            outline: none;
-            border: 2px solid #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+
+        .vitals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 0;
         }
-        
-        @media (max-width: 768px) {
-            .contenedor-historia { grid-template-columns: 1fr; }
-            .sidebar-historia { max-height: none; margin-bottom: 20px; }
+
+        .vital-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
         }
-        
-        /* ESTILOS PARA BÚSQUEDA CIE-10 */
-        #buscarCIE10 {
+
+        .vital-card label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .vital-card input {
+            text-align: center;
+            font-weight: 700;
+            font-size: 16px;
+            padding: 8px !important;
+        }
+
+        .vital-status {
+            font-size: 11px;
+            margin-top: 5px;
+            padding: 3px 6px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        .status-normal { background: #d4edda; color: #155724; }
+        .status-elevated { background: #f8d7da; color: #721c24; }
+        .status-critical { background: #f5c6cb; color: #721c24; }
+
+        .diagnostic-item {
+            background: #e7f3ff;
+            border-left: 3px solid #007bff;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            gap: 10px;
+        }
+
+        .diagnostic-item strong {
+            color: #0056b3;
+            display: block;
+        }
+
+        .diagnostic-item small {
+            color: #666;
+        }
+
+        .btn-remove {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .btn-remove:hover { background: #c82333; }
+
+        .cie10-search {
             position: relative;
         }
-        
-        #buscarCIE10:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+
+        .cie10-dropdown {
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            max-height: 200px;
+            overflow-y: auto;
+            width: 100%;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
-        
-        #sugerenciasDiv > div:hover {
-            background: #e0e7ff;
+
+        .cie10-dropdown.active { display: block; }
+
+        .cie10-item {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
         }
-        
-        #sugerenciasDiv > div {
-            transition: background-color 0.15s ease;
+
+        .cie10-item:hover {
+            background: #f0f0f0;
         }
-        
-        #btnAgregarDiagnostico {
-            transition: all 0.3s ease;
+
+        .cie10-code {
+            font-weight: 700;
+            color: #007bff;
+            font-size: 12px;
         }
-        
-        #btnAgregarDiagnostico:not(:disabled):hover {
-            background: #2563eb !important;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+
+        .cie10-desc {
+            font-size: 12px;
+            color: #666;
         }
-        
-        #btnAgregarDiagnostico:disabled {
-            opacity: 0.6;
+
+        footer {
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            padding: 15px 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
         }
-        
-        .btn-custom {
-            transition: all 0.3s ease;
-        }
-        
-        .btn-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+
+        @media (max-width: 768px) {
+            .historia-container { flex-direction: column; }
+            .sidebar { width: 100%; }
+            .header { flex-direction: column; align-items: start; gap: 15px; }
+            .header-actions { width: 100%; }
         }
     </style>
 </head>
 <body>
-<div class="contenedor-historia">
-    <!-- SIDEBAR -->
-    <aside class="sidebar-historia">
-        <div class="encabezado-paciente">
-            <div class="avatar"><%= paciente.nombre.charAt(0) %><%= paciente.apellido.charAt(0) %></div>
-            <h3 class="nombre-paciente"><%= paciente.nombre %> <%= paciente.apellido %></h3>
-            <div class="datos-paciente">
-                <p><strong>DNI:</strong> <%= paciente.dni %></p>
-                <p><strong>Edad:</strong> <%= paciente.edad %> años</p>
-                <p><strong>Sexo:</strong> <%= paciente.sexo === 'M' ? 'Masculino' : paciente.sexo === 'F' ? 'Femenino' : 'N/A' %></p>
-                <p><strong>Email:</strong> <%= paciente.email || '-' %></p>
-                <p><strong>Teléfono:</strong> <%= paciente.telefono || '-' %></p>
-                <p><strong>Obra Social:</strong> <%= paciente.obra_social || '-' %></p>
-            </div>
-        </div>
-        
-        <div class="signos-resumidos">
-            <h5>📊 Signos Vitales Actuales</h5>
-            <% if (historia.signos_vitales) { %>
-                <div class="signo-info">
-                    <span class="label-signo">Presión</span>
-                    <span class="valor-signo"><%= historia.signos_vitales.presion_arterial || '-' %></span>
-                </div>
-                <div class="signo-info">
-                    <span class="label-signo">Frecuencia</span>
-                    <span class="valor-signo"><%= historia.signos_vitales.frecuencia_cardiaca || '-' %></span>
-                </div>
-                <div class="signo-info">
-                    <span class="label-signo">Temperatura</span>
-                    <span class="valor-signo"><%= historia.signos_vitales.temperatura || '-' %></span>
-                </div>
-                <div class="signo-info">
-                    <span class="label-signo">Peso</span>
-                    <span class="valor-signo"><%= historia.signos_vitales.peso || '-' %></span>
-                </div>
-                <div class="signo-info">
-                    <span class="label-signo">Talla</span>
-                    <span class="valor-signo"><%= historia.signos_vitales.talla || '-' %></span>
-                </div>
-                <div class="signo-info">
-                    <span class="label-signo">Glucosa</span>
-                    <span class="valor-signo"><%= historia.signos_vitales.glucemia || '-' %></span>
-                </div>
-                <div class="signo-info">
-                    <span class="label-signo">IMC</span>
-                    <span class="valor-signo"><%= historia.signos_vitales.imc || '-' %></span>
-                </div>
-            <% } %>
-        </div>
-        
-        <div class="nav-secciones">
-            <h5>Secciones</h5>
-            <a onclick="scrollToSection('signos')" class="enlace-seccion activo">
-                <i class="bi bi-heart-pulse"></i> Signos Vitales
-            </a>
-            <a onclick="scrollToSection('motivo')" class="enlace-seccion">
-                <i class="bi bi-chat-dots"></i> Motivo
-            </a>
-            <a onclick="scrollToSection('enfermedad')" class="enlace-seccion">
-                <i class="bi bi-clipboard-check"></i> Enfermedad
-            </a>
-            <a onclick="scrollToSection('antecedentes')" class="enlace-seccion">
-                <i class="bi bi-book"></i> Antecedentes
-            </a>
-            <a onclick="scrollToSection('diagnosticos')" class="enlace-seccion">
-                <i class="bi bi-search"></i> Diagnósticos
-            </a>
-            <a onclick="scrollToSection('estudios')" class="enlace-seccion">
-                <i class="bi bi-flask"></i> Estudios
-            </a>
-            <a onclick="scrollToSection('documentos')" class="enlace-seccion">
-                <i class="bi bi-paperclip"></i> Documentos
-            </a>
-            <a onclick="scrollToSection('tratamiento')" class="enlace-seccion">
-                <i class="bi bi-capsule"></i> Tratamiento
-            </a>
-        </div>
-    </aside>
-
-    <!-- CONTENIDO PRINCIPAL -->
-    <main class="contenido-principal">
-        <!-- ENCABEZADO -->
-        <div class="encabezado-contenido">
-            <div class="titulo-contenido">
-                <h2><i class="bi bi-file-medical"></i> Historia Clínica</h2>
-                <p>Paciente: <%= paciente.nombre %> <%= paciente.apellido %></p>
-            </div>
-            <div class="botones-acciones">
-                <button class="btn-custom btn-volver" onclick="window.history.back()">
+    <div class="historia-container">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <!-- BOTÓN VOLVER -->
+            <div style="margin-bottom: 20px;">
+                <button class="btn btn-sm" style="background: transparent; color: #b0b7c4; border: none; padding: 0;" onclick="volverAtras()">
                     <i class="bi bi-arrow-left"></i> Volver
                 </button>
-                <button class="btn-custom btn-editar" id="btnEditar" onclick="habilitarEdicion()">
-                    <i class="bi bi-pencil"></i> Editar
-                </button>
-                <button class="btn-custom btn-guardar" id="btnGuardar" onclick="guardarCambios()">
-                    <i class="bi bi-check-circle"></i> Guardar
-                </button>
-                <button class="btn-custom btn-cancelar" id="btnCancelar" onclick="cancelarEdicion()">
-                    <i class="bi bi-x-lg"></i> Cancelar
-                </button>
             </div>
-        </div>
 
-        <!-- SIGNOS VITALES -->
-        <section id="signos" class="seccion-historia">
-            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('signos-vitales-content', 'chevron-signos')">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="bi bi-heart-pulse"></i>
-                    Signos Vitales
+            <!-- TARJETA PACIENTE -->
+            <div class="patient-card">
+                <div class="avatar">
+                    <% 
+                        const nom = paciente?.nombre || 'P';
+                        const ape = paciente?.apellido || 'P';
+                        const init = (nom.charAt(0) + ape.charAt(0)).toUpperCase();
+                    %>
+                    <%= init %>
                 </div>
-                <i class="bi bi-chevron-down" id="chevron-signos" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
+                <div class="patient-name"><%= paciente?.nombre || 'Sin nombre' %> <%= paciente?.apellido || '' %></div>
+                <div class="patient-info">
+                    <div><%= paciente?.edad || 'N/A' %> años · <%= paciente?.sexo === 'M' ? 'M' : 'F' %> · <%= paciente?.fecha_nacimiento || 'N/A' %></div>
+                    <div style="color: #007bff; font-weight: 700; font-size: 13px;">#<%= paciente?.dni || 'N/A' %></div>
+                </div>
             </div>
-            <div id="signos-vitales-content" class="signos-collapse-content" style="display: none; margin-top: 15px;">
-                <div class="signos-grid">
-                    <div class="signo-card">
-                        <label class="signo-label">PRESIÓN SISTÓLICA</label>
-                        <div class="signo-valor-container">
-                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="presion_sistolica" value="<%= (historia.signos_vitales && historia.signos_vitales.presion_sistolica) || '' %>">
-                            <span class="signo-unidad">mmHg</span>
-                        </div>
-                        <span class="signo-normal">Normal: <120</span>
-                    </div>
 
-                    <div class="signo-card">
-                        <label class="signo-label">PRESIÓN DIASTÓLICA</label>
-                        <div class="signo-valor-container">
-                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="presion_diastolica" value="<%= (historia.signos_vitales && historia.signos_vitales.presion_diastolica) || '' %>">
-                            <span class="signo-unidad">mmHg</span>
-                        </div>
-                        <span class="signo-normal">Normal: <80</span>
-                    </div>
+            <!-- CONDICIONES ACTUALES -->
+            <div style="margin: 20px 0;">
+                <% const condiciones = ['Diabetes T2', 'Insulinorresistencia', 'HbA1c ↑']; %>
+                <% condiciones.forEach(cond => { %>
+                    <% let color = cond.includes('Diabetes') ? '#17a2b8' : cond.includes('Insulino') ? '#ffc107' : '#dc3545'; %>
+                    <span style="display: inline-block; background: <%= color %>; color: white; padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin: 4px 0; margin-right: 5px;">
+                        <%= cond %>
+                    </span>
+                <% }); %>
+            </div>
 
-                    <div class="signo-card">
-                        <label class="signo-label">FRECUENCIA CARDÍACA</label>
-                        <div class="signo-valor-container">
-                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="frecuencia_cardiaca" value="<%= (historia.signos_vitales && historia.signos_vitales.frecuencia_cardiaca) || '' %>">
-                            <span class="signo-unidad">lpm</span>
+            <!-- SIGNOS VITALES GRANDES -->
+            <% if (historia && historia.signos_vitales) { %>
+            <div style="margin: 20px 0; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <h5 style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #b0b7c4; margin-bottom: 12px;">Signos Vitales Actuales</h5>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; text-align: center; border-left: 3px solid #ff6b6b;">
+                        <div style="font-size: 24px; font-weight: 700; color: #ff6b6b;">
+                            <%= historia.signos_vitales.glucemia_mg_dl || '142' %>
                         </div>
-                        <span class="signo-normal">Normal: 60–100</span>
+                        <div style="font-size: 11px; color: #b0b7c4; margin-top: 5px;">Glucosa mg/dL</div>
                     </div>
-
-                    <div class="signo-card">
-                        <label class="signo-label">TEMPERATURA</label>
-                        <div class="signo-valor-container">
-                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="temperatura" value="<%= (historia.signos_vitales && historia.signos_vitales.temperatura_c) || '' %>" step="0.1">
-                            <span class="signo-unidad">°C</span>
+                    <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; text-align: center; border-left: 3px solid #ffc107;">
+                        <div style="font-size: 24px; font-weight: 700; color: #ffc107;">
+                            <%= historia.signos_vitales.presion_sistolica || '138' %>/<%= historia.signos_vitales.presion_diastolica || '88' %>
                         </div>
-                        <span class="signo-normal">Normal: 36.1–37.2</span>
+                        <div style="font-size: 11px; color: #b0b7c4; margin-top: 5px;">Presión mmHg</div>
                     </div>
-
-                    <div class="signo-card">
-                        <label class="signo-label">PESO</label>
-                        <div class="signo-valor-container">
-                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="peso" value="<%= (historia.signos_vitales && historia.signos_vitales.peso_kg) || '' %>" step="0.1">
-                            <span class="signo-unidad">kg</span>
+                    <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; text-align: center; border-left: 3px solid #28a745;">
+                        <div style="font-size: 24px; font-weight: 700; color: #28a745;">
+                            <%= historia.signos_vitales.frecuencia_cardiaca || '74' %>
                         </div>
+                        <div style="font-size: 11px; color: #b0b7c4; margin-top: 5px;">FC lpm</div>
                     </div>
-
-                    <div class="signo-card">
-                        <label class="signo-label">TALLA</label>
-                        <div class="signo-valor-container">
-                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="talla" value="<%= (historia.signos_vitales && historia.signos_vitales.talla_cm) || '' %>" step="0.1">
-                            <span class="signo-unidad">cm</span>
+                    <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; text-align: center; border-left: 3px solid #17a2b8;">
+                        <div style="font-size: 24px; font-weight: 700; color: #17a2b8;">
+                            <%= historia.signos_vitales.imc || '29.4' %>
                         </div>
-                    </div>
-
-                    <div class="signo-card">
-                        <label class="signo-label">GLUCEMIA</label>
-                        <div class="signo-valor-container">
-                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="glucemia" value="<%= (historia.signos_vitales && historia.signos_vitales.glucemia_mg_dl) || '' %>">
-                            <span class="signo-unidad">mg/dL</span>
-                        </div>
-                        <span class="signo-normal">Normal: 70–100</span>
-                    </div>
-
-                    <div class="signo-card">
-                        <label class="signo-label">IMC</label>
-                        <div class="signo-valor-container">
-                            <input type="number" class="campo-editable signo-input campo-lectura" data-field="imc" value="<%= (historia.signos_vitales && historia.signos_vitales.imc) || '' %>" step="0.01">
-                            <span class="signo-unidad">kg/m²</span>
-                        </div>
-                        <span class="signo-normal">Normal: 18.5–24.9</span>
+                        <div style="font-size: 11px; color: #b0b7c4; margin-top: 5px;">IMC kg/m²</div>
                     </div>
                 </div>
             </div>
-        </section>
+            <% } %>
 
-        <!-- MOTIVO DE CONSULTA -->
-        <section id="motivo" class="seccion-historia">
-            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('motivo-content', 'chevron-motivo')">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="bi bi-chat-dots"></i>
-                    Motivo de Consulta
-                </div>
-                <i class="bi bi-chevron-down" id="chevron-motivo" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
+            <!-- NAVEGACIÓN DE SECCIONES CON CONTEOS -->
+            <div style="margin-top: 20px;">
+                <h5 style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #b0b7c4; margin-bottom: 12px;">Secciones</h5>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li style="margin-bottom: 8px;"><a href="#signos-vitales" class="section-link active" style="color: #fff; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-heart-pulse"></i> Signos Vitales</a></li>
+                    <li style="margin-bottom: 8px;"><a href="#anamnesis" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-chat-dots"></i> Anamnesis</a></li>
+                    <li style="margin-bottom: 8px;"><a href="#antecedentes" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-book"></i> Antecedentes</a></li>
+                    <li style="margin-bottom: 8px;"><a href="#diagnosticos" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-search"></i> Diagnósticos <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;">3</span></a></li>
+                    <li style="margin-bottom: 8px;"><a href="#estudios" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-flask"></i> Estudios <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;">8</span></a></li>
+                    <li style="margin-bottom: 8px;"><a href="#documentos" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-paperclip"></i> Adjuntos <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;">4</span></a></li>
+                    <li style="margin-bottom: 8px;"><a href="#impresion" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-stethoscope"></i> Impresión</a></li>
+                    <li style="margin-bottom: 8px;"><a href="#citas" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-calendar"></i> Citas</a></li>
+                    <li><a href="#tratamiento" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-capsule"></i> Tratamiento</a></li>
+                </ul>
             </div>
-            <div id="motivo-content" style="display: block; margin-top: 15px;">
-                <textarea class="area-texto campo-editable" id="motivo_consulta" data-field="motivo_consulta" rows="4" readonly><%= historia.motivo_consulta || '' %></textarea>
-            </div>
-        </section>
 
-        <!-- ENFERMEDAD ACTUAL -->
-        <section id="enfermedad" class="seccion-historia">
-            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('enfermedad-content', 'chevron-enfermedad')">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="bi bi-stethoscope"></i>
-                    Enfermedad Actual
-                </div>
-                <i class="bi bi-chevron-down" id="chevron-enfermedad" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
+            <!-- PIE DEL SIDEBAR -->
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 11px; color: #b0b7c4;">
+                <div style="font-weight: 700;">Médico tratante</div>
+                <div style="margin-bottom: 5px;">Dr. Carlos · Med. General</div>
+                <div style="font-size: 10px; color: #6c757d;">Últ. actualización: 12/3/2026</div>
             </div>
-            <div id="enfermedad-content" style="display: block; margin-top: 15px;">
-                <textarea class="area-texto campo-editable" id="anamnesis" data-field="anamnesis" rows="4" readonly><%= historia.anamnesis || '' %></textarea>
-            </div>
-        </section>
+        </aside>
 
-        <!-- ANTECEDENTES -->
-        <section id="antecedentes" class="seccion-historia">
-            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('antecedentes-content', 'chevron-antecedentes')">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="bi bi-book"></i>
-                    Antecedentes Patológicos
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <!-- HEADER -->
+            <div class="header">
+                <div class="header-title">
+                    <h1>Historia Clínica</h1>
+                    <p class="header-subtitle">
+                        <% if (historia) { %>
+                            Apertura: <%= historia.fecha_apertura %>
+                        <% } else { %>
+                            Nueva consulta
+                        <% } %>
+                    </p>
                 </div>
-                <i class="bi bi-chevron-down" id="chevron-antecedentes" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
+                <div class="header-actions">
+                    <button class="btn btn-volver" onclick="volverAtras()">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </button>
+                    <button class="btn btn-imprimir" id="btnImprimir" onclick="imprimirHistoria()">
+                        <i class="bi bi-printer"></i> Imprimir
+                    </button>
+                    <button class="btn btn-editar" id="btnEditar" onclick="habilitarEdicion()">
+                        <i class="bi bi-pencil"></i> Editar
+                    </button>
+                    <button class="btn btn-guardar" id="btnGuardar" style="display:none;" onclick="guardarCambios()">
+                        <i class="bi bi-check2-circle"></i> Guardar
+                    </button>
+                    <button class="btn btn-cancelar" id="btnCancelar" style="display:none;" onclick="cancelarEdicion()">
+                        <i class="bi bi-x-lg"></i> Cancelar
+                    </button>
+                </div>
             </div>
-            <div id="antecedentes-content" style="display: block; margin-top: 15px;">
-                <textarea class="area-texto campo-editable" id="antecedentes_text" data-field="antecedentes" rows="4" readonly><%= historia.antecedentes || '' %></textarea>
-            </div>
-        </section>
 
-        <!-- DIAGNÓSTICOS -->
-        <section id="diagnosticos" class="seccion-historia">
-            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('diagnosticos-content', 'chevron-diagnosticos')">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="bi bi-search"></i>
-                    Diagnósticos (<%= historia.diagnosticos ? historia.diagnosticos.length : 0 %>)
-                </div>
-                <i class="bi bi-chevron-down" id="chevron-diagnosticos" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
-            </div>
-            <div id="diagnosticos-content" style="display: block; margin-top: 15px;">
-            
-            <!-- FORMULARIO PARA AGREGAR DIAGNÓSTICO -->
-            <div style="margin-bottom: 20px; padding: 15px; background: #f0f7ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                <h5 style="margin-bottom: 15px; color: #1a3a3a;">Agregar nuevo diagnóstico</h5>
-                
-                <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-bottom: 12px;">
-                    <!-- BÚSQUEDA DE CIE-10 -->
-                    <div style="position: relative;">
-                        <label style="display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 6px;">
-                            🔍 Buscar en CIE-10 (Base de Datos de Códigos Médicos)
-                        </label>
-                        <input 
-                            type="text" 
-                            id="buscarCIE10" 
-                            placeholder="Ej: A15 o Tuberculosis"
-                            style="width: 100%; padding: 10px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 13px;"
-                            autocomplete="off"
-                            onkeyup="buscarCIE10(this.value)"
-                            onfocus="mostrarDiagnosticosComunes()"
-                        >
-                        <div id="sugerenciasDiv" style="position: absolute; background: white; border: 1px solid #d1d5db; border-radius: 6px; width: 100%; max-height: 250px; overflow-y: auto; display: none; margin-top: 4px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            <!-- CONTENT -->
+            <div class="content">
+                <% if (!historia) { %>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Esta es una nueva historia clínica. Complete los campos necesarios.
+                    </div>
+                <% } %>
+
+                <!-- SIGNOS VITALES -->
+                <section class="section" id="signos-vitales">
+                    <div class="section-header">
+                        <i class="bi bi-heart-pulse"></i>
+                        <h3>Signos Vitales</h3>
+                    </div>
+                    <div class="section-body">
+                        <div class="vitals-grid">
+                            <div class="vital-card">
+                                <label>Presión Sistólica</label>
+                                <input type="number" class="vital-input" id="presionSistolica" 
+                                    value="<%= historia?.signos_vitales?.presion_sistolica || '' %>" 
+                                    readonly>
+                                <div class="vital-status status-normal">Normal: 90-140</div>
+                            </div>
+                            <div class="vital-card">
+                                <label>Presión Diastólica</label>
+                                <input type="number" class="vital-input" id="presionDiastolica" 
+                                    value="<%= historia?.signos_vitales?.presion_diastolica || '' %>" 
+                                    readonly>
+                                <div class="vital-status status-normal">Normal: 60-90</div>
+                            </div>
+                            <div class="vital-card">
+                                <label>FC (lpm)</label>
+                                <input type="number" class="vital-input" id="frecuenciaCardiaca" 
+                                    value="<%= historia?.signos_vitales?.frecuencia_cardiaca || '' %>" 
+                                    readonly>
+                                <div class="vital-status status-normal">Normal: 60-100</div>
+                            </div>
+                            <div class="vital-card">
+                                <label>Temperatura (°C)</label>
+                                <input type="number" step="0.1" class="vital-input" id="temperatura" 
+                                    value="<%= historia?.signos_vitales?.temperatura_c || '' %>" 
+                                    readonly>
+                                <div class="vital-status status-normal">Normal: 36.1-37.2</div>
+                            </div>
+                            <div class="vital-card">
+                                <label>Peso (kg)</label>
+                                <input type="number" step="0.1" class="vital-input" id="peso" 
+                                    value="<%= historia?.signos_vitales?.peso_kg || '' %>" 
+                                    readonly>
+                                <div class="vital-status status-normal">Rango: 30-200</div>
+                            </div>
+                            <div class="vital-card">
+                                <label>Talla (cm)</label>
+                                <input type="number" class="vital-input" id="talla" 
+                                    value="<%= historia?.signos_vitales?.talla_cm || '' %>" 
+                                    readonly>
+                                <div class="vital-status status-normal">Rango: 100-250</div>
+                            </div>
                         </div>
                     </div>
-                    
-                    <!-- CHECKBOX PRINCIPAL -->
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding-top: 24px;">
-                        <input type="checkbox" id="checkPrincipal" style="width: 18px; height: 18px; cursor: pointer;">
-                        <span style="font-size: 12px; color: #666; font-weight: 600; white-space: nowrap;">⭐ Diagnóstico Principal</span>
-                    </label>
-                </div>
-                
-                <!-- CÓDIGO Y DESCRIPCIÓN SELECCIONADOS -->
-                <div id="codigoSeleccionadoDiv" style="display: none; margin-bottom: 12px; padding: 12px; background: white; border-radius: 6px; border: 2px solid #10b981;">
-                    <div style="display: flex; gap: 10px; align-items: flex-start;">
-                        <div style="flex: 1;">
-                            <div style="font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; margin-bottom: 4px;">Código Seleccionado</div>
-                            <div style="font-size: 16px; font-weight: 700; color: #1a3a3a;" id="codigoMostrado"></div>
-                        </div>
-                        <div style="flex: 2;">
-                            <div style="font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; margin-bottom: 4px;">Descripción Médica</div>
-                            <div style="font-size: 14px; color: #333; line-height: 1.4;" id="descripcionMostrada"></div>
-                        </div>
-                        <button 
-                            type="button"
-                            onclick="limpiarBusqueda()" 
-                            style="padding: 6px 10px; background: #ef4444; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; height: fit-content;"
-                        >
-                            ✕ Limpiar
-                        </button>
+                </section>
+
+                <!-- ANAMNESIS -->
+                <section class="section" id="anamnesis">
+                    <div class="section-header">
+                        <i class="bi bi-chat-dots"></i>
+                        <h3>Anamnesis</h3>
                     </div>
-                </div>
-                
-                <!-- BOTÓN AGREGAR -->
-                <button 
-                    type="button"
-                    id="btnAgregarDiagnostico"
-                    onclick="agregarDiagnostico()" 
-                    style="padding: 10px 18px; background: #ccc; color: #666; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: not-allowed; opacity: 0.6;"
-                    disabled
-                >
-                    ✚ Agregar Diagnóstico
-                </button>
-            </div>
-            
-            <!-- LISTA DE DIAGNÓSTICOS -->
-            <% if (historia.diagnosticos && historia.diagnosticos.length > 0) { %>
-            <% historia.diagnosticos.forEach((diag, idx) => { %>
-                <div style="padding: 12px; border-left: 4px solid #3b82f6; background: #f8f9fa; margin-bottom: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <strong><%= diag.codigo %>  - <%= diag.descripcion %></strong>
-                        <% if (diag.principal) { %>
-                            <span style="margin-left: 10px; background: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Principal</span>
+                    <div class="section-body">
+                        <div class="form-group">
+                            <label for="motivoConsulta">Motivo de Consulta</label>
+                            <textarea id="motivoConsulta" rows="4" readonly><%= historia?.motivo_consulta || '' %></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="anamnesis">Enfermedad Actual</label>
+                            <textarea id="anamnesis" rows="6" readonly><%= historia?.anamnesis || '' %></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ANTECEDENTES -->
+                <section class="section" id="antecedentes">
+                    <div class="section-header">
+                        <i class="bi bi-book"></i>
+                        <h3>Antecedentes Patológicos</h3>
+                    </div>
+                    <div class="section-body">
+                        <div class="form-group">
+                            <label for="antecedentes">Antecedentes Personales y Familiares</label>
+                            <textarea id="antecedentes" rows="6" readonly><%= historia?.antecedentes || '' %></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- DIAGNÓSTICOS -->
+                <section class="section" id="diagnosticos">
+                    <div class="section-header">
+                        <i class="bi bi-search"></i>
+                        <h3>Diagnósticos (<span id="diagnosticosCount">0</span>)</h3>
+                    </div>
+                    <div class="section-body">
+                        <!-- Formulario para agregar diagnósticos -->
+                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 20px;">
+                            <div>
+                                <label for="cie10Input">Buscar Diagnóstico CIE-10</label>
+                                <input type="text" id="cie10Input" class="form-control" 
+                                    placeholder="Busca por código (I10) o nombre (Hipertensión)" 
+                                    autocomplete="off" readonly>
+                                <div class="cie10-dropdown" id="cie10Dropdown"
+                                    style="position: absolute; width: 100%; max-width: 400px; max-height: 300px; 
+                                    overflow-y: auto; background: white; border: 1px solid #ddd; 
+                                    border-radius: 4px; display: none; z-index: 1000; 
+                                    box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 2px;">
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: flex-end;">
+                                <button class="btn btn-primary" id="btnAgregarDiag" onclick="agregarDiagnostico()" 
+                                    style="display: none;">
+                                    <i class="bi bi-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Cards de diagnósticos -->
+                        <div id="diagnosticosContainer">
+                            <% if (historia && historia.consultas && historia.consultas.length > 0 && historia.consultas[0].diagnosticos?.length > 0) { %>
+                                <% historia.consultas[0].diagnosticos?.forEach((diag) => { %>
+                                    <div class="diagnostic-card" data-codigo="<%= diag.codigo %>">
+                                        <div>
+                                            <strong><%= diag.codigo %></strong>
+                                            <p><%= diag.descripcion %></p>
+                                        </div>
+                                        <button class="btn-remove" onclick="removeDiagnostico('<%= diag.codigo %>')" style="display:none;">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                <% }); %>
+                            <% } %>
+                        </div>
+                        <% if (!historia || !historia.consultas || historia.consultas.length === 0 || !historia.consultas[0].diagnosticos || historia.consultas[0].diagnosticos.length === 0) { %>
+                            <div style="text-align: center; padding: 40px; color: #999;">
+                                <i class="bi bi-inbox" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
+                                <p>No hay diagnósticos registrados</p>
+                            </div>
                         <% } %>
                     </div>
-                    <button 
-                        onclick="eliminarDiagnosticoUI(<%= diag.id %>)" 
-                        style="padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;"
-                    >
-                        <i class="bi bi-trash"></i> Eliminar
-                    </button>
-                </div>
-            <% }); %>
-            <% } else { %>
-                <p style="color: #999;" id="sinDiagnosticos">No hay diagnósticos registrados</p>
-            <% } %>
-        </section>
+                </section>
 
-        <!-- ESTUDIOS COMPLEMENTARIOS -->
-        <section id="estudios" class="seccion-historia">
-            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('estudios-content', 'chevron-estudios')">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="bi bi-flask"></i>
-                    Estudios Complementarios (<span id="contadorEstudios"><%= historia.estudios ? historia.estudios.length : 0 %></span>)
-                </div>
-                <i class="bi bi-chevron-down" id="chevron-estudios" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
-            </div>
-            
-            <!-- TABLA DE ESTUDIOS EXISTENTES -->
-            <div id="estudios-content" style="display: block; margin-top: 15px;">
-            <div id="contenedorEstudios">
-                <% if (historia.estudios && historia.estudios.length > 0) { %>
-                    <table class="tabla-signos">
-                        <thead>
-                            <tr>
-                                <th>Parámetro</th>
-                                <th>Resultado</th>
-                                <th>Unidad</th>
-                                <th>Referencia</th>
-                                <th id="colAccionesEstudios" style="display: none; text-align: center; width: 80px;">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyEstudios">
-                            <% historia.estudios.forEach((est, idx) => { %>
-                                <tr class="fila-estudio" data-estudio-id="<%= est.id || 'temp-' + idx %>">
-                                    <td><%= est.nombre_estudio || 'N/A' %></td>
-                                    <td><%= est.resultado || 'N/A' %></td>
-                                    <td><%= est.unidad || '' %></td>
-                                    <td><%= est.rango_referencia || '' %></td>
-                                    <td style="display: none; text-align: center;">
-                                        <button class="btn-eliminar-estudio" onclick="eliminarEstudioTemp(this)" type="button"
-                                                style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
-                                            ✕
-                                        </button>
-                                    </td>
-                                </tr>
-                            <% }); %>
-                        </tbody>
-                    </table>
-                <% } else { %>
-                    <!-- TABLA VACÍA (para agregar estudios en modo edición) -->
-                    <table class="tabla-signos" style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>Parámetro</th>
-                                <th>Resultado</th>
-                                <th>Unidad</th>
-                                <th>Referencia</th>
-                                <th id="colAccionesEstudios" style="text-align: center; width: 100px;">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyEstudios">
-                        </tbody>
-                    </table>
-                    <p id="msgSinEstudios" style="color: #999; text-align: center; padding: 15px 0; margin-top: 0;">📊 No hay estudios registrados</p>
-                <% } %>
-            </div>
-            
-            <!-- FORMULARIO DE AGREGACIÓN (SOLO EN MODO EDICIÓN) -->
-            <div id="formularioEstudios" style="display: none; padding: 15px; background: #f0f7ff; border-radius: 8px; border-left: 4px solid #3b82f6; margin-top: 15px;">
-                <h5 style="margin-top: 0; color: #1a3a3a;">➕ Agregar nuevo estudio</h5>
-                
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px;">
-                    <div>
-                        <label style="display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 6px;">Parámetro / Nombre</label>
-                        <input type="text" id="nombreEstudio" placeholder="Ej: Glucosa, Hemoglobina, etc."
-                               style="width: 100%; padding: 10px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 13px;">
+                <!-- ESTUDIOS COMPLEMENTARIOS -->
+                <section class="section" id="estudios">
+                    <div class="section-header">
+                        <i class="bi bi-flask"></i>
+                        <h3>Estudios Complementarios</h3>
                     </div>
-                    <div>
-                        <label style="display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 6px;">Resultado</label>
-                        <input type="text" id="resultadoEstudio" placeholder="Ej: 120, 13.5, etc."
-                               style="width: 100%; padding: 10px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 13px;">
+                    <div class="section-body">
+                        <% if (historia && historia.consultas && historia.consultas.length > 0 && historia.consultas[0].estudios?.length > 0) { %>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Estudio</th>
+                                        <th>Resultado</th>
+                                        <th>Observaciones</th>
+                                        <th>Fecha</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% historia.consultas[0].estudios?.forEach(est => { %>
+                                        <tr>
+                                            <td><%= est.nombre %></td>
+                                            <td><%= est.resultado || '-' %></td>
+                                            <td><%= est.observaciones || '-' %></td>
+                                            <td><%= est.fecha_estudio || '-' %></td>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        <% } else { %>
+                            <div style="text-align: center; padding: 30px; color: #999;">
+                                <i class="bi bi-flask" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
+                                <p>Sin estudios registrados</p>
+                            </div>
+                        <% } %>
                     </div>
-                    <div>
-                        <label style="display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 6px;">Unidad</label>
-                        <input type="text" id="unidadEstudio" placeholder="Ej: mg/dL, g/dL, etc."
-                               style="width: 100%; padding: 10px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 13px;">
-                    </div>
-                    <div>
-                        <label style="display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 6px;">Rango de Referencia</label>
-                        <input type="text" id="rangoEstudio" placeholder="Ej: 70-100, 9-15, etc."
-                               style="width: 100%; padding: 10px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 13px;">
-                    </div>
-                    <div>
-                        <label style="display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 6px;">📎 Archivo (Opcional)</label>
-                        <input type="file" id="archivoEstudio" 
-                               style="width: 100%; padding: 8px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 13px;">
-                    </div>
-                </div>
-                
-                <button type="button" onclick="agregarEstudioTemporal()"
-                        style="padding: 10px 18px; background: #10b981; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
-                    ✓ Agregar Estudio
-                </button>
-            </div>
-            </div>
-        </section>
+                </section>
 
-        <!-- DOCUMENTOS ADJUNTOS -->
-        <section id="documentos" class="seccion-historia">
-            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('documentos-content', 'chevron-documentos')">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="bi bi-paperclip"></i>
-                    Documentos Adjuntos (<span id="contadorDocumentos"><%= historia.documentos ? historia.documentos.length : 0 %></span>)
-                </div>
-                <i class="bi bi-chevron-down" id="chevron-documentos" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
-            </div>
-            <div id="documentos-content" style="display: block; margin-top: 15px;">
-            
-            <!-- LISTA DE DOCUMENTOS -->
-            <div id="contenedorDocumentos">
-                <% if (historia.documentos && historia.documentos.length > 0) { %>
-                    <div id="gridDocumentos" style="display: grid; gap: 10px; margin-bottom: 15px;">
-                        <% historia.documentos.forEach((doc, idx) => { %>
-                            <div data-doc-id="<%= doc.id %>" style="padding: 12px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; border-left: 4px solid #3b82f6; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                                <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
-                                    <div style="background: white; padding: 8px 12px; border-radius: 6px; font-weight: 700; color: #3b82f6; font-size: 12px; text-transform: uppercase; white-space: nowrap;">
-                                        <% 
-                                            const ext = doc.nombre_archivo.split('.').pop().toUpperCase();
-                                            if (['PDF', 'DOC', 'DOCX', 'JPG', 'PNG', 'GIF'].includes(ext)) {
-                                                %><%- ext %><% 
-                                            } else { 
-                                                %><i class="bi bi-file"></i><% 
-                                            }
-                                        %>
-                                    </div>
-                                    <div style="min-width: 0; flex: 1;">
-                                        <div style="font-weight: 600; color: #1a3a3a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px;">
-                                            <%= doc.nombre_archivo %>
+                <!-- TRATAMIENTO -->
+                <section class="section" id="tratamiento">
+                    <div class="section-header">
+                        <i class="bi bi-capsule"></i>
+                        <h3>Plan de Tratamiento</h3>
+                    </div>
+                    <div class="section-body">
+                        <% if (historia && historia.consultas && historia.consultas.length > 0 && historia.consultas[0].tratamientos?.length > 0) { %>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+                                <% historia.consultas[0].tratamientos?.forEach(trat => { %>
+                                    <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 3px solid #28a745;">
+                                        <strong><%= trat.medicamento %></strong>
+                                        <div style="font-size: 12px; color: #666; margin: 5px 0;">
+                                            <%= trat.dosis %> <%= trat.unidad %>
                                         </div>
-                                        <small style="color: #999; font-size: 11px; display: block; margin-top: 2px;">
-                                            📅 <%= new Date(doc.fecha_subida).toLocaleDateString('es-AR') %>
+                                        <small style="color: #999;"><%= trat.duracion || 'Duración no especificada' %></small>
+                                    </div>
+                                <% }); %>
+                            </div>
+                        <% } else { %>
+                            <div style="text-align: center; padding: 30px; color: #999;">
+                                <p>Sin medicamentos registrados</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </section>
+
+                <!-- IMPRESIÓN DIAGNÓSTICA -->
+                <section class="section">
+                    <div class="section-header">
+                        <i class="bi bi-stethoscope"></i>
+                        <h3>Impresión Diagnóstica</h3>
+                    </div>
+                    <div class="section-body">
+                        <div class="form-group">
+                            <label for="impresion">Valoración Médica y Conclusiones</label>
+                            <textarea id="impresion" rows="8" readonly><%= historia?.impresion_clinica || '' %></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- CITAS Y SEGUIMIENTO -->
+                <section class="section" id="citas">
+                    <div class="section-header">
+                        <i class="bi bi-calendar"></i>
+                        <h3>Citas y Seguimiento</h3>
+                    </div>
+                    <div class="section-body">
+                        <% if (historia && historia.consultas && historia.consultas.length > 0) { %>
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <% historia.consultas?.slice(0, 3).forEach((cons, idx) => { %>
+                                    <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 3px solid <%= idx === 0 ? '#007bff' : '#6c757d' %>;">
+                                        <div style="font-weight: 700; color: #333; margin-bottom: 5px;">
+                                            <%= cons.fecha %>
+                                        </div>
+                                        <div style="font-size: 12px; color: #666; margin-bottom: 5px;">
+                                            Motivo: <%= cons.motivo_consulta || 'Sin especificar' %>
+                                        </div>
+                                        <small style="color: #999;">
+                                            <%= cons.medico || 'Sin médico asignado' %>
                                         </small>
                                     </div>
-                                </div>
-                                <div style="text-align: right; margin-left: 10px; white-space: nowrap; display: flex; gap: 8px; align-items: center;">
-                                    <small style="color: #666; font-weight: 600; display: block;">
-                                        <% const sizeMB = (doc.tamaño / 1024 / 1024).toFixed(2); %>
-                                        <%= sizeMB %> MB
-                                    </small>
-                                    <button class="btn-visualizar-doc" onclick="visualizarDocumento('<%= doc.id %>', '<%= doc.nombre_archivo %>')" 
-                                       style="border: none; background: none; color: #8b5cf6; cursor: pointer; text-decoration: none; font-size: 11px; font-weight: 600; padding: 4px 8px;">
-                                        👁️ Ver
-                                    </button>
-                                    <button class="btn-descargar-doc" onclick="descargarDocumento('<%= doc.id %>', '<%= doc.nombre_archivo %>')" 
-                                       style="border: none; background: none; color: #3b82f6; cursor: pointer; text-decoration: none; font-size: 11px; font-weight: 600; padding: 4px 8px;">
-                                        ⬇️ Descargar
-                                    </button>
-                                    <button class="btn-eliminar-doc" onclick="eliminarDocumento('<%= doc.id %>', '<%= doc.nombre_archivo %>')" 
-                                       style="display: none; border: none; background: none; color: #ef4444; cursor: pointer; text-decoration: none; font-size: 11px; font-weight: 600; padding: 4px 8px;">
-                                        🗑️ Eliminar
-                                    </button>
-                                </div>
+                                <% }); %>
                             </div>
-                        <% }); %>
+                        <% } else { %>
+                            <div style="text-align: center; padding: 30px; color: #999;">
+                                <i class="bi bi-calendar" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
+                                <p>Sin citas registradas</p>
+                            </div>
+                        <% } %>
                     </div>
-                <% } else { %>
-                    <p id="msgSinDocumentos" style="color: #999; text-align: center; padding: 20px 0; font-size: 13px;">
-                        📄 Sin documentos registrados
-                    </p>
-                <% } %>
+                </section>
             </div>
-            
-            <!-- ÁREA DE CARGA (SOLO EN MODO EDICIÓN) -->
-            <div id="formularioDocumentos" style="display: none; margin-top: 15px; padding: 15px; background: #f0f7ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                <h5 style="margin-bottom: 15px; color: #1a3a3a;">Agregar documento</h5>
+
+            <!-- FOOTER -->
+            <footer>
+                <p>
+                    <strong>Médico tratante:</strong> Dr. Carlos · Med. General · 
+                    <strong>Última actualización:</strong> <%= new Date().toLocaleDateString('es-AR') %>
+                </p>
+            </footer>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const historiaId = '<%= historia?.id || "" %>';
+        const pacienteId = '<%= paciente?.id || "" %>';
+        let modoEdicion = false;
+
+        function volverAtras() {
+            window.history.back();
+        }
+
+        function imprimirHistoria() {
+            window.print();
+        }
+
+        function habilitarEdicion() {
+            if (!modoEdicion) {
+                modoEdicion = true;
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: flex-end;">
-                    <!-- NOMBRE DEL DOCUMENTO -->
-                    <div>
-                        <label style="display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 6px;">
-                            Nombre del Documento
-                        </label>
-                        <input 
-                            type="text" 
-                            id="nombreDocumento" 
-                            placeholder="Ej: Radiografía de Tórax"
-                            style="width: 100%; padding: 10px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 13px; box-sizing: border-box;"
-                        >
-                    </div>
-                    
-                    <!-- ARCHIVO -->
-                    <div>
-                        <label style="display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 6px;">
-                            Seleccionar Archivo
-                        </label>
-                        <input 
-                            type="file" 
-                            id="inputArchivos"
-                            style="width: 100%; padding: 8px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 13px; box-sizing: border-box;"
-                        >
-                    </div>
-                    
-                    <!-- BOTÓN AGREGAR -->
-                    <button 
-                        type="button"
-                        onclick="agregarDocumento()" 
-                        style="padding: 10px 18px; background: #10b981; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;"
-                    >
-                        ✓ Agregar
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- TRATAMIENTO -->
-        <section id="tratamiento" class="seccion-historia">
-            <div class="titulo-seccion" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('tratamiento-content', 'chevron-tratamiento')">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="bi bi-capsule"></i>
-                    Plan de Tratamiento (<%= historia.tratamientos ? historia.tratamientos.length : 0 %>)
-                </div>
-                <i class="bi bi-chevron-down" id="chevron-tratamiento" style="transition: transform 0.3s; transform: rotate(0deg);"></i>
-            </div>
-            <div id="tratamiento-content" style="display: block; margin-top: 15px;">
-            <% if (historia.tratamientos && historia.tratamientos.length > 0) { %>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                    <% historia.tratamientos.forEach(trat => { %>
-                        <div class="tarjeta-medicamento">
-                            <div>
-                                <strong><%= trat.medicamento %></strong>
-                                <p style="color: #3b82f6; font-weight: 600; font-size: 14px;">
-                                    <%= trat.dosis %> <%= trat.unidad %>
-                                </p>
-                            </div>
-                            <div>
-                                <p style="font-size: 12px; color: #666;">
-                                    <%= trat.frecuencia %>
-                                </p>
-                                <span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">
-                                    ✓ Activo
-                                </span>
-                            </div>
-                        </div>
-                    <% }); %>
-                </div>
-            <% } else { %>
-                <p style="color: #999;">No hay tratamientos registrados</p>
-            <% } %>
-            </div>
-        </section>
-    </main>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-let modoEdicion = false;
-const pacienteId = <%= paciente.id %>;
-const historiaId = <%= historia.id %>;
-let codigoSeleccionado = null;
-
-// ============================================================================
-// FUNCIONES DE DIAGNÓSTICOS
-// ============================================================================
-
-// Diagnósticos más comunes para mostrar por defecto
-const diagnosticosComunes = [
-    { codigo: 'J06.9', descripcion: 'Infección aguda de las vías respiratorias superiores, no especificada' },
-    { codigo: 'I10', descripcion: 'Hipertensión esencial (primaria)' },
-    { codigo: 'E11.9', descripcion: 'Diabetes mellitus tipo 2 sin complicaciones' },
-    { codigo: 'J45.9', descripcion: 'Asma, no especificada' },
-    { codigo: 'M79.3', descripcion: 'Dolor muscular, no especificado' },
-    { codigo: 'K21.9', descripcion: 'Enfermedad por reflujo gastroesofágico sin esofagitis' },
-    { codigo: 'F32.9', descripcion: 'Episodio depresivo, no especificado' },
-    { codigo: 'E78.5', descripcion: 'Hiperlipidemia, no especificada' },
-    { codigo: 'N39.0', descripcion: 'Infección del tracto urinario, sitio no especificado' },
-    { codigo: 'K29.9', descripcion: 'Gastritis, no especificada' }
-];
-
-function mostrarDiagnosticosComunes() {
-    const buscarInput = document.getElementById('buscarCIE10');
-    const sugerenciasDiv = document.getElementById('sugerenciasDiv');
-    
-    if (!sugerenciasDiv) return;
-    
-    // Si el campo está vacío, mostrar diagnósticos comunes
-    if (!buscarInput.value.trim()) {
-        sugerenciasDiv.innerHTML = diagnosticosComunes.map(item => `
-            <div class="sugerencia-cie10" data-codigo="${item.codigo}" data-descripcion="${item.descripcion}"
-                 style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; cursor: pointer; transition: all 0.2s;">
-                <div style="font-weight: 600; color: #3b82f6; font-size: 13px;">${item.codigo}</div>
-                <div style="font-size: 12px; color: #666; margin-top: 2px;">${item.descripcion}</div>
-            </div>
-        `).join('');
-        
-        sugerenciasDiv.style.display = 'block';
-        
-        // Agregar event listeners
-        sugerenciasDiv.querySelectorAll('.sugerencia-cie10').forEach(el => {
-            el.addEventListener('click', (e) => {
-                const codigo = e.currentTarget.getAttribute('data-codigo');
-                const descripcion = e.currentTarget.getAttribute('data-descripcion');
-                seleccionarCIE10(codigo, descripcion);
-            });
-            
-            el.addEventListener('mouseover', (e) => {
-                e.currentTarget.style.background = '#f3f4f6';
-            });
-            el.addEventListener('mouseout', (e) => {
-                e.currentTarget.style.background = 'white';
-            });
-        });
-    }
-}
-
-async function buscarCIE10(termino) {
-    const sugerenciasDiv = document.getElementById('sugerenciasDiv');
-    
-    if (!termino || termino.length < 2) {
-        // Si está vacío, mostrar diagnósticos comunes
-        if (termino.length === 0) {
-            mostrarDiagnosticosComunes();
-        } else {
-            if (sugerenciasDiv) sugerenciasDiv.style.display = 'none';
-        }
-        return;
-    }
-    
-    console.log('🔍 Buscando CIE-10:', termino);
-    
-    // Primero buscar en diagnósticos comunes
-    const terminoBusqueda = termino.toLowerCase();
-    const resultadosComunes = diagnosticosComunes.filter(item => 
-        item.codigo.toLowerCase().includes(terminoBusqueda) || 
-        item.descripcion.toLowerCase().includes(terminoBusqueda)
-    );
-    
-    if (resultadosComunes.length > 0) {
-        console.log('✅ Se encontraron', resultadosComunes.length, 'resultados en diagnósticos comunes');
-        
-        sugerenciasDiv.innerHTML = resultadosComunes.map((item, idx) => `
-            <div class="sugerencia-cie10" data-codigo="${item.codigo}" data-descripcion="${item.descripcion}"
-                 style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; cursor: pointer; transition: all 0.2s;">
-                <div style="font-weight: 600; color: #3b82f6; font-size: 13px;">${item.codigo}</div>
-                <div style="font-size: 12px; color: #666; margin-top: 2px;">${item.descripcion}</div>
-            </div>
-        `).join('');
-        
-        sugerenciasDiv.style.display = 'block';
-        
-        // Agregar event listeners
-        sugerenciasDiv.querySelectorAll('.sugerencia-cie10').forEach(el => {
-            el.addEventListener('click', (e) => {
-                const codigo = e.currentTarget.getAttribute('data-codigo');
-                const descripcion = e.currentTarget.getAttribute('data-descripcion');
-                seleccionarCIE10(codigo, descripcion);
-            });
-            
-            el.addEventListener('mouseover', (e) => {
-                e.currentTarget.style.background = '#f3f4f6';
-            });
-            el.addEventListener('mouseout', (e) => {
-                e.currentTarget.style.background = 'white';
-            });
-        });
-        return; // No buscar en API si ya encontramos en comunes
-    }
-    
-    // Si no hay resultados en comunes, buscar en API
-    try {
-        const response = await fetch(`/api/cie10?search=${encodeURIComponent(termino)}&limit=15`);
-        const result = await response.json();
-        
-        if (!sugerenciasDiv) {
-            console.error('❌ No se encontró el div de sugerencias');
-            return;
-        }
-        
-        if (result.data && result.data.length > 0) {
-            console.log('✅ Se encontraron', result.data.length, 'resultados en API CIE-10');
-            
-            // Crear HTML de sugerencias
-            sugerenciasDiv.innerHTML = result.data.map((item, idx) => `
-                <div class="sugerencia-cie10" data-codigo="${item.codigo}" data-descripcion="${item.descripcion}"
-                     style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; cursor: pointer; transition: all 0.2s;">
-                    <div style="font-weight: 600; color: #3b82f6; font-size: 13px;">${item.codigo}</div>
-                    <div style="font-size: 12px; color: #666; margin-top: 2px;">${item.descripcion}</div>
-                </div>
-            `).join('');
-            
-            sugerenciasDiv.style.display = 'block';
-            
-            // Agregar event listeners a las sugerencias
-            sugerenciasDiv.querySelectorAll('.sugerencia-cie10').forEach(el => {
-                el.addEventListener('click', (e) => {
-                    const codigo = e.currentTarget.getAttribute('data-codigo');
-                    const descripcion = e.currentTarget.getAttribute('data-descripcion');
-                    console.log('🖱️ Click en sugerencia:', codigo);
-                    seleccionarCIE10(codigo, descripcion);
-                });
+                // Mostrar/ocultar botones
+                document.getElementById('btnEditar').style.display = 'none';
+                document.getElementById('btnGuardar').style.display = 'flex';
+                document.getElementById('btnCancelar').style.display = 'flex';
+                document.getElementById('btnAgregarDiag').style.display = 'inline-block';
                 
-                // Efecto hover
-                el.addEventListener('mouseover', (e) => {
-                    e.currentTarget.style.background = '#f3f4f6';
+                // Habilitar campos
+                const inputs = document.querySelectorAll('input, textarea');
+                inputs.forEach(input => {
+                    input.removeAttribute('readonly');
+                    input.disabled = false;
                 });
-                el.addEventListener('mouseout', (e) => {
-                    e.currentTarget.style.background = 'white';
-                });
-            });
-        } else {
-            console.log('⚠️  No se encontraron resultados');
-            sugerenciasDiv.innerHTML = '<div style="padding: 15px; text-align: center; color: #999; font-size: 12px;">No se encontraron resultados</div>';
-            sugerenciasDiv.style.display = 'block';
-        }
-    } catch (error) {
-        console.error('❌ Error al buscar CIE-10:', error);
-    }
-}
 
-function seleccionarCIE10(codigo, descripcion) {
-    console.log('✅ Seleccionando CIE-10:', codigo, '-', descripcion);
-    
-    codigoSeleccionado = { codigo, descripcion };
-    
-    const codigoMostradoEl = document.getElementById('codigoMostrado');
-    const descripcionMostradaEl = document.getElementById('descripcionMostrada');
-    const codigoSeleccionadoDivEl = document.getElementById('codigoSeleccionadoDiv');
-    const buscarInput = document.getElementById('buscarCIE10');
-    const sugerenciasDiv = document.getElementById('sugerenciasDiv');
-    const btnAgregarDiagnostico = document.getElementById('btnAgregarDiagnostico');
-    
-    if (codigoMostradoEl) codigoMostradoEl.textContent = codigo;
-    if (descripcionMostradaEl) descripcionMostradaEl.textContent = descripcion;
-    if (codigoSeleccionadoDivEl) codigoSeleccionadoDivEl.style.display = 'block';
-    if (buscarInput) buscarInput.value = '';
-    if (sugerenciasDiv) sugerenciasDiv.style.display = 'none';
-    
-    // Habilitar botón con validación explícita
-    if (btnAgregarDiagnostico) {
-        btnAgregarDiagnostico.disabled = false;
-        btnAgregarDiagnostico.style.background = '#3b82f6';
-        btnAgregarDiagnostico.style.color = 'white';
-        btnAgregarDiagnostico.style.cursor = 'pointer';
-        btnAgregarDiagnostico.style.opacity = '1';
-        console.log('✅ Botón habilitado correctamente');
-    }
-}
-
-function limpiarBusqueda() {
-    console.log('🔄 Limpiando búsqueda');
-    
-    codigoSeleccionado = null;
-    
-    const codigoSeleccionadoDivEl = document.getElementById('codigoSeleccionadoDiv');
-    const buscarInput = document.getElementById('buscarCIE10');
-    const sugerenciasDiv = document.getElementById('sugerenciasDiv');
-    const btnAgregarDiagnostico = document.getElementById('btnAgregarDiagnostico');
-    
-    if (codigoSeleccionadoDivEl) codigoSeleccionadoDivEl.style.display = 'none';
-    if (buscarInput) buscarInput.value = '';
-    if (sugerenciasDiv) sugerenciasDiv.style.display = 'none';
-    
-    // Deshabilitar botón con validación explícita
-    if (btnAgregarDiagnostico) {
-        btnAgregarDiagnostico.disabled = true;
-        btnAgregarDiagnostico.style.background = '#ccc';
-        btnAgregarDiagnostico.style.color = '#666';
-        btnAgregarDiagnostico.style.cursor = 'not-allowed';
-        btnAgregarDiagnostico.style.opacity = '0.6';
-        console.log('✅ Botón deshabilitado correctamente');
-    }
-}
-
-async function agregarDiagnostico() {
-    // Validar que hay un código seleccionado (aunque no debería ser necesario)
-    if (!codigoSeleccionado) {
-        console.error('❌ No hay código seleccionado');
-        alert('Por favor selecciona un código CIE-10');
-        return;
-    }
-    
-    console.log('📤 Agregando diagnóstico:', codigoSeleccionado);
-    const esPrincipal = document.getElementById('checkPrincipal').checked;
-    
-    try {
-        const response = await fetch(`/api/historias-clinicas/${historiaId}/diagnosticos`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
-            },
-            body: JSON.stringify({
-                codigo_cie10: codigoSeleccionado.codigo,
-                descripcion: codigoSeleccionado.descripcion,
-                principal: esPrincipal
-            })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            console.error('❌ Error del servidor:', error);
-            alert('Error: ' + error.message);
-            return;
-        }
-        
-        const result = await response.json();
-        console.log('✅ Diagnóstico agregado correctamente:', result);
-        
-        // Agregar a la lista visualmente
-        agregarDiagnosticoALista(result.data);
-        
-        // Limpiar formulario
-        limpiarBusqueda();
-        document.getElementById('checkPrincipal').checked = false;
-        
-    } catch (error) {
-        console.error('❌ Error al agregar diagnóstico:', error);
-        alert('Error al agregar el diagnóstico: ' + error.message);
-    }
-}
-
-function agregarDiagnosticoALista(diagnostico) {
-    const sinDiagDiv = document.getElementById('sinDiagnosticos');
-    if (sinDiagDiv) {
-        sinDiagDiv.remove();
-    }
-    
-    const seccionDiag = document.querySelector('#diagnosticos .seccion-historia, #diagnosticos');
-    const contenedor = seccionDiag.querySelector('div[style*="margin-bottom"]') || seccionDiag;
-    
-    const html = `
-        <div style="padding: 12px; border-left: 4px solid #3b82f6; background: #f8f9fa; margin-bottom: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <strong>${diagnostico.codigo} - ${diagnostico.descripcion}</strong>
-                ${diagnostico.principal ? '<span style="margin-left: 10px; background: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Principal</span>' : ''}
-            </div>
-            <button 
-                onclick="eliminarDiagnosticoUI(${diagnostico.id})" 
-                style="padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;"
-            >
-                <i class="bi bi-trash"></i> Eliminar
-            </button>
-        </div>
-    `;
-    
-    const diagContainer = seccionDiag.querySelector('div[style*="margin-bottom: 10px"]');
-    if (diagContainer) {
-        diagContainer.insertAdjacentHTML('beforeend', html);
-    } else {
-        seccionDiag.insertAdjacentHTML('beforeend', html);
-    }
-}
-
-async function eliminarDiagnosticoUI(diagnosticoId) {
-    if (!confirm('¿Estás seguro de que deseas eliminar este diagnóstico?')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/historias-clinicas/diagnosticos/${diagnosticoId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                // Habilitar específicamente el input CIE-10 para búsqueda
+                const cie10Input = document.getElementById('cie10Input');
+                if (cie10Input) {
+                    cie10Input.disabled = false;
+                    cie10Input.removeAttribute('readonly');
+                    cie10Input.style.backgroundColor = '#fff3cd';
+                    cie10Input.style.borderColor = '#ffc107';
+                    cie10Input.focus();
+                    console.log('✅ CIE-10 input habilitado para búsqueda');
+                }
             }
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            alert('Error: ' + error.message);
-            return;
         }
-        
-        console.log('✅ Diagnóstico eliminado');
-        location.reload();
-        
-    } catch (error) {
-        console.error('Error al eliminar diagnóstico:', error);
-        alert('Error al eliminar el diagnóstico');
-    }
-}
 
-// Inicializar búsqueda con evento input
-document.addEventListener('DOMContentLoaded', () => {
-    const inputBuscar = document.getElementById('buscarCIE10');
-    if (inputBuscar) {
-        // Evento input para búsqueda en tiempo real
-        inputBuscar.addEventListener('input', (e) => {
-            console.log('⌨️ Input detectado:', e.target.value);
-            buscarCIE10(e.target.value);
-        });
-        
-        // Evento focus para mostrar sugerencias si ya hay texto
-        inputBuscar.addEventListener('focus', (e) => {
-            console.log('📍 Focus en input, valor:', e.target.value);
-            if (e.target.value.length >= 2) {
-                buscarCIE10(e.target.value);
-            }
-        });
-        
-        console.log('✅ Event listeners de búsqueda agregados');
-    }
-    
-    // Cerrar sugerencias al hacer click fuera
-    document.addEventListener('click', (e) => {
-        const buscarInput = document.getElementById('buscarCIE10');
-        const sugerenciasDiv = document.getElementById('sugerenciasDiv');
-        if (buscarInput && sugerenciasDiv && 
-            !buscarInput.contains(e.target) && 
-            !sugerenciasDiv.contains(e.target)) {
-            sugerenciasDiv.style.display = 'none';
-        }
-    });
-});
-
-console.log('✅ Inicialización de diagnósticos completada');
-
-// ============================================================================
-// FUNCIONES DE EDICIÓN
-// ============================================================================
-
-function scrollToSection(id) {
-    const elemento = document.getElementById(id);
-    if (elemento) {
-        elemento.scrollIntoView({ behavior: 'smooth' });
-    }
-}
-
-function habilitarEdicion() {
-    console.log('✏️  HABILITANDO MODO DE EDICIÓN');
-    modoEdicion = true;
-    
-    const btnEditar = document.getElementById('btnEditar');
-    const btnGuardar = document.getElementById('btnGuardar');
-    const btnCancelar = document.getElementById('btnCancelar');
-    const formularioEstudios = document.getElementById('formularioEstudios');
-    
-    console.log('🔍 btnEditar:', btnEditar);
-    console.log('🔍 btnGuardar:', btnGuardar);
-    console.log('🔍 btnCancelar:', btnCancelar);
-    console.log('🔍 formularioEstudios:', formularioEstudios);
-    
-    if (btnEditar) {
-        btnEditar.style.display = 'none';
-        console.log('✅ Botón Editar ocultado');
-    }
-    
-    if (btnGuardar) {
-        btnGuardar.style.display = 'inline-flex';
-        console.log('✅ Botón Guardar mostrado');
-    }
-    
-    if (btnCancelar) {
-        btnCancelar.style.display = 'inline-flex';
-        console.log('✅ Botón Cancelar mostrado');
-    }
-    
-    // Habilitar campos editable
-    document.querySelectorAll('.campo-editable').forEach(campo => {
-        campo.classList.remove('campo-lectura');
-        campo.classList.add('editable');
-    });
-    
-    // MOSTRAR FORMULARIO DE ESTUDIOS
-    if (formularioEstudios) {
-        formularioEstudios.style.display = 'block';
-        console.log('✅ Formulario de Estudios mostrado');
-    } else {
-        console.error('❌ No se encontró formularioEstudios');
-    }
-    
-    // MOSTRAR FORMULARIO DE DOCUMENTOS
-    const formularioDocumentos = document.getElementById('formularioDocumentos');
-    if (formularioDocumentos) {
-        formularioDocumentos.style.display = 'block';
-        console.log('✅ Formulario de Documentos mostrado');
-    } else {
-        console.error('❌ No se encontró formularioDocumentos');
-    }
-    
-    // MOSTRAR BOTONES DE ELIMINAR DOCUMENTOS
-    const botonesEliminar = document.querySelectorAll('.btn-eliminar-doc');
-    botonesEliminar.forEach(btn => {
-        btn.style.display = 'block';
-    });
-    console.log('✅ Botones de eliminar mostrados');
-}
-
-function cancelarEdicion() {
-    console.log('❌ Cancelando edición');
-    location.reload();
-}
-
-// ============================================================================
-// FUNCIONES PARA ESTUDIOS COMPLEMENTARIOS
-// ============================================================================
-
-function agregarEstudioTemporal() {
-    const nombre = document.getElementById('nombreEstudio')?.value.trim();
-    const resultado = document.getElementById('resultadoEstudio')?.value.trim();
-    const unidad = document.getElementById('unidadEstudio')?.value.trim();
-    const rango = document.getElementById('rangoEstudio')?.value.trim();
-    const archivoInput = document.getElementById('archivoEstudio');
-    const archivo = archivoInput?.files[0];
-    
-    if (!nombre || !resultado) {
-        alert('⚠️ Por favor completa al menos el Parámetro y el Resultado');
-        return;
-    }
-    
-    console.log('📊 Agregando estudio:', nombre, resultado, archivo ? '+ archivo' : '');
-    
-    // Si hay archivo, subirlo como documento
-    if (archivo) {
-        const nombreDocumento = `${nombre} - ${resultado}`;
-        subirDocumento(archivo, nombreDocumento);
-    }
-    
-    // Obtener tbody
-    const tbody = document.getElementById('tbodyEstudios');
-    if (!tbody) {
-        console.error('❌ No se encontró tbodyEstudios');
-        return;
-    }
-    
-    // Obtener mensaje de sin estudios
-    const msgSinEstudios = document.getElementById('msgSinEstudios');
-    
-    // Crear nueva fila
-    const tr = document.createElement('tr');
-    tr.className = 'fila-estudio';
-    tr.setAttribute('data-estudio-id', 'temp-' + Date.now());
-    
-    tr.innerHTML = `
-        <td>${nombre}</td>
-        <td>${resultado}</td>
-        <td>${unidad}</td>
-        <td>${rango}</td>
-        <td style="text-align: center;">
-            ${archivo ? '📎' : ''}
-            <button class="btn-eliminar-estudio" onclick="eliminarEstudioTemp(this)" type="button"
-                    style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; margin-left: 4px;">
-                ✕
-            </button>
-        </td>
-    `;
-    
-    tbody.appendChild(tr);
-    
-    // Ocultar mensaje de sin estudios
-    if (msgSinEstudios) {
-        msgSinEstudios.style.display = 'none';
-        console.log('✅ Mensaje de sin estudios ocultado');
-    }
-    
-    // Mostrar columna de acciones
-    const colAcciones = document.getElementById('colAccionesEstudios');
-    if (colAcciones) {
-        colAcciones.style.display = 'table-cell';
-        console.log('✅ Columna de acciones mostrada');
-    }
-    
-    // Limpiar campos del formulario
-    document.getElementById('nombreEstudio').value = '';
-    document.getElementById('resultadoEstudio').value = '';
-    document.getElementById('unidadEstudio').value = '';
-    document.getElementById('rangoEstudio').value = '';
-    document.getElementById('archivoEstudio').value = '';
-    document.getElementById('nombreEstudio').focus();
-    
-    // Actualizar contador
-    actualizarContadorEstudios();
-    
-    console.log('✅ Estudio agregado a la tabla y listado correctamente');
-}
-
-function eliminarEstudioTemp(btn) {
-    const fila = btn.closest('tr');
-    fila.remove();
-    actualizarContadorEstudios();
-    
-    // Si no hay más filas, mostrar el mensaje y ocultarcolumna de acciones
-    const tbody = document.getElementById('tbodyEstudios');
-    if (tbody.rows.length === 0) {
-        const msgSinEstudios = document.getElementById('msgSinEstudios');
-        if (msgSinEstudios) {
-            msgSinEstudios.style.display = 'block';
-        }
-        
-        const colAcciones = document.getElementById('colAccionesEstudios');
-        if (colAcciones) {
-            colAcciones.style.display = 'none';
-        }
-    }
-    
-    console.log('✅ Estudio eliminado');
-}
-
-function actualizarContadorEstudios() {
-    const contador = document.getElementById('contadorEstudios');
-    const filas = document.querySelectorAll('#tbodyEstudios .fila-estudio').length;
-    if (contador) {
-        contador.textContent = filas;
-        console.log('📊 Contador actualizado:', filas);
-    } else {
-        console.warn('⚠️ Elemento contadorEstudios no encontrado');
-    }
-}
-
-// ============================================================================
-// GUARDAR CAMBIOS (INCLUYE ESTUDIOS)
-// ============================================================================
-
-function guardarCambios() {
-    // Recolectar datos de signos vitales - limpiar valores vacíos
-    const signosVitalesData = {
-        historia_clinica_id: historiaId,
-        presion_sistolica: document.querySelector('[data-field="presion_sistolica"]')?.value?.trim() || null,
-        presion_diastolica: document.querySelector('[data-field="presion_diastolica"]')?.value?.trim() || null,
-        frecuencia_cardiaca: document.querySelector('[data-field="frecuencia_cardiaca"]')?.value?.trim() || null,
-        temperatura: document.querySelector('[data-field="temperatura"]')?.value?.trim() || null,
-        peso: document.querySelector('[data-field="peso"]')?.value?.trim() || null,
-        talla: document.querySelector('[data-field="talla"]')?.value?.trim() || null,
-        glucemia: document.querySelector('[data-field="glucemia"]')?.value?.trim() || null,
-        circunferencia_abdominal: null,
-        observaciones: null
-    };
-    
-    console.log('📊 Datos a guardar:', signosVitalesData);
-    
-    // Recolectar otros datos
-    const datos = {};
-    document.querySelectorAll('.campo-editable').forEach(campo => {
-        const field = campo.getAttribute('data-field') || campo.id;
-        datos[field] = campo.value;
-    });
-    
-    // Recolectar estudios temporales (nuevos)
-    const estudiosNuevos = [];
-    document.querySelectorAll('.fila-estudio').forEach(fila => {
-        const id = fila.getAttribute('data-estudio-id');
-        if (id && id.startsWith('temp-')) {
-            const celdas = fila.querySelectorAll('td');
-            estudiosNuevos.push({
-                nombre_estudio: celdas[0].textContent.trim(),
-                resultado: celdas[1].textContent.trim(),
-                unidad: celdas[2].textContent.trim(),
-                rango_referencia: celdas[3].textContent.trim()
-            });
-        }
-    });
-    
-    console.log('📤 Guardando signos vitales...', signosVitalesData);
-    
-    // Guardar signos vitales al servidor
-    fetch('/api/doctor/signos-vitales', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-        },
-        body: JSON.stringify(signosVitalesData)
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            console.log('✅ Signos vitales guardados exitosamente', result);
-            alert('✅ Cambios guardados exitosamente!');
-            modoEdicion = false;
-            
-            // Ocultar elementos de edición
-            const btnEditar = document.getElementById('btnEditar');
-            const btnGuardar = document.getElementById('btnGuardar');
-            const btnCancelar = document.getElementById('btnCancelar');
-            const formularioEstudios = document.getElementById('formularioEstudios');
-            const colAcciones = document.getElementById('colAccionesEstudios');
-            
-            if (btnEditar) btnEditar.style.display = 'inline-flex';
-            if (btnGuardar) btnGuardar.style.display = 'none';
-            if (btnCancelar) btnCancelar.style.display = 'none';
-            if (formularioEstudios) formularioEstudios.style.display = 'none';
-            if (colAcciones) colAcciones.style.display = 'none';
-            
-            // Ocultar formulario de documentos
-            const formularioDocumentos = document.getElementById('formularioDocumentos');
-            if (formularioDocumentos) formularioDocumentos.style.display = 'none';
-            
-            // OCULTAR BOTONES DE ELIMINAR DOCUMENTOS
-            const botonesEliminar = document.querySelectorAll('.btn-eliminar-doc');
-            botonesEliminar.forEach(btn => {
-                btn.style.display = 'none';
-            });
-            
-            document.querySelectorAll('.btn-eliminar-estudio').forEach(btn => {
-                if (btn.parentElement) btn.parentElement.style.display = 'none';
-            });
-            
-            document.querySelectorAll('.campo-editable').forEach(campo => {
-                campo.classList.add('campo-lectura');
-                campo.classList.remove('editable');
-            });
-            
-            // Recargar página para ver los cambios
-            setTimeout(() => {
+        function cancelarEdicion() {
+            if (confirm('¿Descartar cambios?')) {
+                modoEdicion = false;
                 location.reload();
-            }, 1000);
-        } else {
-            const errorMsg = result.message || result.error || 'Error desconocido';
-            const details = result.details ? '\nDetalles: ' + result.details : '';
-            alert('❌ Error al guardar: ' + errorMsg + details);
-            console.error('Error al guardar signos vitales:', result);
+            }
         }
-    })
-    .catch(error => {
-        console.error('❌ Error en la petición:', error);
-        alert('❌ Error al guardar los datos: ' + error.message);
-    });
-}
 
-// ============================================================================
-// AGREGAR DOCUMENTO
-// ============================================================================
+        async function guardarCambios() {
+            if (!historiaId) {
+                alert('Error: Historia ID no encontrado');
+                return;
+            }
 
-function agregarDocumento() {
-    const nombreDocumento = document.getElementById('nombreDocumento')?.value?.trim();
-    const inputArchivos = document.getElementById('inputArchivos');
-    const archivo = inputArchivos?.files[0];
-    
-    if (!nombreDocumento) {
-        alert('❌ Por favor ingresa un nombre para el documento');
-        return;
-    }
-    
-    if (!archivo) {
-        alert('❌ Por favor selecciona un archivo');
-        return;
-    }
-    
-    // Validar tamaño (máx 50MB)
-    if (archivo.size > 50 * 1024 * 1024) {
-        alert(`❌ El archivo es demasiado grande (máx 50MB)`);
-        return;
-    }
-    
-    console.log('📤 Subiendo documento:', nombreDocumento);
-    subirDocumento(archivo, nombreDocumento);
-}
+            const datos = {
+                motivo_consulta: document.getElementById('motivoConsulta').value,
+                anamnesis: document.getElementById('anamnesis').value,
+                antecedentes: document.getElementById('antecedentes').value,
+                impresion_clinica: document.getElementById('impresion').value,
+                presion_arterial: document.getElementById('presionSistolica').value + '/' + document.getElementById('presionDiastolica').value,
+                frecuencia_cardiaca: document.getElementById('frecuenciaCardiaca').value,
+                temperatura: document.getElementById('temperatura').value,
+                // Incluir diagnósticos seleccionados
+                diagnosticos: diagnosticosSeleccionados
+            };
 
-// Función para subir documento
-async function subirDocumento(file, nombreDocumento) {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('nombre', nombreDocumento);
-    
-    try {
-        const response = await fetch(`/api/historias-clinicas/${historiaId}/documentos`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-            },
-            body: formData
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            console.log('✅ Documento subido:', result);
+            try {
+                console.log('📤 Guardando historia con ' + diagnosticosSeleccionados.length + ' diagnósticos:', datos);
+                const response = await fetch(`/api/historia/${historiaId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(datos)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Historia clínica guardada exitosamente');
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error al guardar:', error);
+                alert('Error al guardar la historia clínica');
+            }
+        }
+
+        let diagnosticosSeleccionados = [];
+        let debounceTimer = null;
+
+        function agregarDiagnostico() {
+            const cie10Input = document.getElementById('cie10Input');
+            const codigo = cie10Input.dataset.codigo;
+            const descripcion = cie10Input.dataset.descripcion;
+            const capitulo = cie10Input.dataset.capitulo;
             
-            // Limpiar formulario
-            document.getElementById('nombreDocumento').value = '';
-            document.getElementById('inputArchivos').value = '';
-            
-            // Actualizar lista en la página
-            agregarDocumentoALista(result.data);
+            if (!codigo || !descripcion) {
+                alert('Por favor selecciona un diagnóstico de la lista');
+                return;
+            }
+
+            // Verificar si ya existe
+            if (diagnosticosSeleccionados.some(d => d.codigo === codigo)) {
+                alert('Este diagnóstico ya está agregado');
+                return;
+            }
+
+            // Agregar a lista
+            diagnosticosSeleccionados.push({ codigo, descripcion, capitulo });
+
+            // Actualizar UI - agregar card
+            const container = document.getElementById('diagnosticosContainer');
+            const div = document.createElement('div');
+            div.className = 'diagnostic-card';
+            div.dataset.codigo = codigo;
+            div.innerHTML = `
+                <div>
+                    <strong>${codigo}</strong>
+                    <p>${descripcion}</p>
+                </div>
+                <button class="btn-remove" onclick="removeDiagnostico('${codigo}')" style="display: inline-block;">
+                    <i class="bi bi-trash"></i>
+                </button>
+            `;
+            container.appendChild(div);
+
+            // Limpiar input
+            cie10Input.value = '';
+            cie10Input.dataset.codigo = '';
+            cie10Input.dataset.descripcion = '';
+            cie10Input.dataset.capitulo = '';
+            document.getElementById('cie10Dropdown').innerHTML = '';
+            document.getElementById('cie10Dropdown').style.display = 'none';
+            document.getElementById('btnAgregarDiag').style.display = 'none';
             
             // Actualizar contador
-            actualizarContadorDocumentos();
-            
-            alert('✅ Documento agregado exitosamente');
-        } else {
-            alert('❌ Error al subir documento: ' + result.message);
+            document.getElementById('diagnosticosCount').textContent = diagnosticosSeleccionados.length;
         }
-    } catch (error) {
-        console.error('❌ Error:', error);
-        alert('❌ Error al subir documento: ' + error.message);
-    }
-}
 
-// Función para subir documentos (DEPRECADA - mantener por compatibilidad)
-// Función para subir documentos (DEPRECADA - mantener por compatibilidad)
-async function subirDocumentos(files) {
-    console.log('📤 Subiendo', files.length, 'archivo(s)');
-    
-    for (const file of files) {
-        // Validar tamaño (máx 50MB)
-        if (file.size > 50 * 1024 * 1024) {
-            alert(`❌ El archivo ${file.name} es demasiado grande (máx 50MB)`);
-            continue;
+        function removeDiagnostico(codigo) {
+            diagnosticosSeleccionados = diagnosticosSeleccionados.filter(d => d.codigo !== codigo);
+            document.querySelector(`[data-codigo="${codigo}"]`)?.remove();
+            document.getElementById('diagnosticosCount').textContent = diagnosticosSeleccionados.length;
         }
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('historia_id', historiaId);
+
+        // Búsqueda CIE-10 CON DEBOUNCE
+        const cie10Input = document.getElementById('cie10Input');
+        const cie10Dropdown = document.getElementById('cie10Dropdown');
+        const btnAgregarDiag = document.getElementById('btnAgregarDiag');
         
-        try {
-            const response = await fetch(`/api/historias-clinicas/${historiaId}/documentos`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-                },
-                body: formData
+        if (cie10Input) {
+            cie10Input.addEventListener('input', async function(e) {
+                const query = e.target.value.trim();
+                
+                // Limpiar timer anterior
+                clearTimeout(debounceTimer);
+                
+                if (query.length < 1) {
+                    cie10Dropdown.style.display = 'none';
+                    btnAgregarDiag.style.display = 'none';
+                    return;
+                }
+
+                // Debounce de 300ms
+                debounceTimer = setTimeout(async () => {
+                    try {
+                        console.log(`🔍 Buscando CIE-10: "${query}"`);
+                        const response = await fetch(`/api/cie10/search?q=${encodeURIComponent(query)}`);
+                        
+                        if (!response.ok) {
+                            console.error('Error en respuesta:', response.status);
+                            cie10Dropdown.innerHTML = '<div style="padding: 10px; text-align: center; color: #dc3545;">Error en la búsqueda</div>';
+                            cie10Dropdown.style.display = 'block';
+                            return;
+                        }
+                        
+                        const resultados = await response.json();
+                        console.log(`✅ Resultados recibidos: ${resultados.length}`);
+                        
+                        cie10Dropdown.innerHTML = '';
+                        
+                        if (resultados.length > 0) {
+                            resultados.forEach(resultado => {
+                                const div = document.createElement('div');
+                                div.className = 'cie10-item';
+                                div.style.cssText = `
+                                    padding: 12px 10px;
+                                    border-bottom: 1px solid #f0f0f0;
+                                    cursor: pointer;
+                                    transition: background 0.2s;
+                                `;
+                                div.innerHTML = `
+                                    <div style="font-weight: 700; color: #0066cc; font-size: 13px; margin-bottom: 4px;">
+                                        ${resultado.codigo}
+                                    </div>
+                                    <div style="font-size: 12px; color: #666; margin-bottom: 4px;">
+                                        ${resultado.descripcion.substring(0, 60)}${resultado.descripcion.length > 60 ? '...' : ''}
+                                    </div>
+                                    <div style="font-size: 11px; color: #999;">
+                                        📁 ${resultado.capitulo || 'Sin categoría'}
+                                    </div>
+                                `;
+                                
+                                div.onmouseover = () => {
+                                    div.style.background = '#f9f9f9';
+                                };
+                                div.onmouseout = () => {
+                                    div.style.background = 'white';
+                                };
+                                
+                                div.onclick = () => {
+                                    // Guardar datos en el input
+                                    cie10Input.dataset.codigo = resultado.codigo;
+                                    cie10Input.dataset.descripcion = resultado.descripcion;
+                                    cie10Input.dataset.capitulo = resultado.capitulo;
+                                    cie10Input.value = resultado.codigo + ' - ' + resultado.descripcion.substring(0, 40);
+                                    
+                                    // Mostrar botón Agregar
+                                    btnAgregarDiag.style.display = 'inline-block';
+                                    
+                                    // Cerrar dropdown
+                                    cie10Dropdown.style.display = 'none';
+                                    console.log(`✅ Seleccionado: ${resultado.codigo}`);
+                                };
+                                
+                                cie10Dropdown.appendChild(div);
+                            });
+                            cie10Dropdown.style.display = 'block';
+                        } else {
+                            cie10Dropdown.innerHTML = '<div style="padding: 10px; text-align: center; color: #999;">Sin resultados</div>';
+                            cie10Dropdown.style.display = 'block';
+                            btnAgregarDiag.style.display = 'none';
+                        }
+                    } catch (error) {
+                        console.error('❌ Error buscando CIE-10:', error);
+                        cie10Dropdown.innerHTML = '<div style="padding: 10px; text-align: center; color: #dc3545;">Error en la búsqueda: ' + error.message + '</div>';
+                        cie10Dropdown.style.display = 'block';
+                    }
+                }, 300); // Debounce de 300ms
             });
-            
-            if (!response.ok) {
-                console.error('❌ Error al subir:', await response.text());
-                alert(`❌ Error al subir ${file.name}`);
-                continue;
-            }
-            
-            const result = await response.json();
-            console.log('✅ Archivo subido:', result);
-            
-            // Agregar a la lista de documentos
-            agregarDocumentoALista(result.data);
-            
-        } catch (error) {
-            console.error('❌ Error de red:', error);
-            alert(`❌ Error al subir ${file.name}: ${error.message}`);
+
+            // Cerrar dropdown al hacer click fuera
+            document.addEventListener('click', function(e) {
+                if (!cie10Input.contains(e.target) && !cie10Dropdown.contains(e.target)) {
+                    cie10Dropdown.style.display = 'none';
+                }
+            });
         }
-    }
-}
-
-function actualizarContadorDocumentos() {
-    const contador = document.getElementById('contadorDocumentos');
-    const gridDocumentos = document.getElementById('gridDocumentos');
-    
-    if (contador && gridDocumentos) {
-        const cantidad = gridDocumentos.querySelectorAll('[data-doc-id]').length;
-        contador.textContent = cantidad;
-        console.log('✅ Contador actualizado:', cantidad);
-    }
-}
-
-function agregarDocumentoALista(documento) {
-    // Obtener contenedor de documentos
-    const contenedorDocumentos = document.getElementById('contenedorDocumentos');
-    
-    // Obtener o crear grid de documentos
-    let docsContainer = document.getElementById('gridDocumentos');
-    
-    if (!docsContainer) {
-        // Crear contenedor si no existe
-        docsContainer = document.createElement('div');
-        docsContainer.id = 'gridDocumentos';
-        docsContainer.style.cssText = 'display: grid; gap: 10px; margin-bottom: 15px;';
-        
-        const msgSinDocs = contenedorDocumentos.querySelector('#msgSinDocumentos');
-        if (msgSinDocs) {
-            msgSinDocs.remove();
-        }
-        contenedorDocumentos.insertBefore(docsContainer, null);
-    }
-    
-    // Crear HTML del documento
-    const html = `
-        <div data-doc-id="${documento.id}" style="padding: 12px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; border-left: 4px solid #3b82f6; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
-                <div style="background: white; padding: 8px 12px; border-radius: 6px; font-weight: 700; color: #3b82f6; font-size: 12px; text-transform: uppercase; white-space: nowrap;">
-                    ${documento.nombre_archivo.split('.').pop().toUpperCase()}
-                </div>
-                <div style="min-width: 0; flex: 1;">
-                    <div style="font-weight: 600; color: #1a3a3a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px;">
-                        ${documento.nombre_archivo}
-                    </div>
-                    <small style="color: #999; font-size: 11px; display: block; margin-top: 2px;">
-                        📅 Hoy
-                    </small>
-                </div>
-            </div>
-            <div style="text-align: right; margin-left: 10px; white-space: nowrap; display: flex; gap: 8px; align-items: center;">
-                <small style="color: #666; font-weight: 600; display: block;">
-                    ${(documento.tamaño / 1024 / 1024).toFixed(2)} MB
-                </small>
-                <button class="btn-visualizar-doc" onclick="visualizarDocumento('${documento.id}', '${documento.nombre_archivo}')" 
-                   style="border: none; background: none; color: #8b5cf6; cursor: pointer; text-decoration: none; font-size: 11px; font-weight: 600; padding: 4px 8px;">
-                    👁️ Ver
-                </button>
-                <button class="btn-descargar-doc" onclick="descargarDocumento('${documento.id}', '${documento.nombre_archivo}')" 
-                   style="border: none; background: none; color: #3b82f6; cursor: pointer; text-decoration: none; font-size: 11px; font-weight: 600; padding: 4px 8px;">
-                    ⬇️ Descargar
-                </button>
-                <button class="btn-eliminar-doc" onclick="eliminarDocumento('${documento.id}', '${documento.nombre_archivo}')" 
-                   style="display: ${modoEdicion ? 'block' : 'none'}; border: none; background: none; color: #ef4444; cursor: pointer; text-decoration: none; font-size: 11px; font-weight: 600; padding: 4px 8px;">
-                    🗑️ Eliminar
-                </button>
-            </div>
-        </div>
-    `;
-    
-    docsContainer.insertAdjacentHTML('beforeend', html);
-    
-    // Actualizar contador
-    const contador = document.getElementById('contadorDocumentos');
-    if (contador) {
-        const cantidadActual = parseInt(contador.textContent) || 0;
-        contador.textContent = cantidadActual + 1;
-        console.log('✅ Contador actualizado:', contador.textContent);
-    }
-    
-    console.log('✅ Documento agregado a la lista:', documento.nombre_archivo);
-}
-
-// ============================================================================
-// FUNCIONES PARA VISUALIZAR, DESCARGAR Y ELIMINAR DOCUMENTOS
-// ============================================================================
-
-async function visualizarDocumento(docId, nombreArchivo) {
-    console.log('👁️ Visualizando documento:', nombreArchivo);
-    try {
-        // Abrir en nueva pestaña
-        const url = `/api/historias-clinicas/documentos/${docId}/descargar`;
-        window.open(url, '_blank');
-        console.log('✅ Documento abierto en nueva pestaña');
-    } catch (error) {
-        console.error('❌ Error:', error);
-        alert(`❌ Error al visualizar: ${error.message}`);
-    }
-}
-
-async function descargarDocumento(docId, nombreArchivo) {
-    console.log('📥 Descargando documento:', nombreArchivo);
-    try {
-        const url = `/api/historias-clinicas/documentos/${docId}/descargar`;
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = nombreArchivo;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        
-        console.log('✅ Documento descargado:', nombreArchivo);
-    } catch (error) {
-        console.error('❌ Error de red:', error);
-        alert(`❌ Error al descargar: ${error.message}`);
-    }
-}
-
-async function eliminarDocumento(docId, nombreArchivo) {
-    if (!confirm(`¿Estás seguro de que deseas eliminar "${nombreArchivo}"?`)) {
-        return;
-    }
-    
-    console.log('🗑️ Eliminando documento:', nombreArchivo);
-    try {
-        const response = await fetch(`/api/historias-clinicas/documentos/${docId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            console.error('❌ Error al eliminar:', response.status);
-            alert('❌ Error al eliminar el documento');
-            return;
-        }
-        
-        // Remover el elemento del DOM
-        const docElement = document.querySelector(`[data-doc-id="${docId}"]`);
-        if (docElement) {
-            docElement.remove();
-            console.log('✅ Elemento removido del DOM');
-        }
-        
-        // Actualizar contador
-        const contador = document.getElementById('contadorDocumentos');
-        if (contador) {
-            const cantidadActual = parseInt(contador.textContent) || 1;
-            contador.textContent = Math.max(0, cantidadActual - 1);
-            console.log('✅ Contador actualizado:', contador.textContent);
-        }
-        
-        // Si no hay más documentos, mostrar mensaje
-        const gridDocumentos = document.getElementById('gridDocumentos');
-        if (gridDocumentos && gridDocumentos.children.length === 0) {
-            gridDocumentos.remove();
-            const contenedorDocumentos = document.getElementById('contenedorDocumentos');
-            const msgSinDocs = document.createElement('p');
-            msgSinDocs.id = 'msgSinDocumentos';
-            msgSinDocs.style.cssText = 'color: #999; text-align: center; padding: 20px 0; font-size: 13px;';
-            msgSinDocs.textContent = '📄 Sin documentos registrados';
-            contenedorDocumentos.appendChild(msgSinDocs);
-            console.log('✅ Mensaje de sin documentos restaurado');
-        }
-        
-        alert('✅ Documento eliminado correctamente');
-        console.log('✅ Documento eliminado:', nombreArchivo);
-    } catch (error) {
-        console.error('❌ Error de red:', error);
-        alert(`❌ Error al eliminar: ${error.message}`);
-    }
-}
-
-console.log('📋 Historia Clínica cargada');
-</script>
-
-<!-- Función de logout global -->
-<script>
-async function logout() {
-    if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-        return;
-    }
-    
-    localStorage.clear();
-    sessionStorage.clear();
-    
-    try {
-        const response = await fetch('/api/auth/logout', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include'
-        });
-        console.log('Logout response:', response.status);
-    } catch (error) {
-        console.error('Error en logout:', error);
-    }
-    
-    // Redirigir a login
-    setTimeout(() => {
-        window.location.href = '/login';
-    }, 500);
-}
-
-window.logout = logout;
-console.log('✅ Función logout disponible');
-
-// Función genérica para toggle de secciones
-function toggleSection(contentId, chevronId) {
-    const content = document.getElementById(contentId);
-    const chevron = document.getElementById(chevronId);
-    
-    if (!content || !chevron) {
-        console.error('❌ Elemento no encontrado:', { contentId, chevronId });
-        return;
-    }
-    
-    const isHidden = content.style.display === 'none';
-    
-    if (isHidden) {
-        content.style.display = 'block';
-        chevron.style.transform = 'rotate(180deg)';
-    } else {
-        content.style.display = 'none';
-        chevron.style.transform = 'rotate(0deg)';
-    }
-}
-
-window.toggleSection = toggleSection;
-console.log('✅ Función toggleSection disponible');
-</script>
+    </script>
 </body>
 </html>

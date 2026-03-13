@@ -530,9 +530,12 @@ document.addEventListener('DOMContentLoaded', cargarDashboard);
 
 async function cargarDashboard() {
   try {
-    const response = await fetch('/api/doctor/dashboard', {
+    // Agregar timestamp para evitar cache
+    const timestamp = new Date().getTime();
+    const response = await fetch(`/api/doctor/dashboard?t=${timestamp}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
       }
     });
     
@@ -601,7 +604,7 @@ async function cargarDashboard() {
           
           <hr class="my-3">
           
-          <button class="btn btn-clinic-primary btn-sm w-100" onclick="abrirHistoria(${sp.paciente.id}, '${sp.paciente.nombre}')">
+          <button class="btn btn-clinic-primary btn-sm w-100" onclick="abrirHistoriaConVerificacion(${sp.id}, ${sp.paciente?.id || 'null'}, '${sp.paciente?.nombre || ''}')">
             <i class="bi bi-folder-open"></i> Abrir Historia Clínica
           </button>
         </div>
@@ -642,14 +645,14 @@ async function cargarDashboard() {
                     <small class="text-muted">DNI: ${t.paciente.dni || '-'}</small>
                   </td>
                   <td>
-                    <span class="badge" style="background-color: ${estadoColores[t.estado?.nombre] || '#007BFF'}; padding: 0.5rem;">
-                      ${t.estado?.nombre || 'SIN ESTADO'}
+                    <span class="badge" style="background-color: ${estadoColores[t.estado] || '#007BFF'}; padding: 0.5rem;">
+                      ${t.estado || 'SIN ESTADO'}
                     </span>
                   </td>
                   <td>
                     ${t.consulta ? `
                       <small class="text-muted">
-                        <i class="bi bi-check-circle"></i> ${t.consulta.estado?.nombre || 'SIN ESTADO'}<br/>
+                        <i class="bi bi-check-circle"></i> ${t.consulta.estado || 'SIN ESTADO'}<br/>
                         ${t.consulta.motivo || '-'}
                       </small>
                     ` : `
@@ -660,18 +663,25 @@ async function cargarDashboard() {
                   </td>
                   <td>
                     <div class="btn-group btn-group-sm" role="group">
-                      ${!t.consulta ? `
-                        <button class="btn btn-success btn-sm" onclick="iniciarConsultaTurno(${t.id}, ${t.paciente.id}, '${t.paciente.nombre}')" title="Iniciar consulta">
-                          <i class="bi bi-play-circle"></i> Iniciar
+                      ${t.estado === 'PENDIENTE' ? `
+                        <button class="btn btn-primary btn-sm" onclick="abrirConfirmarLlegada(${t.id}, {nombre: '${t.paciente.nombre}', apellido: '${t.paciente.apellido}', dni: ${t.paciente.dni}, telefono: '${t.paciente.telefono || ''}'}, {fecha: '${t.fecha}', hora: '${t.hora}'})" title="Confirmar llegada del paciente">
+                          <i class="bi bi-person-check"></i> Confirmar
                         </button>
-                      ` : `
-                        <button class="btn btn-info btn-sm" onclick="abrirHistoria(${t.paciente.id}, '${t.paciente.nombre}')" title="Ver historia clínica">
-                          <i class="bi bi-file-earmark-medical"></i> Consulta
+                        <button class="btn btn-outline-danger btn-sm" onclick="cambiarEstadoTurno(${t.id}, 'CANCELADA')" title="Cancelar turno">
+                          <i class="bi bi-x-circle"></i> Cancelar
                         </button>
-                      `}
-                      <button class="btn btn-outline-danger btn-sm" onclick="cambiarEstadoTurno(${t.id}, 'CANCELADA')" title="Cancelar turno">
-                        <i class="bi bi-x-circle"></i>
-                      </button>
+                      ` : t.estado === 'CONFIRMADO' ? `
+                        <button class="btn btn-success btn-sm" onclick="cambiarEstadoTurno(${t.id}, 'ATENDIDA')" title="Marcar como atendida">
+                          <i class="bi bi-check-circle"></i> Atendida
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="cambiarEstadoTurno(${t.id}, 'CANCELADA')" title="Cancelar turno">
+                          <i class="bi bi-x-circle"></i> Cancelar
+                        </button>
+                      ` : t.estado === 'EN_CONSULTA' ? `
+                        <button class="btn btn-success btn-sm" onclick="cambiarEstadoTurno(${t.id}, 'ATENDIDA')" title="Marcar como atendida">
+                          <i class="bi bi-check-circle"></i> Atendida
+                        </button>
+                      ` : ``}
                     </div>
                   </td>
                 </tr>
@@ -725,33 +735,56 @@ async function iniciarConsultaTurno(turnoId, pacienteId, nombrePaciente) {
   try {
     console.log('Iniciando consulta para turno:', turnoId, 'paciente:', pacienteId);
     
-    // Crear la consulta médica (esto también debería cambiar el estado del turno a EN_CONSULTA)
-    const response = await fetch('/api/consultas-medicas', {
+    // Crear la consulta médica usando el endpoint correcto
+    const response = await fetch(`/api/consultas-medicas/iniciar/${turnoId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
       },
       body: JSON.stringify({
-        turno_id: turnoId,
-        paciente_id: pacienteId,
-        motivo_consulta: ''  // Se completará en la historia clínica
+        motivo_consulta: 'Consulta realizada',
+        resumen: '',
+        observaciones: ''
       })
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Error al iniciar consulta');
+      throw new Error(error.message || error.error || 'Error al iniciar consulta');
     }
 
     const result = await response.json();
+    console.log('✅ Consulta creada:', result);
+    
+    // Pequeño delay para asegurar que la consulta fue guardada
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     // Abrir la historia clínica del paciente
     abrirHistoria(pacienteId, nombrePaciente);
     
+    // Recargar dashboard para actualizar estados
+    await cargarDashboard();
+    
   } catch (error) {
     console.error('Error:', error);
     alert('Error al iniciar consulta: ' + error.message);
+  }
+}
+
+async function abrirHistoriaConVerificacion(turnoId, pacienteId, nombrePaciente) {
+  try {
+    // SIEMPRE mostrar el formulario de confirmación/carga de datos primero
+    // Esto asegura que los datos de Paciente (obra_social, numero_afiliado) estén completos
+    // Luego abrimos la Historia si todo está OK
+    console.log('📋 Abriendo formulario de confirmación/carga de datos...');
+    
+    // Si pacienteId existe y no es 'null', es solo informativo
+    // Pero SIEMPRE vamos a mostrar el formulario para verificar/completar datos
+    await abrirModalConfirmarTurnoDesdeConsulta(turnoId, false); // false = no cambiar estado
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error: ' + error.message);
   }
 }
 
@@ -874,21 +907,192 @@ async function iniciarConsulta() {
   }
   
   try {
-    const response = await fetch('/api/doctor/consulta/iniciar', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-      },
-      body: JSON.stringify({ turnoId: turnoSeleccionado.id })
+    // PASO 1: Verificar si existe el Paciente
+    const verificarResponse = await fetch(`/api/turnos/${turnoSeleccionado.id}/paciente-datos`, {
+      credentials: 'include'
     });
+
+    if (!verificarResponse.ok) {
+      throw new Error('Error al verificar paciente');
+    }
+
+    const pacienteData = await verificarResponse.json();
     
-    if (!response.ok) throw new Error('Error al iniciar consulta');
-    alert('Consulta iniciada');
-    document.getElementById('btnIniciar').disabled = true;
+    if (pacienteData.success && pacienteData.paciente && pacienteData.paciente.id) {
+      // El Paciente YA existe - cambiar a EN_CONSULTA y abrir Historia
+      console.log('✅ Paciente ya existe');
+      await cambiarAEnConsulta(turnoSeleccionado.id);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      abrirHistoria(pacienteData.paciente.id, `${pacienteData.paciente.persona.nombre || ''}`);
+    } else {
+      // La Persona NO es Paciente aún - mostrar formulario
+      console.log('⚠️ Persona sin registro de paciente - mostrando formulario');
+      await abrirModalConfirmarTurnoDesdeConsulta(turnoSeleccionado.id, true);
+    }
+    
   } catch (error) {
     console.error('Error:', error);
-    alert('Error al iniciar consulta');
+    alert('Error: ' + error.message);
+  }
+}
+
+async function cambiarAEnConsulta(turnoId) {
+  const response = await fetch('/api/doctor/consulta/iniciar', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+    },
+    body: JSON.stringify({ turnoId: turnoId })
+  });
+  
+  if (!response.ok) {
+    throw new Error('Error al cambiar estado a EN_CONSULTA');
+  }
+  
+  const resultado = await response.json();
+  console.log('✅ Turno cambió a EN_CONSULTA:', resultado);
+}
+
+async function abrirModalConfirmarTurnoDesdeConsulta(turnoId, cambiarAEnConsultaAlGuardar = false) {
+  try {
+    // Obtener datos del paciente
+    const response = await fetch(`/api/turnos/${turnoId}/paciente-datos`, {
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error ${response.status} al obtener datos del paciente`);
+    }
+
+    const pacienteData = await response.json();
+    console.log('📥 Datos del paciente recibidos:', pacienteData);
+
+    if (!pacienteData.success || !pacienteData.paciente) {
+      throw new Error(pacienteData.message || 'No se pudieron cargar los datos del paciente');
+    }
+
+    const pacienteInfo = pacienteData.paciente;
+    const persona = pacienteInfo.persona;
+
+    // Crear HTML del modal de confirmación
+    const modalHTML = `
+      <div id="modalConfirmarBackdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 99999;" onclick="cerrarModalConfirmarDesdeConsulta()">
+        <div id="modalConfirmarContent" style="background: white; border-radius: 12px; padding: 30px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+          <button onclick="cerrarModalConfirmarDesdeConsulta()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 28px; cursor: pointer; color: #999;">✕</button>
+          
+          <h2 style="color: #1a3a3a; margin-bottom: 10px; border-bottom: 3px solid #10b981; padding-bottom: 12px;">
+            <i class="bi bi-check-circle" style="color: #10b981;"></i> Completar Datos de Salud
+          </h2>
+          <p style="color: #666; margin-bottom: 25px; font-size: 14px;">Complete los datos de salud del paciente para continuar</p>
+
+          <!-- DATOS DEL PACIENTE -->
+          <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 15px; margin-bottom: 25px;">
+            <h4 style="color: #059669; margin-bottom: 10px; font-size: 14px;">👤 PACIENTE</h4>
+            <div style="font-size: 14px; color: #333;">
+              <p style="margin: 5px 0;"><strong>${persona.nombre} ${persona.apellido}</strong></p>
+              <p style="margin: 5px 0; color: #666;">DNI: ${persona.dni}</p>
+            </div>
+          </div>
+
+          <!-- FORMULARIO DE DATOS DE SALUD -->
+          <form id="formConfirmarTurnoConsulta" onsubmit="return false;">
+            <div style="margin-bottom: 20px;">
+              <label style="display: block; font-weight: 600; color: #333; margin-bottom: 8px;">
+                <i class="bi bi-hospital"></i> Obra Social
+              </label>
+              <input type="text" id="confirmObraSocialConsulta" placeholder="Ej: OSDE, PAMI, SWISS MEDICAL" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+              <label style="display: block; font-weight: 600; color: #333; margin-bottom: 8px;">
+                <i class="bi bi-card-text"></i> Número de Afiliado
+              </label>
+              <input type="text" id="confirmNumeroAfilianoConsulta" placeholder="Ej: 12345678" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 30px;">
+              <button type="button" onclick="cerrarModalConfirmarDesdeConsulta()" style="flex: 1; padding: 12px; background: #e5e7eb; color: #333; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Cancelar</button>
+              <button type="button" onclick="guardarConfirmacionDesdeConsulta(${turnoId}, ${cambiarAEnConsultaAlGuardar})" style="flex: 1; padding: 12px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Guardar y Continuar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    const container = document.createElement('div');
+    container.id = 'modalConfirmarContainerConsulta';
+    container.innerHTML = modalHTML;
+    document.body.appendChild(container);
+
+  } catch (error) {
+    console.error('❌ Error al abrir modal:', error);
+    alert('❌ Error al abrir formulario: ' + error.message);
+  }
+}
+
+function cerrarModalConfirmarDesdeConsulta() {
+  const container = document.getElementById('modalConfirmarContainerConsulta');
+  if (container) {
+    container.remove();
+  }
+}
+
+async function guardarConfirmacionDesdeConsulta(turnoId, cambiarAEnConsultaAlGuardar = false) {
+  const obraSocial = document.getElementById('confirmObraSocialConsulta')?.value || '';
+  const numeroAfiliado = document.getElementById('confirmNumeroAfilianoConsulta')?.value || '';
+
+  try {
+    // PASO 1: Confirmar llegada (crear Paciente)
+    const response = await fetch(`/api/turnos/${turnoId}/confirmar-llegada`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        obra_social: obraSocial,
+        numero_afiliado: numeroAfiliado
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al guardar');
+    }
+
+    const resultado = await response.json();
+    console.log('✅ Paciente confirmado:', resultado);
+
+    // PASO 2: Cambiar estado a EN_CONSULTA (solo si viene del botón "Iniciar Consulta")
+    if (cambiarAEnConsultaAlGuardar) {
+      console.log('🔄 Cambiando a EN_CONSULTA desde Iniciar Consulta');
+      await cambiarAEnConsulta(turnoId);
+    }
+
+    // PASO 3: Cerrar modal y cargar dashboard
+    cerrarModalConfirmarDesdeConsulta();
+    
+    // PASO 4: Abrir Historia Clínica
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Obtener datos del paciente para abrir historia
+    const pacienteResponse = await fetch(`/api/turnos/${turnoId}/paciente-datos`, {
+      credentials: 'include'
+    });
+    
+    if (pacienteResponse.ok) {
+      const pacienteData = await pacienteResponse.json();
+      if (pacienteData.success && pacienteData.paciente) {
+        abrirHistoria(pacienteData.paciente.id, `${pacienteData.paciente.persona.nombre || ''}`);
+      }
+    }
+    
+    await cargarDashboard();
+    
+  } catch (error) {
+    console.error('❌ Error:', error);
+    alert('❌ Error al guardar: ' + error.message);
   }
 }
 
@@ -1417,3 +1621,202 @@ async function subirDocumento(event) {
 
 cargarDashboard();
 
+<!-- MODAL: CONFIRMAR LLEGADA DEL PACIENTE -->
+<div class="modal fade" id="modalConfirmarLlegada" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-person-check"></i> Confirmar Llegada del Paciente
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- DATOS DEL PACIENTE (LECTURA) -->
+        <div class="row mb-4">
+          <div class="col-md-8">
+            <div class="card bg-light">
+              <div class="card-body">
+                <h6 class="card-title">Paciente</h6>
+                <p class="mb-1"><strong id="pacienteConfirmarNombre">-</strong></p>
+                <p class="mb-1 text-muted small">DNI: <span id="pacienteConfirmarDni">-</span></p>
+                <p class="mb-0 text-muted small">Tel: <span id="pacienteConfirmarTel">-</span></p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card bg-light">
+              <div class="card-body">
+                <h6 class="card-title">Turno</h6>
+                <p class="mb-1"><strong id="turnoConfirmarFecha">-</strong></p>
+                <p class="mb-0 text-muted small">Hora: <span id="turnoConfirmarHora">-</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FORMULARIO DE DATOS DEL PACIENTE -->
+        <div class="row">
+          <div class="col-12">
+            <h6 class="mb-3">Datos de Afiliación</h6>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="obraSocialConfirmar" class="form-label">Obra Social <small class="text-muted">(opcional)</small></label>
+              <input 
+                type="text" 
+                class="form-control" 
+                id="obraSocialConfirmar" 
+                placeholder="Ej: OSDE, MEDIFÉ, etc"
+              >
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="numeroAfiliadoConfirmar" class="form-label">N° Afiliado <small class="text-muted">(opcional)</small></label>
+              <input 
+                type="text" 
+                class="form-control" 
+                id="numeroAfiliadoConfirmar" 
+                placeholder="Ej: 123456789"
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- ESTADO Y MENSAJE DE CARGA -->
+        <div id="confirmacionEstado" class="alert alert-info d-none mt-3">
+          <i class="bi bi-info-circle"></i> <span id="confirmacionMensaje">-</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle"></i> Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-primary" 
+          id="btnGuardarConfirmacion"
+          onclick="guardarConfirmacionLlegada()"
+        >
+          <i class="bi bi-check-circle"></i> Confirmar Llegada
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Variable global para guardar ID del turno siendo confirmado
+let turnoConfirmandoId = null;
+
+/**
+ * Abre el modal de Confirmar Llegada
+ * @param {number} turnoId - ID del turno
+ * @param {object} paciente - Objeto con datos del paciente
+ * @param {object} turno - Objeto con datos del turno
+ */
+function abrirConfirmarLlegada(turnoId, paciente, turno) {
+  turnoConfirmandoId = turnoId;
+  
+  // Llenar datos del paciente (lectura)
+  document.getElementById('pacienteConfirmarNombre').textContent = 
+    `${paciente.nombre || ''} ${paciente.apellido || ''}`;
+  document.getElementById('pacienteConfirmarDni').textContent = 
+    paciente.dni || '-';
+  document.getElementById('pacienteConfirmarTel').textContent = 
+    paciente.telefono || '-';
+  
+  // Llenar datos del turno (lectura)
+  document.getElementById('turnoConfirmarFecha').textContent = 
+    new Date(turno.fecha).toLocaleDateString('es-AR');
+  document.getElementById('turnoConfirmarHora').textContent = 
+    turno.hora || '-';
+  
+  // Limpiar formulario
+  document.getElementById('obraSocialConfirmar').value = '';
+  document.getElementById('numeroAfiliadoConfirmar').value = '';
+  
+  // Ocultar estado
+  document.getElementById('confirmacionEstado').classList.add('d-none');
+  
+  // Habilitar botón
+  document.getElementById('btnGuardarConfirmacion').disabled = false;
+  
+  // Abrir modal
+  const modal = new bootstrap.Modal(document.getElementById('modalConfirmarLlegada'));
+  modal.show();
+}
+
+/**
+ * Guarda la confirmación de llegada
+ * Ejecuta POST /api/turno/:id/confirmar-llegada con datos del paciente
+ * SOLO cuando se guarda, cambia el estado a CONFIRMADO
+ */
+async function guardarConfirmacionLlegada() {
+  if (!turnoConfirmandoId) {
+    alert('Error: No se especificó el turno');
+    return;
+  }
+
+  const obraSocial = document.getElementById('obraSocialConfirmar').value.trim();
+  const numeroAfiliado = document.getElementById('numeroAfiliadoConfirmar').value.trim();
+
+  // Mostrar loading
+  const btnGuardar = document.getElementById('btnGuardarConfirmacion');
+  const btnOriginalText = btnGuardar.innerHTML;
+  btnGuardar.disabled = true;
+  btnGuardar.innerHTML = '<i class="bi bi-hourglass-split"></i> Guardando...';
+
+  try {
+    const response = await fetch(`/api/turno/${turnoConfirmandoId}/confirmar-llegada`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      },
+      body: JSON.stringify({
+        obra_social: obraSocial || null,
+        numero_afiliado: numeroAfiliado || null
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Error al confirmar llegada');
+    }
+
+    const result = await response.json();
+    console.log('✅ Llegada confirmada:', result);
+
+    // Mostrar éxito
+    document.getElementById('confirmacionMensaje').textContent = 
+      `✅ Llegada confirmada. Estado: ${result.data.estado}`;
+    document.getElementById('confirmacionEstado').classList.remove('d-none');
+    document.getElementById('confirmacionEstado').classList.remove('alert-info');
+    document.getElementById('confirmacionEstado').classList.add('alert-success');
+
+    // Cerrar modal y refrescar después de 1.5 segundos
+    setTimeout(() => {
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalConfirmarLlegada'));
+      modal.hide();
+      
+      // Refrescar la página para mostrar el cambio de estado
+      location.reload();
+    }, 1500);
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+    document.getElementById('confirmacionMensaje').textContent = 
+      `❌ Error: ${error.message}`;
+    document.getElementById('confirmacionEstado').classList.remove('d-none');
+    document.getElementById('confirmacionEstado').classList.remove('alert-success');
+    document.getElementById('confirmacionEstado').classList.add('alert-danger');
+  } finally {
+    btnGuardar.disabled = false;
+    btnGuardar.innerHTML = btnOriginalText;
+  }
+}
+</script>

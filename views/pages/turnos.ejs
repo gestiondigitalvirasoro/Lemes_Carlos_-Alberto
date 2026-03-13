@@ -53,73 +53,17 @@
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th>Hora</th>
+                        <th>Fecha / Hora</th>
                         <th>Paciente</th>
                         <th>Médico</th>
                         <th>Especialidad</th>
-                        <th>Motivo</th>
+                        <th>Observaciones</th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>09:00</td>
-                        <td>María García</td>
-                        <td>Dr. López</td>
-                        <td>Cardiología</td>
-                        <td>Revisión general</td>
-                        <td><span class="badge bg-success">Confirmado</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-info" title="Detalles">
-                                <i class="bi bi-info-circle"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning" title="Editar">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" title="Cancelar">
-                                <i class="bi bi-x"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>10:30</td>
-                        <td>Carlos Rodríguez</td>
-                        <td>Dra. Martínez</td>
-                        <td>Dermatología</td>
-                        <td>Consulta dermatológica</td>
-                        <td><span class="badge bg-warning">Pendiente</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-info" title="Detalles">
-                                <i class="bi bi-info-circle"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning" title="Editar">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" title="Cancelar">
-                                <i class="bi bi-x"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>14:00</td>
-                        <td>Ana López</td>
-                        <td>Dr. Pérez</td>
-                        <td>Oftalmología</td>
-                        <td>Control de visión</td>
-                        <td><span class="badge bg-danger">Cancelado</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-info" title="Detalles">
-                                <i class="bi bi-info-circle"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning" title="Editar">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" title="Cancelar">
-                                <i class="bi bi-x"></i>
-                            </button>
-                        </td>
-                    </tr>
+                    <!-- Se carga dinámicamente desde JavaScript -->
                 </tbody>
             </table>
         </div>
@@ -138,29 +82,227 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var calendarEl = document.getElementById('calendar');
-        var calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            locale: 'es',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay'
-            },
-            events: [
-                {
-                    title: 'Dr. López - María García',
-                    start: new Date().toISOString().split('T')[0] + 'T09:00:00',
-                    backgroundColor: '#198754'
-                },
-                {
-                    title: 'Dra. Martínez - Carlos Rodríguez',
-                    start: new Date().toISOString().split('T')[0] + 'T10:30:00',
-                    backgroundColor: '#ffc107'
+    // ========================================================================
+    // CARGAR TURNOS DINÁMICAMENTE
+    // ========================================================================
+    document.addEventListener('DOMContentLoaded', async function() {
+        try {
+            // Cargar turnos desde API
+            const response = await fetch('/api/turnos', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.data) {
+                // Ordenar por fecha y hora
+                const turnosOrdenados = data.data.sort((a, b) => {
+                    const dateA = new Date(a.fecha + 'T' + a.hora);
+                    const dateB = new Date(b.fecha + 'T' + b.hora);
+                    return dateA - dateB;
+                });
+                
+                // Renderizar tabla
+                const tbody = document.querySelector('table tbody');
+                if (tbody) {
+                    tbody.innerHTML = turnosOrdenados.map((t, index) => {
+                        const fechaFormato = new Date(t.fecha).toLocaleDateString('es-AR');
+                        const paciente = t.persona;
+                        const estadoColor = {
+                            'PENDIENTE': 'bg-warning',
+                            'CONFIRMADO': 'bg-success',
+                            'EN_CONSULTA': 'bg-info',
+                            'ATENDIDA': 'bg-success',
+                            'CANCELADA': 'bg-danger'
+                        };
+                        
+                        return `
+                        <tr data-turno-id="${t.id}" data-turno-index="${index}">
+                            <td>
+                                <strong>${fechaFormato}</strong><br>
+                                <span class="text-muted">${t.hora}</span>
+                            </td>
+                            <td>
+                                <strong>${paciente.nombre} ${paciente.apellido}</strong><br>
+                                <small class="text-muted">DNI: ${paciente.dni}</small><br>
+                                <small class="text-muted">Tel: ${paciente.telefono || 'N/A'}</small>
+                            </td>
+                            <td>
+                                <strong>${t.medico?.nombre || 'N/A'} ${t.medico?.apellido || ''}</strong><br>
+                                <small class="text-muted">${t.medico?.especialidad || 'General'}</small>
+                            </td>
+                            <td>${t.medico?.especialidad || 'General'}</td>
+                            <td>${t.observaciones || '-'}</td>
+                            <td>
+                                <span class="badge ${estadoColor[t.estado.nombre] || 'bg-secondary'}">${t.estado.nombre}</span>
+                            </td>
+                            <td>
+                                ${t.estado.nombre === 'PENDIENTE' ? `
+                                    <button class="btn btn-sm btn-primary" onclick="abrirConfirmarLlegada(${t.id}, ${JSON.stringify(paciente)}, ${JSON.stringify(t)})">
+                                        <i class="bi bi-person-check"></i> Confirmar
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="cambiarEstadoTurno(${t.id}, 'CANCELADA')">
+                                        <i class="bi bi-x-circle"></i> Cancelar
+                                    </button>
+                                ` : t.estado.nombre === 'CONFIRMADO' ? `
+                                    <button class="btn btn-sm btn-success" onclick="cambiarEstadoTurno(${t.id}, 'EN_CONSULTA')">
+                                        <i class="bi bi-play-circle"></i> Iniciar
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="cambiarEstadoTurno(${t.id}, 'CANCELADA')">
+                                        <i class="bi bi-x-circle"></i> Cancelar
+                                    </button>
+                                ` : t.estado.nombre === 'EN_CONSULTA' ? `
+                                    <button class="btn btn-sm btn-success" onclick="cambiarEstadoTurno(${t.id}, 'ATENDIDA')">
+                                        <i class="bi bi-check-circle"></i> Atendida
+                                    </button>
+                                ` : ``}
+                            </td>
+                        </tr>
+                        `;
+                    }).join('');
+                    
                 }
-            ]
-        });
-        calendar.render();
+            }
+        } catch (error) {
+            console.error('Error cargando turnos:', error);
+        }
     });
+    
+    // ========================================================================
+    // CAMBIAR ESTADO DE TURNO
+    // ========================================================================
+    function cambiarEstadoTurno(turnoId, nuevoEstado) {
+        if (!confirm(`¿Cambiar estado del turno a ${nuevoEstado}?`)) return;
+        
+        fetch(`/api/turno/${turnoId}/estado`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                estado: nuevoEstado
+            }),
+            credentials: 'include'
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert(`✅ Estado actualizado a ${nuevoEstado}`);
+                location.reload();
+            } else {
+                alert('❌ Error: ' + (data.error || 'No se pudo cambiar el estado'));
+            }
+        })
+        .catch(e => alert('Error: ' + e.message));
+    }
+    
+    // ========================================================================
+    // CONFIRMAR LLEGADA
+    // ========================================================================
+    function abrirConfirmarLlegada(turnoId, paciente, turno) {
+        document.getElementById('modalTurnoId').value = turnoId;
+        document.getElementById('modalPacienteNombre').value = paciente.nombre + ' ' + paciente.apellido;
+        document.getElementById('modalPacienteDni').value = paciente.dni;
+        document.getElementById('modalPacienteTelefono').value = paciente.telefono || '';
+        document.getElementById('modalFecha').value = new Date(turno.fecha).toLocaleDateString('es-AR');
+        document.getElementById('modalHora').value = turno.hora;
+        document.getElementById('modalObraSocial').value = paciente.paciente?.obra_social || '';
+        document.getElementById('modalNumeroAfiliado').value = paciente.paciente?.numero_afiliado || '';
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalConfirmarLlegada'));
+        modal.show();
+    }
+    
+    function guardarConfirmacionLlegada() {
+        const turnoId = document.getElementById('modalTurnoId').value;
+        const obraSocial = document.getElementById('modalObraSocial').value;
+        const numeroAfiliado = document.getElementById('modalNumeroAfiliado').value;
+        
+        fetch(`/api/turno/${turnoId}/confirmar-llegada`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                obra_social: obraSocial,
+                numero_afiliado: numeroAfiliado
+            }),
+            credentials: 'include'
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Llegada confirmada exitosamente');
+                bootstrap.Modal.getInstance(document.getElementById('modalConfirmarLlegada')).hide();
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                alert('❌ Error: ' + (data.error || 'No se pudo confirmar la llegada'));
+            }
+        })
+        .catch(e => alert('Error: ' + e.message));
+    }
+    
+    function editarTurno(id) {
+        window.location.href = `/doctor/agendar-turno?editar=${id}`;
+    }
 </script>
+
+<!-- Modal Confirmar Llegada -->
+<div class="modal fade" id="modalConfirmarLlegada" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Llegada del Paciente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formConfirmarLlegada">
+                    <input type="hidden" id="modalTurnoId" value="">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Paciente</label>
+                        <input type="text" id="modalPacienteNombre" class="form-control" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">DNI</label>
+                        <input type="text" id="modalPacienteDni" class="form-control" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Teléfono</label>
+                        <input type="text" id="modalPacienteTelefono" class="form-control" readonly>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha</label>
+                            <input type="text" id="modalFecha" class="form-control" readonly>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Hora</label>
+                            <input type="text" id="modalHora" class="form-control" readonly>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Obra Social</label>
+                        <input type="text" id="modalObraSocial" class="form-control">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Número de Afiliado</label>
+                        <input type="text" id="modalNumeroAfiliado" class="form-control">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarConfirmacionLlegada()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>

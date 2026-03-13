@@ -1,0 +1,199 @@
+<!-- MODAL: CONFIRMAR LLEGADA DEL PACIENTE -->
+<div class="modal fade" id="modalConfirmarLlegada" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-person-check"></i> Confirmar Llegada del Paciente
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- DATOS DEL PACIENTE (LECTURA) -->
+        <div class="row mb-4">
+          <div class="col-md-8">
+            <div class="card bg-light">
+              <div class="card-body">
+                <h6 class="card-title">Paciente</h6>
+                <p class="mb-1"><strong id="pacienteConfirmarNombre">-</strong></p>
+                <p class="mb-1 text-muted small">DNI: <span id="pacienteConfirmarDni">-</span></p>
+                <p class="mb-0 text-muted small">Tel: <span id="pacienteConfirmarTel">-</span></p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card bg-light">
+              <div class="card-body">
+                <h6 class="card-title">Turno</h6>
+                <p class="mb-1"><strong id="turnoConfirmarFecha">-</strong></p>
+                <p class="mb-0 text-muted small">Hora: <span id="turnoConfirmarHora">-</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FORMULARIO DE DATOS DEL PACIENTE -->
+        <div class="row">
+          <div class="col-12">
+            <h6 class="mb-3">Datos de Afiliación</h6>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="obraSocialConfirmar" class="form-label">Obra Social <small class="text-muted">(opcional)</small></label>
+              <input 
+                type="text" 
+                class="form-control" 
+                id="obraSocialConfirmar" 
+                placeholder="Ej: OSDE, MEDIFÉ, etc"
+              >
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="numeroAfiliadoConfirmar" class="form-label">N° Afiliado <small class="text-muted">(opcional)</small></label>
+              <input 
+                type="text" 
+                class="form-control" 
+                id="numeroAfiliadoConfirmar" 
+                placeholder="Ej: 123456789"
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- ESTADO Y MENSAJE DE CARGA -->
+        <div id="confirmacionEstado" class="alert alert-info d-none mt-3">
+          <i class="bi bi-info-circle"></i> <span id="confirmacionMensaje">-</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle"></i> Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-primary" 
+          id="btnGuardarConfirmacion"
+          onclick="guardarConfirmacionLlegada()"
+        >
+          <i class="bi bi-check-circle"></i> Confirmar Llegada
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Variable global para guardar ID del turno siendo confirmado
+let turnoConfirmandoId = null;
+
+/**
+ * Abre el modal de Confirmar Llegada
+ * @param {number} turnoId - ID del turno
+ * @param {object} paciente - Objeto con datos del paciente
+ * @param {object} turno - Objeto con datos del turno
+ */
+function abrirConfirmarLlegada(turnoId, paciente, turno) {
+  turnoConfirmandoId = turnoId;
+  
+  // Llenar datos del paciente (lectura)
+  document.getElementById('pacienteConfirmarNombre').textContent = 
+    `${paciente.nombre || ''} ${paciente.apellido || ''}`;
+  document.getElementById('pacienteConfirmarDni').textContent = 
+    paciente.dni || '-';
+  document.getElementById('pacienteConfirmarTel').textContent = 
+    paciente.telefono || '-';
+  
+  // Llenar datos del turno (lectura)
+  document.getElementById('turnoConfirmarFecha').textContent = 
+    new Date(turno.fecha).toLocaleDateString('es-AR');
+  document.getElementById('turnoConfirmarHora').textContent = 
+    turno.hora || '-';
+  
+  // Limpiar formulario
+  document.getElementById('obraSocialConfirmar').value = '';
+  document.getElementById('numeroAfiliadoConfirmar').value = '';
+  
+  // Ocultar estado
+  document.getElementById('confirmacionEstado').classList.add('d-none');
+  
+  // Habilitar botón
+  document.getElementById('btnGuardarConfirmacion').disabled = false;
+  
+  // Abrir modal
+  const modal = new bootstrap.Modal(document.getElementById('modalConfirmarLlegada'));
+  modal.show();
+}
+
+/**
+ * Guarda la confirmación de llegada
+ * Ejecuta POST /api/turno/:id/confirmar-llegada con datos del paciente
+ * SOLO cuando se guarda, cambia el estado a CONFIRMADO
+ */
+async function guardarConfirmacionLlegada() {
+  if (!turnoConfirmandoId) {
+    alert('Error: No se especificó el turno');
+    return;
+  }
+
+  const obraSocial = document.getElementById('obraSocialConfirmar').value.trim();
+  const numeroAfiliado = document.getElementById('numeroAfiliadoConfirmar').value.trim();
+
+  // Mostrar loading
+  const btnGuardar = document.getElementById('btnGuardarConfirmacion');
+  const btnOriginalText = btnGuardar.innerHTML;
+  btnGuardar.disabled = true;
+  btnGuardar.innerHTML = '<i class="bi bi-hourglass-split"></i> Guardando...';
+
+  try {
+    const response = await fetch(`/api/turno/${turnoConfirmandoId}/confirmar-llegada`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      },
+      body: JSON.stringify({
+        obra_social: obraSocial || null,
+        numero_afiliado: numeroAfiliado || null
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Error al confirmar llegada');
+    }
+
+    const result = await response.json();
+    console.log('✅ Llegada confirmada:', result);
+
+    // Mostrar éxito
+    document.getElementById('confirmacionMensaje').textContent = 
+      `✅ Llegada confirmada. Estado: ${result.data.estado}`;
+    document.getElementById('confirmacionEstado').classList.remove('d-none');
+    document.getElementById('confirmacionEstado').classList.remove('alert-info');
+    document.getElementById('confirmacionEstado').classList.add('alert-success');
+
+    // Cerrar modal y refrescar después de 1.5 segundos
+    setTimeout(() => {
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalConfirmarLlegada'));
+      modal.hide();
+      
+      // Refrescar la página para mostrar el cambio de estado
+      location.reload();
+    }, 1500);
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+    document.getElementById('confirmacionMensaje').textContent = 
+      `❌ Error: ${error.message}`;
+    document.getElementById('confirmacionEstado').classList.remove('d-none');
+    document.getElementById('confirmacionEstado').classList.remove('alert-success');
+    document.getElementById('confirmacionEstado').classList.add('alert-danger');
+  } finally {
+    btnGuardar.disabled = false;
+    btnGuardar.innerHTML = btnOriginalText;
+  }
+}
+</script>

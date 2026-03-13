@@ -1,6 +1,6 @@
-import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { supabase } from '../services/supabase.js';
+import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
 
@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 // ============================================================================
 export const signup = async (req, res) => {
   try {
-    const { email, password, nombre, apellido, role = 'doctor', especialidad } = req.body;
+    const { email, password, nombre, apellido, role = 'doctor', especialidad, telefono, direccion } = req.body;
 
     // Validaciones
     if (!email || !password || !nombre || !apellido) {
@@ -35,36 +35,68 @@ export const signup = async (req, res) => {
 
     const supabaseUserId = authData.user.id;
 
-    // 2. Crear usuario en BD local (con datos clínicos)
+    // 2. Crear registro Medico en BD local
     try {
-      const usuarioBD = await prisma.usuario.create({
+      const medico = await prisma.medico.create({
         data: {
+          supabase_id: supabaseUserId,
           email,
-          password_hash: supabaseUserId, // Guardar UUID de Supabase como "contraseña"
           nombre,
           apellido,
           role,
           especialidad: especialidad || null,
+          telefono: telefono || null,
+          direccion: direccion || null,
           activo: true
         }
       });
 
+      // 3. Obtener token para el usuario recién creado
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (signInError) {
+        return res.status(201).json({
+          success: true,
+          message: 'Médico registrado exitosamente (sin token de sesión)',
+          data: {
+            medico: {
+              id: medico.id.toString(),
+              email: medico.email,
+              nombre: medico.nombre,
+              apellido: medico.apellido,
+              role: medico.role
+            }
+          }
+        });
+      }
+
+      // Guardar token en cookie httpOnly
+      res.cookie('access_token', signInData.session.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+      });
+
       return res.status(201).json({
         success: true,
-        message: 'Usuario registrado exitosamente',
+        message: 'Médico registrado exitosamente',
         data: {
-          usuario: {
-            id: usuarioBD.id.toString(),
-            email: usuarioBD.email,
-            nombre: usuarioBD.nombre,
-            apellido: usuarioBD.apellido,
-            role: usuarioBD.role
+          access_token: signInData.session.access_token,
+          medico: {
+            id: medico.id.toString(),
+            email: medico.email,
+            nombre: medico.nombre,
+            apellido: medico.apellido,
+            role: medico.role
           }
         }
       });
     } catch (dbError) {
-      // Si falla la BD, eliminar usuario de Supabase
-      await supabase.auth.admin.deleteUser(supabaseUserId);
+      console.error('Error al crear médico en BD:', dbError);
       throw dbError;
     }
   } catch (error) {
@@ -77,9 +109,8 @@ export const signup = async (req, res) => {
 };
 
 // ============================================================================
-// CONTROLLER: LOGIN - Autenticar con Supabase Auth + obtener datos BD
+// CONTROLLER: LOGIN - Autenticar con Supabase Auth
 // ============================================================================
-
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -92,88 +123,156 @@ export const login = async (req, res) => {
       });
     }
 
-    // 1. Autenticar con Supabase
+    // 1. Autenticar con Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
     if (authError || !authData.user) {
+      console.error('Supabase auth error:', authError);
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'Email o contraseña incorrectos'
       });
     }
 
-    // 2. Obtener datos del usuario desde BD local
-    const usuarioBD = await prisma.usuario.findUnique({
-      where: { email }
+    const supabaseUserId = authData.user.id;
+
+    // 2. Obtener médico desde BD local usando supabase_id
+    let medico = await prisma.medico.findUnique({
+      where: { supabase_id: supabaseUserId },
+      select: {
+        id: true,
+        email: true,
+        nombre: true,
+        apellido: true,
+        role: true,
+        especialidad: true,
+        telefono: true,
+        direccion: true,
+        activo: true,
+        supabase_id: true
+      }
     });
 
-    if (!usuarioBD) {
+    // Si NO existe por supabase_id, buscar por email
+    if (!medico) {
+      console.log(`🔍 Buscando médico por email: ${email}`);
+      medico = await prisma.medico.findUnique({
+        where: { email: email },
+        select: {
+          id: true,
+          email: true,
+          nombre: true,
+          apellido: true,
+          role: true,
+          especialidad: true,
+          telefono: true,
+          direccion: true,
+          activo: true,
+          supabase_id: true
+        }
+      });
+
+      // Si lo encontró por email pero tiene supabase_id diferente, actualizar
+      if (medico && medico.supabase_id !== supabaseUserId) {
+        console.log(`🔄 Actualizando supabase_id para: ${email}`);
+        medico = await prisma.medico.update({
+          where: { email: email },
+          data: { supabase_id: supabaseUserId },
+          select: {
+            id: true,
+            email: true,
+            nombre: true,
+            apellido: true,
+            role: true,
+            especialidad: true,
+            telefono: true,
+            direccion: true,
+            activo: true,
+            supabase_id: true
+          }
+        });
+      }
+    }
+
+    // Si aún no existe, crear uno nuevo
+    if (!medico) {
+      console.log(`📝 Sincronizando usuario Supabase en login: ${email}`);
+      
+      try {
+        const nuevoMedico = await prisma.medico.create({
+          data: {
+            supabase_id: supabaseUserId,
+            email: email,
+            nombre: authData.user.user_metadata?.nombre || 'Usuario',
+            apellido: authData.user.user_metadata?.apellido || 'Supabase',
+            role: authData.user.user_metadata?.role || 'doctor',
+            especialidad: authData.user.user_metadata?.especialidad || null,
+            telefono: authData.user.user_metadata?.telefono || null,
+            activo: true
+          },
+          select: {
+            id: true,
+            email: true,
+            nombre: true,
+            apellido: true,
+            role: true,
+            especialidad: true,
+            telefono: true,
+            direccion: true,
+            activo: true,
+            supabase_id: true
+          }
+        });
+        
+        medico = nuevoMedico;
+        console.log(`✅ Médico sincronizado en login: ID ${medico.id}`);
+      } catch (syncError) {
+        console.error('❌ Error sincronizando médico en login:', syncError.message);
+        return res.status(500).json({
+          error: 'Internal server error',
+          message: 'Error sincronizando usuario'
+        });
+      }
+    }
+
+    // 3. Verificar que el médico está activo
+    if (!medico.activo) {
       return res.status(401).json({
         error: 'Unauthorized',
-        message: 'Usuario no configurado en sistema'
+        message: 'Médico inactivo'
       });
     }
 
-    // Verificar que el usuario está activo
-    if (!usuarioBD.activo) {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Usuario inactivo'
-      });
-    }
-
-    // 3. Crear JWT local con datos clínicos (opcional, para rapidez)
-    const jwtLocal = jwt.sign(
-      {
-        id: usuarioBD.id.toString(),
-        email: usuarioBD.email,
-        nombre: usuarioBD.nombre,
-        apellido: usuarioBD.apellido,
-        role: usuarioBD.role,
-        supabaseId: authData.user.id
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
-    );
-
-    // 4. Guardar token en cookie httpOnly
-    res.cookie('auth_token', jwtLocal, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000  // 24 horas
-    });
-
-    // También guardar sesión de Supabase
-    res.cookie('supabase_session', authData.session.access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000
-    });
-
-    // 5. Actualizar último login
-    await prisma.usuario.update({
-      where: { id: usuarioBD.id },
+    // 4. Actualizar último login
+    await prisma.medico.update({
+      where: { id: medico.id },
       data: { ultimo_login: new Date() }
     });
 
-    // 6. Responder
+    // 5. Guardar token en cookie httpOnly
+    res.cookie('access_token', authData.session.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+    });
+
+    // 6. Responder con datos del médico y token de Supabase
     return res.status(200).json({
       success: true,
       message: 'Login exitoso',
       data: {
-        token: jwtLocal,
-        usuario: {
-          id: usuarioBD.id.toString(),
-          email: usuarioBD.email,
-          nombre: usuarioBD.nombre,
-          apellido: usuarioBD.apellido,
-          role: usuarioBD.role,
-          especialidad: usuarioBD.especialidad
+        access_token: authData.session.access_token,
+        medico: {
+          id: medico.id.toString(),
+          email: medico.email,
+          nombre: medico.nombre,
+          apellido: medico.apellido,
+          role: medico.role,
+          especialidad: medico.especialidad
         }
       }
     });
@@ -189,34 +288,33 @@ export const login = async (req, res) => {
 // ============================================================================
 // CONTROLLER: LOGOUT
 // ============================================================================
-
 export const logout = async (req, res) => {
   try {
-    // Limpiar las cookies HTTP-only
-    res.clearCookie('auth_token', {
+    // Limpiar las cookies
+    res.clearCookie('access_token', {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       path: '/'
     });
 
-    res.clearCookie('token', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      path: '/'
-    });
-
-    // Retornar respuesta exitosa
     return res.status(200).json({
       success: true,
       message: 'Logout exitoso'
     });
   } catch (error) {
     console.error('Error en logout:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: 'Error al procesar el logout'
+    // No fallar el logout si hay error, solo limpiar cookies
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/'
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Logout exitoso'
     });
   }
 };
@@ -224,20 +322,19 @@ export const logout = async (req, res) => {
 // ============================================================================
 // CONTROLLER: OBTENER DATOS DEL USUARIO ACTUAL
 // ============================================================================
-
 export const me = async (req, res) => {
   try {
-    const usuarioId = req.usuario?.id;
+    const supabaseId = req.user?.id; // Del middleware que verifica autenticación (supabase_id)
 
-    if (!usuarioId) {
+    if (!supabaseId) {
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'Usuario no autenticado'
       });
     }
 
-    const usuario = await prisma.usuario.findUnique({
-      where: { id: usuarioId },
+    const medico = await prisma.medico.findUnique({
+      where: { supabase_id: supabaseId },
       select: {
         id: true,
         email: true,
@@ -247,78 +344,58 @@ export const me = async (req, res) => {
         telefono: true,
         direccion: true,
         especialidad: true,
-        subespecialidad: true,
         activo: true,
         ultimo_login: true,
         created_at: true
       }
     });
 
-    if (!usuario) {
+    if (!medico) {
       return res.status(404).json({
         error: 'Not found',
-        message: 'Usuario no encontrado'
+        message: 'Médico no encontrado'
       });
     }
 
     return res.status(200).json({
       success: true,
       data: {
-        ...usuario,
-        id: usuario.id.toString()
+        ...medico,
+        id: medico.id.toString()
       }
     });
   } catch (error) {
     console.error('Error en me:', error);
     return res.status(500).json({
       error: 'Internal server error',
-      message: 'Error al obtener datos del usuario'
+      message: error.message
     });
   }
 };
 
 // ============================================================================
-// CONTROLLER: CREAR NUEVO USUARIO (Admin)
+// CONTROLLER: ACTUALIZAR PERFIL DEL USUARIO ACTUAL
 // ============================================================================
-
-export const crearUsuario = async (req, res) => {
+export const updateProfile = async (req, res) => {
   try {
-    const { email, password, nombre, apellido, role = 'secretaria', telefono, direccion } = req.body;
+    const supabaseId = req.user?.id; // supabase_id del middleware
+    const { nombre, apellido, telefono, direccion, especialidad } = req.body;
 
-    // Validaciones
-    if (!email || !password || !nombre || !apellido) {
-      return res.status(400).json({
-        error: 'Bad request',
-        message: 'Email, contraseña, nombre y apellido son requeridos'
+    if (!supabaseId) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Usuario no autenticado'
       });
     }
 
-    // Verificar que el email no existe
-    const usuarioExistente = await prisma.usuario.findUnique({
-      where: { email }
-    });
-
-    if (usuarioExistente) {
-      return res.status(409).json({
-        error: 'Conflict',
-        message: 'El email ya está registrado'
-      });
-    }
-
-    // Hashear contraseña
-    const passwordHash = await bcrypt.hash(password, parseInt(process.env.BCRYPT_ROUNDS) || 10);
-
-    // Crear usuario
-    const usuario = await prisma.usuario.create({
+    const medico = await prisma.medico.update({
+      where: { supabase_id: supabaseId },
       data: {
-        email,
-        password_hash: passwordHash,
-        nombre,
-        apellido,
-        role,
-        telefono,
-        direccion,
-        activo: true
+        ...(nombre && { nombre }),
+        ...(apellido && { apellido }),
+        ...(telefono && { telefono }),
+        ...(direccion && { direccion }),
+        ...(especialidad && { especialidad })
       },
       select: {
         id: true,
@@ -326,98 +403,32 @@ export const crearUsuario = async (req, res) => {
         nombre: true,
         apellido: true,
         role: true,
-        created_at: true
+        especialidad: true
       }
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: 'Usuario creado exitosamente',
-      data: {
-        ...usuario,
-        id: usuario.id.toString()
-      }
-    });
-  } catch (error) {
-    console.error('Error al crear usuario:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: 'Error al crear el usuario'
-    });
-  }
-};
-
-// ============================================================================
-// CONTROLLER: CAMBIAR CONTRASEÑA
-// ============================================================================
-
-export const cambiarContrasena = async (req, res) => {
-  try {
-    const usuarioId = req.usuario?.id;
-    const { contraseñaActual, contraseñaNueva } = req.body;
-
-    if (!usuarioId) {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Usuario no autenticado'
-      });
-    }
-
-    if (!contraseñaActual || !contraseñaNueva) {
-      return res.status(400).json({
-        error: 'Bad request',
-        message: 'Contraseña actual y nueva son requeridas'
-      });
-    }
-
-    // Obtener usuario
-    const usuario = await prisma.usuario.findUnique({
-      where: { id: usuarioId }
-    });
-
-    if (!usuario) {
-      return res.status(404).json({
-        error: 'Not found',
-        message: 'Usuario no encontrado'
-      });
-    }
-
-    // Verificar contraseña actual
-    const contraseñaValida = await bcrypt.compare(contraseñaActual, usuario.password_hash);
-
-    if (!contraseñaValida) {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Contraseña actual incorrecta'
-      });
-    }
-
-    // Hashear nueva contraseña
-    const nuevoHash = await bcrypt.hash(contraseñaNueva, parseInt(process.env.BCRYPT_ROUNDS) || 10);
-
-    // Actualizar
-    await prisma.usuario.update({
-      where: { id: usuarioId },
-      data: { password_hash: nuevoHash }
     });
 
     return res.status(200).json({
       success: true,
-      message: 'Contraseña actualizada exitosamente'
+      message: 'Perfil actualizado',
+      data: {
+        ...medico,
+        id: medico.id.toString()
+      }
     });
   } catch (error) {
-    console.error('Error al cambiar contraseña:', error);
+    console.error('Error en updateProfile:', error);
     return res.status(500).json({
       error: 'Internal server error',
-      message: 'Error al cambiar la contraseña'
+      message: error.message
     });
   }
 };
 
 export default {
+  signup,
   login,
   logout,
   me,
-  crearUsuario,
-  cambiarContrasena
+  updateProfile
 };
+

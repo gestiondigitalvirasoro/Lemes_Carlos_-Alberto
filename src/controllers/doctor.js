@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
  */
 export const getDashboard = async (req, res) => {
   try {
-    const medicoId = BigInt(req.usuario.id);
+    const medicoId = BigInt(req.user.id);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
     
@@ -61,13 +61,21 @@ export const getDashboard = async (req, res) => {
       orderBy: [{ fecha: 'asc' }, { hora: 'asc' }]
     });
 
-    // Siguiente paciente (PRÓXIMO TURNO CRONOLÓGICAMENTE, sin importar fecha)
-    const ahora = new Date();
-    const siguientePacienteQuery = await prisma.turno.findFirst({
+    // Siguiente paciente - Prioridad: PENDIENTE/CONFIRMADO primero, luego EN_CONSULTA
+    // Si hay un turno EN_CONSULTA, NO lo mostrar como "próximo", mostrar el siguiente
+    let siguientePaciente = null;
+
+    // 1️⃣ Buscar primero un turno PENDIENTE o CONFIRMADO (el que viene después de los que están siendo atendidos)
+    const siguientePendienteQuery = await prisma.turno.findFirst({
       where: {
         medico_id: medicoId,
         fecha: {
           gte: hoy
+        },
+        estado: {
+          nombre: {
+            in: ['PENDIENTE', 'CONFIRMADO']
+          }
         }
       },
       include: {
@@ -96,8 +104,50 @@ export const getDashboard = async (req, res) => {
       take: 1
     });
 
-    // Filtrar siguiente paciente: solo estados PENDIENTE, CONFIRMADO, EN_CONSULTA
-    const siguientePaciente = siguientePacienteQuery && ['PENDIENTE', 'CONFIRMADO', 'EN_CONSULTA'].includes(siguientePacienteQuery.estado.nombre) ? siguientePacienteQuery : null;
+    // 2️⃣ Si no hay PENDIENTE/CONFIRMADO, mostrar el que está EN_CONSULTA
+    if (siguientePendienteQuery) {
+      siguientePaciente = siguientePendienteQuery;
+    } else {
+      const siguienteEnConsultaQuery = await prisma.turno.findFirst({
+        where: {
+          medico_id: medicoId,
+          fecha: {
+            gte: hoy
+          },
+          estado: {
+            nombre: 'EN_CONSULTA'
+          }
+        },
+        include: {
+          paciente: {
+            include: {
+              persona: {
+                select: {
+                  nombre: true,
+                  apellido: true,
+                  dni: true,
+                  telefono: true,
+                  fecha_nacimiento: true
+                }
+              }
+            }
+          },
+          estado: {
+            select: {
+              id: true,
+              nombre: true,
+              descripcion: true
+            }
+          }
+        },
+        orderBy: [{ fecha: 'asc' }, { hora: 'asc' }],
+        take: 1
+      });
+
+      if (siguienteEnConsultaQuery) {
+        siguientePaciente = siguienteEnConsultaQuery;
+      }
+    }
 
     // Función para calcular edad
     const calcularEdad = (fechaNacimiento) => {
@@ -186,7 +236,7 @@ export const getDashboard = async (req, res) => {
 export const getHistoriaClinica = async (req, res) => {
   try {
     const { pacienteId } = req.params;
-    const doctorId = BigInt(req.usuario.id);
+    const doctorId = BigInt(req.user.id);
 
     const paciente = await prisma.paciente.findUnique({
       where: { id: BigInt(pacienteId) },
@@ -201,13 +251,20 @@ export const getHistoriaClinica = async (req, res) => {
         },
         historias_clinicas: {
           include: {
-            estudios_adjuntos: true,
-            signos_vitales: {
-              orderBy: { created_at: 'desc' }
-            },
-            turno: true
+            documentos: true,
+            antecedentes: true,
+            consultas: {
+              include: {
+                signos_vitales: {
+                  orderBy: { fecha_registro: 'desc' }
+                },
+                diagnosticos: true,
+                estudios: true
+              },
+              orderBy: { fecha: 'desc' }
+            }
           },
-          orderBy: { fecha: 'desc' }
+          orderBy: { fecha_apertura: 'desc' }
         }
       }
     });
@@ -232,6 +289,13 @@ export const getHistoriaClinica = async (req, res) => {
 
     // Obtener la historia clínica más reciente
     const historiaReciente = paciente.historias_clinicas[0] || null;
+    
+    // Obtener antecedentes de tipo PERSONAL de la historia
+    const antecedentePersonal = historiaReciente?.antecedentes?.find(a => a.tipo === 'PERSONAL');
+    
+    // Obtener las consultas más recientes de la historia actual
+    const consultasRecientes = historiaReciente?.consultas || [];
+    const consultaReciente = consultasRecientes[0] || null;
 
     return res.status(200).json({
       success: true,
@@ -252,25 +316,26 @@ export const getHistoriaClinica = async (req, res) => {
         },
         historia_actual: historiaReciente ? {
           id: historiaReciente.id,
-          fecha: historiaReciente.fecha,
-          motivo_consulta: historiaReciente.motivo_consulta,
-          anamnesis: historiaReciente.anamnesis,
-          antecedentes_patologicos_personales: historiaReciente.antecedentes_patologicos_personales,
-          antecedentes_patologicos_familiares: historiaReciente.antecedentes_patologicos_familiares,
-          antecedentes_quirurgicos: historiaReciente.antecedentes_quirurgicos,
-          habitos: historiaReciente.habitos,
-          examen_fisico: historiaReciente.examen_fisico,
-          diagnostico_principal: historiaReciente.diagnostico_principal,
-          diagnosticos_secundarios: historiaReciente.diagnosticos_secundarios ? 
-            JSON.parse(historiaReciente.diagnosticos_secundarios) : [],
-          impresion_clinica: historiaReciente.impresion_clinica,
-          tratamiento: historiaReciente.tratamiento ? 
-            JSON.parse(historiaReciente.tratamiento) : [],
-          observaciones: historiaReciente.observaciones,
-          signos_vitales: historiaReciente.signos_vitales,
-          estudios_adjuntos: historiaReciente.estudios_adjuntos
+          fecha_apertura: historiaReciente.fecha_apertura,
+          antecedentes: antecedentePersonal?.descripcion || '',
+          documentos: historiaReciente.documentos,
+          consulta_mas_reciente: consultaReciente ? {
+            id: consultaReciente.id,
+            fecha: consultaReciente.fecha,
+            motivo_consulta: consultaReciente.motivo_consulta,
+            resumen: consultaReciente.resumen,
+            anamnesis: consultaReciente.anamnesis?.enfermedad_actual,
+            diagnosticos: consultaReciente.diagnosticos || [],
+            signos_vitales: consultaReciente.signos_vitales || [],
+            estudios: consultaReciente.estudios || []
+          } : null,
+          todas_consultas: consultasRecientes.length
         } : null,
-        historial: paciente.historias_clinicas
+        historial_completo: paciente.historias_clinicas.map(h => ({
+          id: h.id,
+          fecha_apertura: h.fecha_apertura,
+          total_consultas: h.consultas?.length || 0
+        }))
       }
     });
   } catch (error) {
@@ -289,7 +354,7 @@ export const getHistoriaClinica = async (req, res) => {
 export const iniciarConsulta = async (req, res) => {
   try {
     const { turnoId } = req.body;
-    const doctorId = BigInt(req.usuario.id);
+    const doctorId = BigInt(req.user.id);
 
     const turno = await prisma.turno.update({
       where: { id: BigInt(turnoId) },
@@ -343,7 +408,7 @@ export const finalizarConsulta = async (req, res) => {
       signos_vitales
     } = req.body;
 
-    const doctorId = BigInt(req.usuario.id);
+    const doctorId = BigInt(req.user.id);
 
     // Actualizar turno a "atendido"
     await prisma.turno.update({
@@ -403,7 +468,16 @@ export const registrarSignosVitales = async (req, res) => {
       observaciones
     } = req.body;
 
-    console.log('📊 Datos recibidos:', req.body);
+    console.log('📊 Datos recibidos en registrarSignosVitales:');
+    console.log('   - historia_clinica_id:', historia_clinica_id, typeof historia_clinica_id);
+    console.log('   - peso:', peso, typeof peso);
+    console.log('   - talla:', talla, typeof talla);
+    console.log('   - presion_sistolica:', presion_sistolica, typeof presion_sistolica);
+    console.log('   - presion_diastolica:', presion_diastolica, typeof presion_diastolica);
+    console.log('   - frecuencia_cardiaca:', frecuencia_cardiaca, typeof frecuencia_cardiaca);
+    console.log('   - temperatura:', temperatura, typeof temperatura);
+    console.log('   - glucemia:', glucemia, typeof glucemia);
+    console.log('   - req.body completo:', req.body);
 
     // Validar que exista historia_clinica_id
     if (!historia_clinica_id) {
@@ -421,6 +495,17 @@ export const registrarSignosVitales = async (req, res) => {
     const frec_cardiaca = frecuencia_cardiaca ? parseInt(frecuencia_cardiaca) : null;
     const temp = temperatura ? parseFloat(temperatura) : null;
     const glucem = glucemia ? parseInt(glucemia) : null;
+
+    // Validar que al menos un campo tenga contenido
+    const tieneContenido = peso_kg || talla_cm || presion_sist || presion_diast || frec_cardiaca || temp || glucem || circunferencia_abdominal;
+    
+    if (!tieneContenido) {
+      console.log('⚠️ Advertencia: Se intentó guardar signos vitales sin datos');
+      return res.status(400).json({
+        error: 'Bad request',
+        message: 'Debes proporcionar al menos un dato de signos vitales'
+      });
+    }
 
     // Calcular IMC si hay peso y talla
     let imc = null;
@@ -441,9 +526,43 @@ export const registrarSignosVitales = async (req, res) => {
       glucemia_mg_dl: glucem
     });
 
-    // Verificar si ya existen signos vitales para esta historia
+    // PASO 1: Obtener o crear ConsultaMedica para esta Historia Clínica
+    let consulta = await prisma.consultaMedica.findFirst({
+      where: { historia_clinica_id: BigInt(historia_clinica_id) },
+      orderBy: { fecha: 'desc' }
+    });
+
+    if (!consulta) {
+      console.log('📋 Creando ConsultaMedica para Historia...');
+      // Obtener la Historia para saber el medico
+      const historia = await prisma.historiaClinica.findUnique({
+        where: { id: BigInt(historia_clinica_id) }
+      });
+
+      if (!historia) {
+        return res.status(404).json({
+          error: 'Not found',
+          message: 'Historia clínica no encontrada'
+        });
+      }
+
+      // Crear una ConsultaMedica
+      consulta = await prisma.consultaMedica.create({
+        data: {
+          historia_clinica_id: BigInt(historia_clinica_id),
+          medico_id: historia.medico_id,
+          fecha: new Date(),
+          motivo_consulta: 'Consulta de registro de signos vitales',
+          resumen: 'Registro de signos vitales durante la consulta',
+          estado_id: BigInt(2) // EN_CONSULTA
+        }
+      });
+      console.log('✅ ConsultaMedica creada:', consulta.id);
+    }
+
+    // PASO 2: Verificar si ya existen signos vitales para esta consulta
     const signoExistente = await prisma.signoVital.findFirst({
-      where: { historia_clinica_id: BigInt(historia_clinica_id) }
+      where: { consulta_id: consulta.id }
     });
 
     let signosVitales;
@@ -452,15 +571,15 @@ export const registrarSignosVitales = async (req, res) => {
       signosVitales = await prisma.signoVital.update({
         where: { id: signoExistente.id },
         data: {
-          peso_kg,
-          talla_cm,
-          imc,
-          presion_sistolica: presion_sist,
-          presion_diastolica: presion_diast,
-          frecuencia_cardiaca: frec_cardiaca,
-          temperatura_c: temp,
-          glucemia_mg_dl: glucem,
-          circunferencia_abd_cm: circunferencia_abdominal ? parseFloat(circunferencia_abdominal) : null
+          peso_kg: peso_kg !== null ? peso_kg : signoExistente.peso_kg,
+          talla_cm: talla_cm !== null ? talla_cm : signoExistente.talla_cm,
+          imc: imc !== null ? imc : signoExistente.imc,
+          presion_sistolica: presion_sist !== null ? presion_sist : signoExistente.presion_sistolica,
+          presion_diastolica: presion_diast !== null ? presion_diast : signoExistente.presion_diastolica,
+          frecuencia_cardiaca: frec_cardiaca !== null ? frec_cardiaca : signoExistente.frecuencia_cardiaca,
+          temperatura_c: temp !== null ? temp : signoExistente.temperatura_c,
+          glucemia_mg_dl: glucem !== null ? glucem : signoExistente.glucemia_mg_dl,
+          circunferencia_abd_cm: circunferencia_abdominal ? parseFloat(circunferencia_abdominal) : signoExistente.circunferencia_abd_cm
         }
       });
     } else {
@@ -468,7 +587,7 @@ export const registrarSignosVitales = async (req, res) => {
       // Guardar signos vitales en base de datos
       signosVitales = await prisma.signoVital.create({
         data: {
-          historia_clinica_id: BigInt(historia_clinica_id),
+          consulta_id: consulta.id,
           peso_kg,
           talla_cm,
           imc,
@@ -504,6 +623,219 @@ export const registrarSignosVitales = async (req, res) => {
       error: 'Internal server error',
       message: 'Error al registrar signos vitales',
       details: error.message
+    });
+  }
+};
+
+/**
+ * PUT /api/doctor/consulta/actualizar
+ * Actualizar datos de CONSULTA_MEDICA (motivo, resumen, anamnesis)
+ * Si no existe CONSULTA, la crea automáticamente
+ * Esta es la función correcta para guardar datos de consulta, NO en historia_clinica
+ */
+export const actualizarConsultaMedica = async (req, res) => {
+  try {
+    const {
+      historia_clinica_id,
+      motivo_consulta,
+      resumen,
+      anamnesis_texto,
+      antecedentes
+    } = req.body;
+
+    console.log('📝 actualizarConsultaMedica() - Datos recibidos:');
+    console.log('   historia_clinica_id:', historia_clinica_id);
+    console.log('   motivo_consulta:', motivo_consulta);
+    console.log('   resumen:', resumen);
+    console.log('   anamnesis_texto:', anamnesis_texto);
+    console.log('   antecedentes:', antecedentes);
+
+    if (!historia_clinica_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'historia_clinica_id es requerido'
+      });
+    }
+
+    // 1️⃣ Obtener la ÚLTIMA CONSULTA de esta historia clínica
+    let consultaActual = await prisma.consultaMedica.findFirst({
+      where: {
+        historia_clinica_id: BigInt(historia_clinica_id)
+      },
+      orderBy: {
+        fecha: 'desc'
+      }
+    });
+
+    // 2️⃣ Si NO existe, CREAR una nueva CONSULTA_MEDICA
+    if (!consultaActual) {
+      console.log('⚠️ No hay consulta para esta historia. Creando nueva consulta...');
+      
+      // Obtener la historia para obtener el medico_id
+      const historia = await prisma.historiaClinica.findUnique({
+        where: { id: BigInt(historia_clinica_id) }
+      });
+
+      if (!historia) {
+        return res.status(404).json({
+          success: false,
+          message: 'Historia clínica no encontrada'
+        });
+      }
+
+      // Crear nueva CONSULTA_MEDICA
+      consultaActual = await prisma.consultaMedica.create({
+        data: {
+          historia_clinica_id: BigInt(historia_clinica_id),
+          medico_id: historia.creada_por_medico_id,
+          motivo_consulta: motivo_consulta || 'Consulta sin motivo especificado',
+          resumen: resumen || '',
+          fecha: new Date()
+        }
+      });
+      console.log('✅ Nueva ConsultaMedica creada:', consultaActual.id);
+    } else {
+      // 3️⃣ Si SÍ existe, ACTUALIZAR la CONSULTA_MEDICA
+      consultaActual = await prisma.consultaMedica.update({
+        where: { id: consultaActual.id },
+        data: {
+          ...(motivo_consulta && { motivo_consulta }),
+          ...(resumen && { resumen }),
+          fecha: new Date()
+        }
+      });
+      console.log('✅ ConsultaMedica actualizada:', consultaActual.id);
+    }
+
+    // 4️⃣ Si hay anamnesis, actualizar o crear el registro
+    if (anamnesis_texto) {
+      const anamnesisExistente = await prisma.anamnesis.findFirst({
+        where: { consulta_id: consultaActual.id }
+      });
+
+      if (anamnesisExistente) {
+        await prisma.anamnesis.update({
+          where: { id: anamnesisExistente.id },
+          data: {
+            enfermedad_actual: anamnesis_texto
+          }
+        });
+        console.log('✅ Anamnesis actualizada');
+      } else {
+        await prisma.anamnesis.create({
+          data: {
+            consulta_id: consultaActual.id,
+            enfermedad_actual: anamnesis_texto
+          }
+        });
+        console.log('✅ Anamnesis creada');
+      }
+    }
+
+    // 5️⃣ Si hay antecedentes, crear/actualizar en tabla ANTECEDENTE
+    if (antecedentes) {
+      // Buscar si existe un antecedente de tipo PERSONAL
+      const antecedenteExistente = await prisma.antecedente.findFirst({
+        where: {
+          historia_clinica_id: BigInt(historia_clinica_id),
+          tipo: 'PERSONAL'
+        }
+      });
+
+      if (antecedenteExistente) {
+        // Actualizar existente
+        await prisma.antecedente.update({
+          where: { id: antecedenteExistente.id },
+          data: {
+            descripcion: antecedentes
+          }
+        });
+        console.log('✅ Antecedentes actualizado');
+      } else {
+        // Crear nuevo
+        await prisma.antecedente.create({
+          data: {
+            historia_clinica_id: BigInt(historia_clinica_id),
+            tipo: 'PERSONAL',
+            descripcion: antecedentes
+          }
+        });
+        console.log('✅ Antecedentes creado');
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Consulta médica actualizada correctamente',
+      data: {
+        id: consultaActual.id.toString(),
+        motivo_consulta: consultaActual.motivo_consulta,
+        resumen: consultaActual.resumen,
+        fecha: consultaActual.fecha
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error en actualizarConsultaMedica:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al actualizar la consulta médica',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * POST /api/doctor/estudios
+ * Crear estudio complementario para una consulta
+ */
+export const crearEstudio = async (req, res) => {
+  try {
+    const medico_id = BigInt(req.user.medicoId);
+    const {
+      historia_clinica_id,
+      tipo_estudio,
+      resultado,
+      observaciones
+    } = req.body;
+
+    if (!historia_clinica_id || !tipo_estudio) {
+      return res.status(400).json({
+        success: false,
+        message: 'Historia clínica e tipo de estudio son obligatorios'
+      });
+    }
+
+    // Crear estudio directamente ligado a la historia clínica
+    const estudio = await prisma.estudioComplementario.create({
+      data: {
+        historia_clinica_id: BigInt(historia_clinica_id),
+        tipo_estudio,
+        resultado: resultado || null,
+        observaciones: observaciones || null,
+        medico_id,
+        fecha_estudio: new Date()
+      }
+    });
+
+    console.log('✅ Estudio complementario creado:', estudio.id);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Estudio registrado correctamente',
+      data: {
+        id: estudio.id.toString(),
+        tipo_estudio: estudio.tipo_estudio,
+        resultado: estudio.resultado,
+        observaciones: estudio.observaciones,
+        fecha_estudio: estudio.fecha_estudio
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error al crear estudio:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al registrar estudio',
+      error: error.message
     });
   }
 };
@@ -841,7 +1173,7 @@ export const getCitasTimeline = async (req, res) => {
 export const generarReceta = async (req, res) => {
   try {
     const { historia_clinica_id, paciente_nombre, medicamentos, observaciones } = req.body;
-    const doctorId = BigInt(req.usuario.id);
+    const doctorId = BigInt(req.user.id);
 
     // Obtener datos doctor
     const doctor = await prisma.usuario.findUnique({
@@ -888,7 +1220,7 @@ export const generarOrdenMedica = async (req, res) => {
       estudios_solicitados, 
       observaciones 
     } = req.body;
-    const doctorId = BigInt(req.usuario.id);
+    const doctorId = BigInt(req.user.id);
 
     const doctor = await prisma.usuario.findUnique({
       where: { id: doctorId }
@@ -935,7 +1267,7 @@ export const generarCertificado = async (req, res) => {
       dias_reposo, 
       observaciones 
     } = req.body;
-    const doctorId = BigInt(req.usuario.id);
+    const doctorId = BigInt(req.user.id);
 
     const doctor = await prisma.usuario.findUnique({
       where: { id: doctorId }
