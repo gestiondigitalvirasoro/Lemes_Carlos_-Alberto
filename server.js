@@ -3784,7 +3784,7 @@ app.get('/doctor/pacientes/:paciente_id', requireAuth, requireRole(['doctor']), 
             tipo_estudio: e.tipo_estudio || '',
             resultado: e.resultado || '',
             observaciones: e.observaciones || '',
-            fecha_estudio: e.fecha_estudio ? new Date(e.fecha_estudio).toLocaleDateString('es-ES') : ''
+            fecha_estudio: e.fecha_estudio ? new Date(e.fecha_estudio).toISOString().split('T')[0] : null
           }))
         }))
       } : null,

@@ -1057,27 +1057,26 @@
                 consulta.estudios.forEach((est, idx) => {
                     const tr = document.createElement('tr');
                     tr.setAttribute('data-estudio-idx', idx);
-                    tr.setAttribute('data-tipo', est.tipo_estudio || '');
-                    tr.setAttribute('data-resultado', est.resultado || '');
-                    tr.setAttribute('data-observaciones', est.observaciones || '');
-                    tr.setAttribute('data-fecha', est.fecha_estudio || '');
                     tr.style.borderBottom = '1px solid #f0f0f0';
-
-                    const fechaMostrar = est.fecha_estudio
-                        ? (() => {
-                            const d = new Date(est.fecha_estudio + 'T00:00:00Z');
-                            return !isNaN(d.getTime())
-                              ? d.toLocaleDateString('es-AR', {day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC'})
-                              : '-';
-                          })()
-                        : '-';
-
                     tr.innerHTML = `
-                        <td style="padding: 12px; color: #333; font-weight: 600;">${est.tipo_estudio || '-'}</td>
+                        <td style="padding: 12px; color: #333; font-weight: 600;">${est.tipo_estudio || est.parametro || est.nombre || '-'}</td>
                         <td style="padding: 12px; color: #e74c3c; font-weight: 600; font-size: 14px;">${est.resultado || '-'}</td>
                         <td style="padding: 12px; color: #666;">${est.observaciones || '-'}</td>
-                        <td style="padding: 12px; color: #999; font-size: 13px;">${fechaMostrar}</td>
-                        <td style="padding: 12px; display: none;" class="estudio-accion-td"></td>
+                        <td style="padding: 12px; color: #999; font-size: 13px;">
+                            ${ 
+                              est.fecha_formateada && est.fecha_formateada !== '-' 
+                                ? est.fecha_formateada 
+                                : (est.fecha_estudio 
+                                    ? (() => {
+                                        const d = new Date(est.fecha_estudio + 'T00:00:00Z');
+                                        return !isNaN(d.getTime()) 
+                                          ? d.toLocaleDateString('es-AR', {day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC'})
+                                          : '-';
+                                      })()
+                                    : '-')
+                            }
+                        </td>
+                        <td style="padding: 12px; display: none;"></td>
                     `;
                     estudiosBody.appendChild(tr);
                 });
@@ -1275,24 +1274,27 @@
                         
                         for (let i = 0; i < 4; i++) {
                             const celda = celdas[i];
-                            const valor = (valores[i] && valores[i] !== '-') ? valores[i] : '';
-
-                            const input = document.createElement('input');
-                            input.type = (i === 3) ? 'date' : 'text';
-
-                            if (i === 3) {
-                                input.value = valor ? convertirFechaToInput(valor) : '';
-                            } else {
-                                input.value = valor;
+                            const valor = valores[i];
+                            
+                            if (valor && valor !== '-') {
+                                const input = document.createElement('input');
+                                input.type = (i === 3) ? 'date' : 'text';
+                                
+                                // Convertir fecha a formato input (YYYY-MM-DD)
+                                if (i === 3 && valor) {
+                                    input.value = convertirFechaToInput(valor);
+                                } else {
+                                    input.value = valor;
+                                }
+                                
+                                input.className = (i === 0) ? 'estudio-tipo' : 
+                                                 (i === 1) ? 'estudio-resultado' : 
+                                                 (i === 2) ? 'estudio-observaciones' : 'estudio-fecha';
+                                input.style.cssText = 'width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;';
+                                
+                                celda.innerHTML = '';
+                                celda.appendChild(input);
                             }
-
-                            input.className = (i === 0) ? 'estudio-tipo' :
-                                             (i === 1) ? 'estudio-resultado' :
-                                             (i === 2) ? 'estudio-observaciones' : 'estudio-fecha';
-                            input.style.cssText = 'width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;';
-
-                            celda.innerHTML = '';
-                            celda.appendChild(input);
                         }
                     }
                     
