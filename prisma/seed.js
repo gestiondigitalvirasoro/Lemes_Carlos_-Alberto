@@ -40,7 +40,7 @@ async function main() {
   // ============================================================
   
   const medicosData = [
-    { email: 'doctor@lemes.com', password: 'doctor123', nombre: 'Carlos', apellido: 'Lemes Alberto', role: 'doctor', especialidad: 'Medicina General y Familiar', subespecialidad: 'Especialista en Endocrinología', telefono: '1234567890' }
+    { email: 'doctor@lemes.local', password: '12345', nombre: 'Carlos', apellido: 'Lemes Alberto', role: 'doctor', especialidad: 'Medicina General y Familiar', subespecialidad: 'Especialista en Endocrinología', telefono: '1234567890' }
   ];
 
   const medicos = [];

@@ -65,7 +65,7 @@ export const getDashboard = async (req, res) => {
     // Si hay un turno EN_CONSULTA, NO lo mostrar como "próximo", mostrar el siguiente
     let siguientePaciente = null;
 
-    // 1️⃣ Buscar primero un turno PENDIENTE o CONFIRMADO (el que viene después de los que están siendo atendidos)
+    // 1️⃣ Buscar primero un turno CONFIRMADO (el que viene después de los que están siendo atendidos)
     const siguientePendienteQuery = await prisma.turno.findFirst({
       where: {
         medico_id: medicoId,
@@ -73,9 +73,7 @@ export const getDashboard = async (req, res) => {
           gte: hoy
         },
         estado: {
-          nombre: {
-            in: ['PENDIENTE', 'CONFIRMADO']
-          }
+          nombre: 'CONFIRMADO'
         }
       },
       include: {

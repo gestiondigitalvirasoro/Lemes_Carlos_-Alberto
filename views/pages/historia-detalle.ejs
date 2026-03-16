@@ -244,6 +244,53 @@
             box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
         }
 
+        /* ===== LOADING SPINNER ===== */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-box {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            color: #333;
+            font-weight: 600;
+        }
+
         .form-group input:disabled,
         .form-group textarea:disabled {
             background: #f5f5f5;
@@ -386,6 +433,14 @@
     </style>
 </head>
 <body>
+    <!-- LOADING OVERLAY -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-box">
+            <div class="spinner"></div>
+            <div class="loading-text">Guardando cambios...</div>
+        </div>
+    </div>
+
     <div class="historia-container">
         <!-- SIDEBAR -->
         <aside class="sidebar">
@@ -577,7 +632,7 @@
                 </section>
 
                 <!-- ANAMNESIS -->
-                <section class="section" id="anamnesis">
+                <section class="section" id="sectionAnamnesis">
                     <div class="section-header">
                         <i class="bi bi-chat-dots"></i>
                         <h3>Anamnesis</h3>
@@ -585,17 +640,18 @@
                     <div class="section-body">
                         <div class="form-group">
                             <label for="motivoConsulta">Motivo de Consulta</label>
-                            <textarea id="motivoConsulta" rows="4" readonly><%= historia?.motivo_consulta || '' %></textarea>
+                            <textarea id="motivoConsulta" rows="4"><%= historia?.motivo_consulta || '' %></textarea>
                         </div>
                         <div class="form-group">
                             <label for="anamnesis">Enfermedad Actual</label>
-                            <textarea id="anamnesis" rows="6" readonly><%= historia?.anamnesis || '' %></textarea>
+                            <textarea id="anamnesis" rows="6"><%= historia?.anamnesis || '' %></textarea>
                         </div>
                     </div>
                 </section>
 
                 <!-- ANTECEDENTES -->
-                <section class="section" id="antecedentes">
+                <!-- ANTECEDENTES -->
+                <section class="section" id="sectionAntecedentes">
                     <div class="section-header">
                         <i class="bi bi-book"></i>
                         <h3>Antecedentes Patológicos</h3>
@@ -603,7 +659,7 @@
                     <div class="section-body">
                         <div class="form-group">
                             <label for="antecedentes">Antecedentes Personales y Familiares</label>
-                            <textarea id="antecedentes" rows="6" readonly><%= historia?.antecedentes || '' %></textarea>
+                            <textarea id="antecedentes" rows="6"><%= historia?.antecedentes || '' %></textarea>
                         </div>
                     </div>
                 </section>
@@ -698,7 +754,7 @@
                     <div class="section-body">
                         <div class="form-group">
                             <label for="impresion">Valoración Médica y Conclusiones</label>
-                            <textarea id="impresion" rows="8" readonly><%= historia?.impresion_clinica || '' %></textarea>
+                            <textarea id="impresion" rows="8"><%= historia?.consultas?.[0]?.resumen || '' %></textarea>
                         </div>
                     </div>
                 </section>
@@ -766,18 +822,25 @@
                                         <th style="color: #666; font-weight: 700; padding: 12px;">RESULTADO</th>
                                         <th style="color: #666; font-weight: 700; padding: 12px;">OBSERVACIONES</th>
                                         <th style="color: #666; font-weight: 700; padding: 12px;">FECHA</th>
-                                        <th style="color: #666; font-weight: 700; padding: 12px; width: 50px;" id="estudiosAccionesHeader" style="display: none;">ACCIÓN</th>
+                                        <th id="estudiosAccionesHeader" style="color: #666; font-weight: 700; padding: 12px; width: 80px; display: none;">ACCIÓN</th>
                                     </tr>
                                 </thead>
                                 <tbody id="estudiosTableBody">
                                     <% if (historia && historia.consultas && historia.consultas.length > 0 && historia.consultas[0].estudios?.length > 0) { %>
                                         <% historia.consultas[0].estudios?.forEach((est, idx) => { %>
-                                            <tr data-estudio-idx="<%= idx %>" style="border-bottom: 1px solid #f0f0f0;">
-                                                <td style="padding: 12px; color: #333; font-weight: 600;"><%= est.tipo_estudio || est.parametro || est.nombre || '-' %></td>
+                                            <tr data-estudio-idx="<%= idx %>" 
+                                                data-tipo="<%= est.tipo_estudio || '' %>"
+                                                data-resultado="<%= est.resultado || '' %>"
+                                                data-observaciones="<%= est.observaciones || '' %>"
+                                                data-fecha="<%= est.fecha_estudio || '' %>"
+                                                style="border-bottom: 1px solid #f0f0f0;">
+                                                <td style="padding: 12px; color: #333; font-weight: 600;"><%= est.tipo_estudio || '-' %></td>
                                                 <td style="padding: 12px; color: #e74c3c; font-weight: 600; font-size: 14px;"><%= est.resultado || '-' %></td>
                                                 <td style="padding: 12px; color: #666;"><%= est.observaciones || '-' %></td>
-                                                <td style="padding: 12px; color: #999; font-size: 13px;"><%= est.fecha_estudio ? new Date(est.fecha_estudio).toLocaleDateString('es-AR') : '-' %></td>
-                                                <td style="padding: 12px; display: none;"></td>
+                                                <td style="padding: 12px; color: #999; font-size: 13px;">
+                                                  <%= est.fecha_formateada || '-' %>
+                                                </td>
+                                                <td style="padding: 12px; display: none;" class="estudio-accion-td"></td>
                                             </tr>
                                         <% }); %>
                                     <% } %>
@@ -876,58 +939,121 @@
         const pacienteId = '<%= paciente?.id || "" %>';
         let modoEdicion = false;
         let consultaActualIdx = 0;
+        
+        console.log('📖 Historia cargada:', {
+          id: historiaId,
+          consultasCount: historiaData.consultas?.length || 0,
+          consultas: historiaData.consultas?.map(c => ({ id: c.id, estado: c.estado_id, fecha: c.fecha }))
+        });
+
+        // Si hay consultas, usar la primera; si no, crear un mock para nueva consulta
+        let currentConsultaId = null;
+        if (historiaData.consultas && historiaData.consultas.length > 0) {
+          currentConsultaId = historiaData.consultas[0].id;
+          console.log('✅ Usando consulta existente:', currentConsultaId);
+        } else {
+          console.log('📝 Sin consultas - será una nueva');
+        }
 
         function cambiarConsulta(idx) {
             consultaActualIdx = parseInt(idx);
             const consulta = historiaData.consultas?.[consultaActualIdx];
             
-            if (!consulta) return;
+            if (!consulta) {
+              console.log('⚠️ No hay consulta en índice:', consultaActualIdx);
+              // Limpiar formulario si no hay consultas
+              const fecha = document.getElementById('consultaFecha');
+              if (fecha) fecha.textContent = 'Nueva consulta';
+              
+              const motivo = document.getElementById('consultaMotivo');
+              if (motivo) motivo.textContent = '-';
+              
+              const medico = document.getElementById('consultaMedico');
+              if (medico) medico.textContent = '-';
+              
+              // Limpiar signos vitales
+              ['presionSistolica', 'presionDiastolica', 'frecuenciaCardiaca', 'temperatura', 'peso', 'talla'].forEach(id => {
+                const elem = document.getElementById(id);
+                if (elem) elem.value = '';
+              });
+              
+              // Limpiar anamnesis
+              const motConsulta = document.getElementById('motivoConsulta');
+              if (motConsulta) motConsulta.value = '';
+              
+              const anamnesis = document.getElementById('anamnesis');
+              if (anamnesis) anamnesis.value = '';
+              
+              return;
+            }
             
             // Actualizar información mostrada
-            document.getElementById('consultaFecha').textContent = consulta.fecha || '-';
-            document.getElementById('consultaMotivo').textContent = consulta.motivo_consulta || 'Sin especificar';
-            document.getElementById('consultaMedico').textContent = consulta.medico || 'Sin médico asignado';
+            const fechaElem = document.getElementById('consultaFecha');
+            if (fechaElem) fechaElem.textContent = consulta.fecha || '-';
             
-            // Actualizar Signos Vitales
-            document.getElementById('presionSistolica').value = consulta.signos_vitales?.presion_sistolica || '';
-            document.getElementById('presionDiastolica').value = consulta.signos_vitales?.presion_diastolica || '';
-            document.getElementById('frecuenciaCardiaca').value = consulta.signos_vitales?.frecuencia_cardiaca || '';
-            document.getElementById('temperatura').value = consulta.signos_vitales?.temperatura_c || '';
-            document.getElementById('peso').value = consulta.signos_vitales?.peso_kg || '';
-            document.getElementById('talla').value = consulta.signos_vitales?.talla_cm || '';
+            const motivoElem = document.getElementById('consultaMotivo');
+            if (motivoElem) motivoElem.textContent = consulta.motivo_consulta || 'Sin especificar';
             
-            // Actualizar Anamnesis
-            document.getElementById('motivoConsulta').value = consulta.motivo_consulta || '';
-            document.getElementById('anamnesis').value = consulta.anamnesis || '';
+            const medicoElem = document.getElementById('consultaMedico');
+            if (medicoElem) medicoElem.textContent = consulta.medico || 'Sin médico asignado';
             
-            // Actualizar Impresión
-            document.getElementById('impresion').value = consulta.impresion_clinica || '';
+            // Actualizar Signos Vitales (signos_vitales es un ARRAY)
+            const signosVitales = consulta.signos_vitales?.[0];
+            const presionSist = document.getElementById('presionSistolica');
+            if (presionSist) presionSist.value = signosVitales?.presion_sistolica || '';
+            
+            const presionDias = document.getElementById('presionDiastolica');
+            if (presionDias) presionDias.value = signosVitales?.presion_diastolica || '';
+            
+            const frecCard = document.getElementById('frecuenciaCardiaca');
+            if (frecCard) frecCard.value = signosVitales?.frecuencia_cardiaca || '';
+            
+            const temp = document.getElementById('temperatura');
+            if (temp) temp.value = signosVitales?.temperatura_c || '';
+            
+            const peso = document.getElementById('peso');
+            if (peso) peso.value = signosVitales?.peso_kg || '';
+            
+            const talla = document.getElementById('talla');
+            if (talla) talla.value = signosVitales?.talla_cm || '';
+            
+            // Actualizar Anamnesis (Enfermedad Actual)
+            const motConsulta = document.getElementById('motivoConsulta');
+            if (motConsulta) motConsulta.value = consulta.motivo_consulta || '';
+            
+            const anamnesisElem = document.getElementById('anamnesis');
+            if (anamnesisElem) anamnesisElem.value = consulta.anamnesis || '';
             
             // Actualizar Diagnósticos
             diagnosticosSeleccionados = consulta.diagnosticos || [];
             const diagContainer = document.getElementById('diagnosticosContainer');
-            diagContainer.innerHTML = '';
-            diagnosticosSeleccionados.forEach(d => {
+            if (diagContainer) {
+              diagContainer.innerHTML = '';
+              diagnosticosSeleccionados.forEach(d => {
                 const div = document.createElement('div');
                 div.className = 'diagnostic-card';
-                div.dataset.codigo = d.codigo;
+                div.dataset.codigo = d.codigo_cie10;
                 div.innerHTML = `
                     <div>
-                        <strong>${d.codigo}</strong>
+                        <strong>${d.codigo_cie10}</strong>
                         <p>${d.descripcion}</p>
                     </div>
-                    <button class="btn-remove" onclick="removeDiagnostico('${d.codigo}')" style="display: inline-block;">
+                    <button class="btn-remove" onclick="removeDiagnostico('${d.codigo_cie10}')" style="display: inline-block;">
                         <i class="bi bi-trash"></i>
                     </button>
                 `;
                 diagContainer.appendChild(div);
-            });
-            document.getElementById('diagnosticosCount').textContent = diagnosticosSeleccionados.length;
+              });
+            }
+            
+            const diagCount = document.getElementById('diagnosticosCount');
+            if (diagCount) diagCount.textContent = diagnosticosSeleccionados.length;
             
             // Actualizar Estudios
             const estudiosBody = document.getElementById('estudiosTableBody');
-            estudiosBody.innerHTML = '';
-            if (consulta.estudios?.length > 0) {
+            if (estudiosBody) {
+              estudiosBody.innerHTML = '';
+              if (consulta.estudios?.length > 0) {
                 consulta.estudios.forEach((est, idx) => {
                     const tr = document.createElement('tr');
                     tr.setAttribute('data-estudio-idx', idx);
@@ -936,18 +1062,152 @@
                         <td style="padding: 12px; color: #333; font-weight: 600;">${est.tipo_estudio || est.parametro || est.nombre || '-'}</td>
                         <td style="padding: 12px; color: #e74c3c; font-weight: 600; font-size: 14px;">${est.resultado || '-'}</td>
                         <td style="padding: 12px; color: #666;">${est.observaciones || '-'}</td>
-                        <td style="padding: 12px; color: #999; font-size: 13px;">${est.fecha_estudio ? new Date(est.fecha_estudio).toLocaleDateString('es-AR') : '-'}</td>
+                        <td style="padding: 12px; color: #999; font-size: 13px;">
+                            ${ 
+                              est.fecha_formateada && est.fecha_formateada !== '-' 
+                                ? est.fecha_formateada 
+                                : (est.fecha_estudio 
+                                    ? (() => {
+                                        const d = new Date(est.fecha_estudio + 'T00:00:00Z');
+                                        return !isNaN(d.getTime()) 
+                                          ? d.toLocaleDateString('es-AR', {day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC'})
+                                          : '-';
+                                      })()
+                                    : '-')
+                            }
+                        </td>
                         <td style="padding: 12px; display: none;"></td>
                     `;
                     estudiosBody.appendChild(tr);
                 });
                 const emptyDiv = document.getElementById('estudiosEmpty');
                 if (emptyDiv) emptyDiv.style.display = 'none';
-            } else {
+              } else {
                 const emptyDiv = document.getElementById('estudiosEmpty');
                 if (emptyDiv) emptyDiv.style.display = 'block';
+              }
             }
-            document.getElementById('estudiosCount').textContent = consulta.estudios?.length || 0;
+            
+            const estCount = document.getElementById('estudiosCount');
+            if (estCount) estCount.textContent = consulta.estudios?.length || 0;
+            
+            // Actualizar Antecedentes (viene como string directo del backend)
+            const anteElem = document.getElementById('antecedentes');
+            console.log('🔍 DEBUG antecedentes:', {
+              hasElement: !!anteElem,
+              antecedentesData: historiaData.antecedentes,
+              type: typeof historiaData.antecedentes
+            });
+            if (anteElem && historiaData.antecedentes) {
+              anteElem.value = historiaData.antecedentes || '';
+              console.log('✅ Antecedente cargado:', historiaData.antecedentes);
+            } else {
+              console.log('⚠️ No hay antecedentes para mostrar');
+            }
+            
+            // Actualizar Impresión Diagnóstica (Valoración Médica)
+            const impresionElem = document.getElementById('impresion');
+            if (impresionElem && consulta?.resumen) {
+              impresionElem.value = consulta.resumen || '';
+              console.log('✅ Impresión Diagnóstica cargada:', consulta.resumen);
+            } else if (impresionElem) {
+              impresionElem.value = '';
+            }
+            
+            // Actualizar Archivos Adjuntos (viene como array directo del backend)
+            const adjContainer = document.getElementById('adjuntosContainer');
+            console.log('🔍 DEBUG documentos:', {
+              hasElement: !!adjContainer,
+              documentosData: historiaData.documentos,
+              documentosLength: historiaData.documentos?.length
+            });
+            if (adjContainer && historiaData.documentos && historiaData.documentos.length > 0) {
+              console.log('📄 Documentos encontrados:', historiaData.documentos);
+              adjContainer.innerHTML = '';
+              adjContainer.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; padding: 20px 10px;';
+              
+              historiaData.documentos.forEach(adj => {
+                const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].some(ext => adj.nombre_archivo.toLowerCase().includes(ext));
+                const isPdf = adj.nombre_archivo.toLowerCase().includes('pdf');
+                
+                const div = document.createElement('div');
+                div.style.cssText = `
+                  position: relative;
+                  border-radius: 12px;
+                  overflow: hidden;
+                  background: white;
+                  border: 1px solid #e0e0e0;
+                  transition: all 0.3s ease;
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                  display: flex;
+                  flex-direction: column;
+                  height: 100%;
+                `;
+                div.onmouseenter = function() {
+                  this.style.boxShadow = '0 8px 16px rgba(0,0,0,0.12)';
+                  this.style.transform = 'translateY(-4px)';
+                };
+                div.onmouseleave = function() {
+                  this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                  this.style.transform = 'translateY(0)';
+                };
+                
+                let thumbHtml = '';
+                if (isImage) {
+                  thumbHtml = `
+                    <div style="width: 100%; height: 140px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden;">
+                      <img src="${adj.url}" alt="${adj.nombre_archivo}" style="width: 100%; height: 100%; object-fit: cover;" onclick="abrirArchivoModal('${adj.url}', '${adj.nombre_archivo}')">
+                    </div>
+                  `;
+                } else if (isPdf) {
+                  thumbHtml = `
+                    <div style="width: 100%; height: 140px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 48px;">
+                      📄
+                    </div>
+                  `;
+                } else {
+                  thumbHtml = `
+                    <div style="width: 100%; height: 140px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 48px;">
+                      📎
+                    </div>
+                  `;
+                }
+                
+                div.innerHTML = thumbHtml + `
+                  <div style="flex: 1; padding: 12px; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;">
+                    <p style="font-size: 12px; font-weight: 600; margin: 0; color: #333; word-break: break-word; text-align: center; line-height: 1.3; flex: 1; display: flex; align-items: center; justify-content: center;">
+                      ${adj.nombre_archivo.length > 25 ? adj.nombre_archivo.substring(0, 22) + '...' : adj.nombre_archivo}
+                    </p>
+                    <p style="font-size: 11px; color: #999; margin: 8px 0 0 0; text-align: center;">
+                      ${adj.fecha_carga ? new Date(adj.fecha_carga).toLocaleDateString('es-AR') : 'Sin fecha'}
+                    </p>
+                  </div>
+                  <div style="background: #f8f9fa; padding: 10px; border-top: 1px solid #e0e0e0; display: flex; gap: 6px; justify-content: center;">
+                    <button class="btn btn-sm" style="padding: 6px 10px; font-size: 12px; background: #0d6efd; color: white; border: none; border-radius: 6px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; transition: background 0.2s;" 
+                      onmouseover="this.style.background='#0b5ed7'" onmouseout="this.style.background='#0d6efd'"
+                      onclick="abrirArchivoModal('${adj.url}', '${adj.nombre_archivo}')" title="Ver archivo">
+                      <i class="bi bi-eye" style="font-size: 13px;"></i> Ver
+                    </button>
+                    <button class="btn btn-sm" style="padding: 6px 10px; font-size: 12px; background: #198754; color: white; border: none; border-radius: 6px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; transition: background 0.2s;" 
+                      onmouseover="this.style.background='#157347'" onmouseout="this.style.background='#198754'"
+                      onclick="descargarArchivo('${adj.url}', '${adj.nombre_archivo}')" title="Descargar">
+                      <i class="bi bi-download" style="font-size: 13px;"></i> Desc
+                    </button>
+                    <button class="btn btn-sm" style="padding: 6px 10px; font-size: 12px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; transition: background 0.2s;" 
+                      onmouseover="this.style.background='#bb2d3b'" onmouseout="this.style.background='#dc3545'"
+                      onclick="eliminarAdjunto('${adj.id}', '${adj.nombre_archivo}')" title="Eliminar">
+                      <i class="bi bi-trash" style="font-size: 13px;"></i> Del
+                    </button>
+                  </div>
+                `;
+                adjContainer.appendChild(div);
+              });
+              console.log('✅ ' + historiaData.documentos.length + ' documentos mostrados');
+              const adjCount = document.getElementById('adjuntosCount');
+              if (adjCount) adjCount.textContent = historiaData.documentos.length;
+            } else {
+              console.log('⚠️ No documentos para mostrar');
+            }
             
             console.log('✅ Consulta #' + consultaActualIdx + ' cargada');
         }
@@ -971,8 +1231,13 @@
                 document.getElementById('btnAgregarDiag').style.display = 'inline-block';
                 document.getElementById('btnAgregarEstudio').style.display = 'inline-block';
                 
-                // Habilitar campos
+                // Habilitar campos: quitar readonly
                 const inputs = document.querySelectorAll('input, textarea');
+                inputs.forEach(input => {
+                    input.removeAttribute('readonly');
+                    input.style.backgroundColor = 'white';
+                    input.style.cursor = 'text';
+                });
                 inputs.forEach(input => {
                     input.removeAttribute('readonly');
                     input.disabled = false;
@@ -990,48 +1255,70 @@
                 dropZone.style.cursor = 'pointer';
                 dropZone.style.opacity = '1';
 
-                // Actualizar tabla de estudios: convertir a filas editables
+                // Actualizar tabla de estudios: Convertir a editable + mostrar botones Eliminar
                 const estudiosBody = document.getElementById('estudiosTableBody');
                 const estudiosRows = document.querySelectorAll('[data-estudio-idx]');
                 
-                if (estudiosRows.length === 0 && !document.getElementById('estudiosEmpty')) {
-                    // No hay filas, esto es normal
-                } else {
-                    // Hacer filas editables
-                    estudiosRows.forEach(row => {
-                        const celdas = row.querySelectorAll('td');
-                        // Convertir celdas a inputs
-                        const tipoEstudio = celdas[0].textContent.trim();
-                        const resultado = celdas[1].textContent.trim();
-                        const observaciones = celdas[2].textContent.trim();
-                        const fecha = celdas[3].textContent.trim();
-                        
-                        row.innerHTML = `
-                            <td style="padding: 8px;">
-                                <input type="text" class="estudio-tipo" value="${tipoEstudio}" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
-                            </td>
-                            <td style="padding: 8px;">
-                                <input type="text" class="estudio-resultado" value="${resultado}" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; color: #e74c3c; font-weight: 600;">
-                            </td>
-                            <td style="padding: 8px;">
-                                <input type="text" class="estudio-observaciones" value="${observaciones}" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
-                            </td>
-                            <td style="padding: 8px;">
-                                <input type="date" class="estudio-fecha" value="${convertirFechaToInput(fecha)}" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
-                            </td>
-                            <td style="padding: 8px;">
-                                <button onclick="eliminarFilaEstudio(this)" style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">
-                                    <i class="bi bi-trash"></i> Eliminar
-                                </button>
-                            </td>
-                        `;
-                    });
+                estudiosRows.forEach((row, rowIdx) => {
+                    // Obtener datos del atributo data
+                    const tipo = row.dataset.tipo || '';
+                    const resultado = row.dataset.resultado || '';
+                    const observaciones = row.dataset.observaciones || '';
+                    const fecha = row.dataset.fecha || '';
                     
-                    // Mostrar columna de acción en header
-                    const accionHeader = document.getElementById('estudiosAccionesHeader');
-                    if (accionHeader) {
-                        accionHeader.style.display = 'table-cell';
+                    const celdas = row.querySelectorAll('td');
+                    
+                    // Remplazar celdas 0-3 con inputs
+                    if (celdas.length >= 4) {
+                        const valores = [tipo, resultado, observaciones, fecha];
+                        
+                        for (let i = 0; i < 4; i++) {
+                            const celda = celdas[i];
+                            const valor = valores[i];
+                            
+                            if (valor && valor !== '-') {
+                                const input = document.createElement('input');
+                                input.type = (i === 3) ? 'date' : 'text';
+                                
+                                // Convertir fecha a formato input (YYYY-MM-DD)
+                                if (i === 3 && valor) {
+                                    input.value = convertirFechaToInput(valor);
+                                } else {
+                                    input.value = valor;
+                                }
+                                
+                                input.className = (i === 0) ? 'estudio-tipo' : 
+                                                 (i === 1) ? 'estudio-resultado' : 
+                                                 (i === 2) ? 'estudio-observaciones' : 'estudio-fecha';
+                                input.style.cssText = 'width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;';
+                                
+                                celda.innerHTML = '';
+                                celda.appendChild(input);
+                            }
+                        }
                     }
+                    
+                    // Agregar botón Eliminar en la celda de acción
+                    const celdaAccion = row.querySelector('.estudio-accion-td');
+                    if (celdaAccion) {
+                        celdaAccion.innerHTML = '';
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.onclick = function(e) { 
+                            e.preventDefault();
+                            eliminarFilaEstudio(this); 
+                        };
+                        btn.style.cssText = 'background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;';
+                        btn.innerHTML = '<i class="bi bi-trash"></i> Eliminar';
+                        celdaAccion.appendChild(btn);
+                        celdaAccion.style.display = 'table-cell';
+                    }
+                });
+                
+                // Mostrar columna de acción en header
+                const accionHeader = document.getElementById('estudiosAccionesHeader');
+                if (accionHeader) {
+                    accionHeader.style.display = 'table-cell';
                 }
 
                 // Mostrar botones de eliminar en archivos existentes
@@ -1067,60 +1354,185 @@
                 return;
             }
 
-            // Recolectar datos de estudios actuales de la tabla
-            const filas = document.querySelectorAll('#estudiosTableBody tr');
-            const estudiosActualizados = [];
-            filas.forEach(fila => {
-                const tipoInput = fila.querySelector('.estudio-tipo');
-                const resultadoInput = fila.querySelector('.estudio-resultado');
-                const obsInput = fila.querySelector('.estudio-observaciones');
-                const fechaInput = fila.querySelector('.estudio-fecha');
-                
-                if (tipoInput && tipoInput.value.trim()) {
-                    estudiosActualizados.push({
-                        tipo_estudio: tipoInput.value.trim(),
-                        resultado: resultadoInput.value.trim(),
-                        observaciones: obsInput.value.trim(),
-                        fecha_estudio: fechaInput.value || new Date().toISOString().split('T')[0]
-                    });
+            try {
+                // Mostrar loading overlay
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                if (loadingOverlay) {
+                    loadingOverlay.classList.add('active');
                 }
-            });
+                
+                // Obtener el ID de la consulta actual o crear una nueva
+                let consulta_id = null;
+                const consultaActual = historiaData.consultas?.[consultaActualIdx];
+                
+                if (consultaActual?.id) {
+                    // Usar consulta existente
+                    consulta_id = consultaActual.id;
+                    console.log('📤 Usando consulta existente:', consulta_id);
+                } else {
+                    // Crear nueva consulta
+                    console.log('📝 Creando nueva consulta...');
+                    const createResponse = await fetch('/api/consultas/crear', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                      },
+                      credentials: 'include',
+                      body: JSON.stringify({
+                        paciente_id: pacienteId,
+                        historia_id: historiaId,
+                        turno_id: '<%= turno_id %>' || null,
+                        motivo_consulta: document.getElementById('motivoConsulta')?.value || 'Sin especificar'
+                      })
+                    });
+                    
+                    if (!createResponse.ok) {
+                      const errorData = await createResponse.json();
+                      throw new Error('Error al crear consulta: ' + (errorData.message || createResponse.statusText));
+                    }
+                    
+                    const dataCreated = await createResponse.json();
+                    consulta_id = dataCreated.data?.id;
+                    console.log('✅ Consulta creada:', consulta_id, dataCreated.data);
+                    
+                    if (!consulta_id) {
+                      throw new Error('No se pudo obtener el ID de la nueva consulta');
+                    }
+                }
+                
+                if (!consulta_id) {
+                    alert('Error: No se pudo obtener el Consulta ID');
+                    return;
+                }
+                
+                // PASO 1: Subir archivos adjuntos a Cloudinary si hay nuevos
+                console.log('📝 PASO 1: Subiendo archivos adjuntos...');
+                await subirArchivosACloudinary();
+                // PASO 2: Recolectar y validar datos de estudios
+                // Procesar TODOS los estudios del DOM (nuevos y editados)
+                const todasLasFilas = document.querySelectorAll('#estudiosTableBody tr[data-estudiado-id], #estudiosTableBody tr[data-estudio-idx]');
+                const estudiosActualizados = [];
+                const estudiosVistosSet = new Set(); // Para detectar duplicados
+                let tieneErrorEstudios = false;
+                let mensajeError = '';
+                
+                todasLasFilas.forEach((fila, idx) => {
+                    const tipoInput = fila.querySelector('.estudio-tipo');
+                    const resultadoInput = fila.querySelector('.estudio-resultado');
+                    const obsInput = fila.querySelector('.estudio-observaciones');
+                    const fechaInput = fila.querySelector('.estudio-fecha');
+                    
+                    // Obtener valores - pueden ser input.value o nodo de texto
+                    const tipo = (tipoInput?.value || tipoInput?.textContent || '').trim();
+                    const resultado = (resultadoInput?.value || resultadoInput?.textContent || '').trim();
+                    const obs = (obsInput?.value || obsInput?.textContent || '').trim();
+                    const fecha = (fechaInput?.value || fechaInput?.textContent || '').trim();
+                    
+                    // Fila no vacía - validar TODOS los campos
+                    if (tipo || resultado || obs || fecha) {
+                        // VALIDACIÓN 1: TODOS los campos requeridos (NO opcionales)
+                        if (!tipo || !resultado || !obs || !fecha) {
+                            tieneErrorEstudios = true;
+                            mensajeError = `⚠️ Fila ${idx + 1}: Todos los campos son OBLIGATORIOS (Tipo, Resultado, Observaciones, Fecha)`;
+                            return; // Salir de esta iteración del forEach
+                        }
+                        
+                        // VALIDACIÓN 2: Fecha válida
+                        const fechaObj = new Date(fecha);
+                        if (isNaN(fechaObj.getTime())) {
+                            tieneErrorEstudios = true;
+                            mensajeError = `⚠️ Fila ${idx + 1}: FECHA inválida`;
+                            return; // Salir de esta iteración del forEach
+                        }
+                        
+                        // VALIDACIÓN 3: No duplicados
+                        const duplicateKey = `${tipo}|${resultado}|${obs}`;
+                        if (estudiosVistosSet.has(duplicateKey)) {
+                            tieneErrorEstudios = true;
+                            mensajeError = `⚠️ Fila ${idx + 1}: Este estudio ya existe (duplicado)`;
+                            return; // Salir de esta iteración del forEach
+                        }
+                        
+                        estudiosVistosSet.add(duplicateKey);
+                        estudiosActualizados.push({
+                            tipo_estudio: tipo,
+                            resultado: resultado,
+                            observaciones: obs,
+                            fecha_estudio: fecha
+                        });
+                    }
+                });
+                
+                // Si hay error en estudios, detener
+                if (tieneErrorEstudios) {
+                    alert(mensajeError);
+                    const loadingOverlay = document.getElementById('loadingOverlay');
+                    if (loadingOverlay) {
+                        loadingOverlay.classList.remove('active');
+                    }
+                    return;
+                }
+                
+                console.log('✅ Estudios validados:', estudiosActualizados.length);
 
             const datos = {
-                motivo_consulta: document.getElementById('motivoConsulta').value,
-                anamnesis: document.getElementById('anamnesis').value,
-                antecedentes: document.getElementById('antecedentes').value,
-                impresion_clinica: document.getElementById('impresion').value,
-                presion_arterial: document.getElementById('presionSistolica').value + '/' + document.getElementById('presionDiastolica').value,
-                frecuencia_cardiaca: document.getElementById('frecuenciaCardiaca').value,
-                temperatura: document.getElementById('temperatura').value,
-                // Incluir diagnósticos seleccionados
+                consulta_id: consulta_id,
+                motivo_consulta: document.getElementById('motivoConsulta')?.value || '',
+                anamnesis: document.getElementById('anamnesis')?.value || '',
+                antecedentes: document.getElementById('antecedentes')?.value || '',
+                resumen: document.getElementById('impresion')?.value || '',
+                presion_sistolica: parseInt(document.getElementById('presionSistolica')?.value) || null,
+                presion_diastolica: parseInt(document.getElementById('presionDiastolica')?.value) || null,
+                frecuencia_cardiaca: parseInt(document.getElementById('frecuenciaCardiaca')?.value) || null,
+                temperatura: parseFloat(document.getElementById('temperatura')?.value) || null,
+                peso: parseFloat(document.getElementById('peso')?.value) || null,
+                talla: parseFloat(document.getElementById('talla')?.value) || null,
                 diagnosticos: diagnosticosSeleccionados,
-                // Incluir estudios actualizados
                 estudios: estudiosActualizados,
-                // Incluir adjuntos subidos
                 adjuntos: adjuntosSubidos
             };
 
-            try {
-                console.log('📤 Guardando historia con ' + diagnosticosSeleccionados.length + ' diagnósticos, ' + estudiosActualizados.length + ' estudios y ' + adjuntosSubidos.length + ' archivos:', datos);
+                console.log('📤 PASO 2: Guardando consulta #' + consultaActualIdx);
+                console.log('   - Datos a guardar:', datos);
                 const response = await fetch(`/api/historia/${historiaId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',  // Enviar cookies con autenticación
                     body: JSON.stringify(datos)
                 });
 
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert('Historia clínica guardada exitosamente');
+                    console.log('✅ Consulta guardada correctamente');
+                    alert('Consulta médica guardada exitosamente');
+                    
+                    // Ocultar loading overlay
+                    const loadingOverlay = document.getElementById('loadingOverlay');
+                    if (loadingOverlay) {
+                        loadingOverlay.classList.remove('active');
+                    }
+                    
                     location.reload();
                 } else {
                     alert('Error: ' + result.message);
+                    
+                    // Ocultar loading overlay en caso de error
+                    const loadingOverlay = document.getElementById('loadingOverlay');
+                    if (loadingOverlay) {
+                        loadingOverlay.classList.remove('active');
+                    }
                 }
             } catch (error) {
-                console.error('Error al guardar:', error);
-                alert('Error al guardar la historia clínica');
+                console.error('❌ Error al guardar:', error);
+                alert('Error al guardar la consulta médica: ' + error.message);
+                
+                // Ocultar loading overlay en caso de error
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                if (loadingOverlay) {
+                    loadingOverlay.classList.remove('active');
+                }
             }
         }
 
@@ -1287,13 +1699,26 @@
         }
 
         // ============ DRAG-DROP Y ARCHIVO UPLOAD ============
-        let adjuntosSubidos = [];
+        let adjuntosSubidos = []; // Array de {file: File, nombre: string, preview: bool}
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const adjuntosContainer = document.getElementById('adjuntosContainer');
 
         // Inicializar selector de consultas al cargar
         document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar: hacer campos readonly por defecto
+            const inputs = document.querySelectorAll('input[type="text"], input[type="number"], textarea, select');
+            inputs.forEach(input => {
+                // No tocar inputs de búsqueda (cie10Input, etc)
+                if (!input.id.includes('Search') && !input.id.includes('Input') || input.id === 'motivoConsulta' || input.id === 'anamnesis' || input.id === 'antecedentes' || input.id === 'impresion') {
+                    if (!input.hasAttribute('readonly')) {
+                        input.setAttribute('readonly', 'readonly');
+                        input.style.backgroundColor = '#f5f5f5';
+                        input.style.cursor = 'not-allowed';
+                    }
+                }
+            });
+            
             // Inicializar datos de la consulta actual (índice 0)
             cambiarConsulta(0);
             
@@ -1331,13 +1756,51 @@
             console.log(`🔬 Estudios cargados: ${estudiosSeleccionados.length}`);
         });
 
+        function formatearFecha(fechaStr) {
+            if (!fechaStr || fechaStr === '-') return '-';
+            
+            try {
+                const fecha = new Date(fechaStr);
+                // Verificar que la fecha sea válida
+                if (isNaN(fecha.getTime())) {
+                    return '-';
+                }
+                return fecha.toLocaleDateString('es-AR', { 
+                    year: 'numeric', 
+                    month: '2-digit', 
+                    day: '2-digit' 
+                });
+            } catch (e) {
+                return '-';
+            }
+        }
+
         function convertirFechaToInput(fechaStr) {
-            // Intenta convertir "15/01/2026" a "2026-01-15"
+            if (!fechaStr || fechaStr.trim() === '' || fechaStr === '-' || fechaStr === null) {
+                return new Date().toISOString().split('T')[0]; // Fecha de hoy
+            }
+            
+            // Si ya está en formato ISO YYYY-MM-DD (lo que devolvemos del servidor)
+            if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+                return fechaStr;
+            }
+            
+            // Si está en formato ISO completo "2026-03-16T00:00:00Z"
+            if (fechaStr.includes('T')) {
+                return fechaStr.split('T')[0];
+            }
+            
+            // Si está en formato local (DD/MM/YYYY)
             const partes = fechaStr.split('/');
             if (partes.length === 3) {
-                return `${partes[2]}-${partes[1]}-${partes[0]}`;
+                const dia = partes[0].padStart(2, '0');
+                const mes = partes[1].padStart(2, '0');
+                const año = partes[2];
+                return `${año}-${mes}-${dia}`;
             }
-            return '';
+            
+            // Fallback: retornar hoy
+            return new Date().toISOString().split('T')[0];
         }
 
         function agregarFilaEstudio() {
@@ -1425,51 +1888,67 @@
                 return;
             }
 
+            console.log('📁 Preview LOCAL de ' + files.length + ' archivo(s) - sin subir aún');
+            
             for (const file of files) {
-                await subirArchivoCloudinary(file);
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('Archivo ' + file.name + ' es muy grande (máx 10MB)');
+                    continue;
+                }
+                
+                const adjunto = {
+                    id: Date.now() + Math.random(),
+                    file: file,
+                    nombre_archivo: file.name,
+                    tipo: file.type,
+                    tamano: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+                    preview: true,
+                    url: URL.createObjectURL(file)
+                };
+                
+                adjuntosSubidos.push(adjunto);
+                console.log('✅ Preview local: ' + file.name);
+                mostrarArchivoEnUI(adjunto);
             }
+            
+            document.getElementById('adjuntosCount').textContent = adjuntosSubidos.length.toString();
         }
 
-        async function subirArchivoCloudinary(file) {
-            try {
-                console.log(`📤 Subiendo archivo: ${file.name}`);
-                
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('upload_preset', 'medical_files'); // Cloudinary preset
-
-                const response = await fetch('https://api.cloudinary.com/v1_1/dw5h9f7jc/raw/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-                
-                if (data.secure_url) {
-                    console.log(`✅ Archivo subido: ${data.secure_url}`);
+        async function subirArchivosACloudinary() {
+            const archivosNuevos = adjuntosSubidos.filter(a => a.preview);
+            if (archivosNuevos.length === 0) return;
+            
+            console.log('☁️ Subiendo ' + archivosNuevos.length + ' archivo(s) a Cloudinary...');
+            
+            for (const adjunto of archivosNuevos) {
+                try {
+                    const formData = new FormData();
+                    formData.append('file', adjunto.file);
+                    formData.append('historia_id', historiaId);
                     
-                    // Agregar a lista local
-                    const adjunto = {
-                        id: Date.now(),
-                        nombre_archivo: file.name,
-                        tipo: file.type,
-                        url: data.secure_url,
-                        fecha_carga: new Date().toISOString()
-                    };
+                    console.log('📤 Subiendo: ' + adjunto.nombre_archivo);
+                    const response = await fetch('/api/upload-documento', {
+                        method: 'POST',
+                        body: formData
+                    });
                     
-                    adjuntosSubidos.push(adjunto);
-                    mostrarArchivoEnUI(adjunto);
-                    
-                    // Actualizar contador
-                    document.getElementById('adjuntosCount').textContent = 
-                        (adjuntosSubidos.length + (document.querySelectorAll('[data-id]').length - adjuntosSubidos.length)).toString();
-                } else {
-                    alert(`Error subiendo ${file.name}: ${data.error?.message || 'Error desconocido'}`);
+                    const result = await response.json();
+                    if (result.success) {
+                        console.log('✅ En Cloudinary: ' + result.documento.cloudinary_id);
+                        adjunto.preview = false;
+                        adjunto.cloudinary_id = result.documento.cloudinary_id;
+                        adjunto.url_storage = result.documento.url_storage;
+                        adjunto.id = result.documento.id;
+                    } else {
+                        throw new Error(result.message);
+                    }
+                } catch (error) {
+                    console.error('❌ Error subiendo ' + adjunto.nombre_archivo + ':', error.message);
+                    alert('Error: ' + error.message);
+                    throw error;
                 }
-            } catch (error) {
-                console.error(`❌ Error subiendo archivo:`, error);
-                alert(`Error subiendo ${file.name}: ${error.message}`);
             }
+            console.log('✅ Todos los archivos en Cloudinary');
         }
 
         function mostrarArchivoEnUI(adjunto) {
@@ -1535,6 +2014,143 @@
                 `;
             }
         }
+
+        // ========== FUNCIONES PARA ARCHIVOS ADJUNTOS ==========
+        
+        function abrirArchivoModal(url, nombre) {
+            const modal = document.getElementById('archivoModal');
+            const viewer = document.getElementById('archivoViewer');
+            const titulo = document.getElementById('archivoTitulo');
+            
+            titulo.textContent = nombre;
+            
+            // Detectar tipo de archivo
+            const isPdf = nombre.toLowerCase().includes('pdf');
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].some(ext => nombre.toLowerCase().includes(ext));
+            const isDocument = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].some(ext => nombre.toLowerCase().includes(ext));
+            
+            viewer.innerHTML = '';
+            
+            if (isPdf || isDocument) {
+                // Usar Google Docs Viewer para PDFs y documentos Office
+                const googleDocsUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+                viewer.innerHTML = `
+                    <iframe src="${googleDocsUrl}" style="width: 100%; height: 600px; border: none; margin: 0;">
+                        <p>Tu navegador no soporta iframes. <a href="${url}" target="_blank">Click aquí para descargar el archivo</a></p>
+                    </iframe>
+                `;
+            } else if (isImage) {
+                viewer.innerHTML = `
+                    <img src="${url}" alt="${nombre}" style="max-width: 100%; max-height: 600px; object-fit: contain; border-radius: 4px;">
+                `;
+            } else {
+                viewer.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: #666;">
+                        <p style="font-size: 32px; margin-bottom: 20px;">📎</p>
+                        <p><strong>${nombre}</strong></p>
+                        <p style="color: #999; margin-top: 20px;">Tipo de archivo no soportado para vista previa</p>
+                        <button class="btn btn-primary" style="margin-top: 20px;" onclick="descargarArchivo('${url}', '${nombre}')">
+                            <i class="bi bi-download"></i> Descargar
+                        </button>
+                    </div>
+                `;
+            }
+            
+            modal.style.display = 'block';
+        }
+        
+        function cerrarArchivoModal() {
+            const modal = document.getElementById('archivoModal');
+            modal.style.display = 'none';
+        }
+        
+        function descargarArchivo(url, nombre) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = nombre || 'archivo';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            console.log('⬇️ Descargando: ' + nombre);
+        }
+        
+        async function eliminarAdjunto(id, nombre) {
+            if (!confirm('¿Eliminar archivo: ' + nombre + '?')) return;
+            
+            try {
+                console.log('🗑️ Eliminando adjunto:', id);
+                const response = await fetch(`/api/documento/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Error al eliminar');
+                
+                // Eliminar del DOM
+                document.querySelector(`[data-id="${id}"]`)?.remove();
+                console.log('✅ Archivo eliminado');
+                
+                // Actualizar contador
+                const adjContainer = document.getElementById('adjuntosContainer');
+                const count = adjContainer.children.length;
+                const adjCount = document.getElementById('adjuntosCount');
+                if (adjCount) adjCount.textContent = count;
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                alert('Error al eliminar el archivo: ' + error.message);
+            }
+        }
+        
+        // Cerrar modal al hacer clic fuera de él
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('archivoModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
     </script>
+
+    <!-- ========== MODAL PARA VER ARCHIVOS ========== -->
+    <div id="archivoModal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); padding: 20px; animation: fadeIn 0.3s ease;">
+        <div style="background-color: white; margin: auto; padding: 0; border-radius: 12px; width: 90%; max-width: 1000px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.3); animation: slideUp 0.3s ease;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px 25px; border-bottom: none; display: flex; justify-content: space-between; align-items: center; border-radius: 12px 12px 0 0;">
+                <h5 style="margin: 0; font-weight: 700; color: white; font-size: 18px;" id="archivoTitulo">Ver archivo</h5>
+                <button type="button" onclick="cerrarArchivoModal()" style="border: none; background: none; font-size: 28px; cursor: pointer; color: white; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
+                  ×
+                </button>
+            </div>
+            <div id="archivoViewer" style="flex: 1; overflow: auto; padding: 30px; display: flex; align-items: center; justify-content: center; background: #f8f9fa;">
+                <!-- El contenido se carga dinámicamente -->
+            </div>
+            <div style="background: #f8f9fa; padding: 18px 25px; border-top: 1px solid #e0e0e0; text-align: right; border-radius: 0 0 12px 12px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn" style="padding: 10px 24px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.2s;" 
+                  onmouseover="this.style.background='#5a6268'" onmouseout="this.style.background='#6c757d'"
+                  onclick="cerrarArchivoModal()">
+                  Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes slideUp {
+        from { 
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to { 
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+
 </body>
 </html>

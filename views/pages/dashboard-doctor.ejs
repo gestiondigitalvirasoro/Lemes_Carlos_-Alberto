@@ -766,10 +766,10 @@
         return;
       }
 
-      // 🔥 PRIORIZAR EN_CONSULTA sobre PENDIENTE
+      // 🔥 PRIORIZAR EN_CONSULTA sobre CONFIRMADO
       let siguiente = turnosHoy.find(t => t.estado === 'EN_CONSULTA');
       if (!siguiente) {
-        siguiente = turnosHoy.find(t => t.estado === 'PENDIENTE');
+        siguiente = turnosHoy.find(t => t.estado === 'CONFIRMADO');
       }
       
       if (!siguiente) {
@@ -802,8 +802,8 @@
       const botonesDiv = document.getElementById('siguiente-botones');
       botonesDiv.innerHTML = '';
 
-      if (siguiente.estado === 'PENDIENTE') {
-        // PENDIENTE: Iniciar, Cancelar
+      if (siguiente.estado === 'PENDIENTE' || siguiente.estado === 'CONFIRMADO') {
+        // PENDIENTE/CONFIRMADO: Iniciar, Cancelar
         botonesDiv.innerHTML = `
           <button class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 600; margin-bottom: 8px;" onclick="iniciarConsultaTurno(${siguiente.id})">
             <i class="bi bi-play-circle"></i> Iniciar Consulta

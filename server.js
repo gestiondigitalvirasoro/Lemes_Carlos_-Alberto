@@ -7,6 +7,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
+import { v2 as cloudinary } from 'cloudinary';
 import { PrismaClient } from '@prisma/client';
 import authRoutes from './src/routes/auth.js';
 import pacientesRoutes from './src/routes/pacientes.js';
@@ -22,6 +23,13 @@ import cie10Routes from './src/routes/cie10.js';
 import roleMiddleware from './src/middlewares/role.js';
 import { supabase } from './src/services/supabase.js';
 
+// ============================================================================
+// SOLUCIÓN PARA BIGINT EN JSON
+// ============================================================================
+BigInt.prototype.toJSON = function() {
+  return this.toString();
+};
+
 // Cargar variables de entorno
 dotenv.config();
 
@@ -31,6 +39,13 @@ const __dirname = path.dirname(__filename);
 
 // Inicializar Prisma
 const prisma = new PrismaClient();
+
+// Configurar Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 // Crear aplicación Express
 const app = express();
@@ -50,8 +65,8 @@ app.use(cors({
 }));
 
 // Body parser
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Cookie parser
 app.use(cookieParser());
@@ -89,6 +104,22 @@ app.use((req, res, next) => {
   console.log(`[${timestamp}] ${req.method} ${req.path}`);
   next();
 });
+
+// Helper function para convertir BigInt a string recursivamente
+function serializeBigInt(obj) {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj === 'bigint') return obj.toString();
+  if (obj instanceof Date) return obj.toISOString();
+  if (Array.isArray(obj)) return obj.map(serializeBigInt);
+  if (typeof obj === 'object') {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = serializeBigInt(value);
+    }
+    return result;
+  }
+  return obj;
+}
 
 // ============================================================================
 // CONFIGURACIÓN DE VISTAS (EJS) Y ARCHIVOS ESTÁTICOS
@@ -541,6 +572,101 @@ app.get('/historia/:pacienteId', requireAuth, async (req, res) => {
       });
     }
 
+    // Serializar BigInts antes de renderizar
+    const historiaSerializada = historia ? JSON.parse(JSON.stringify(serializeBigInt(historia))) : null;
+    
+    // ========== AGREGAR LOG DE FECHA ESTUDIO ==========
+    if (historiaSerializada && historiaSerializada.consultas) {
+      historiaSerializada.consultas.forEach((consulta, idx) => {
+        if (consulta.estudios && consulta.estudios.length > 0) {
+          console.log(`📋 Consulta ${idx}:`, consulta.estudios.length, 'estudios');
+          consulta.estudios.forEach((est, estIdx) => {
+            console.log(`   ✏️ Estudio ${estIdx}: tipo="${est.tipo_estudio}", fecha_estudio="${est.fecha_estudio}" (tipo: ${typeof est.fecha_estudio})`);
+          });
+        }
+      });
+    }
+    
+    // ========== CONVERTIR FECHAS DE ESTUDIOS A STRING ==========
+    if (historiaSerializada && historiaSerializada.consultas) {
+      historiaSerializada.consultas.forEach(consulta => {
+        if (consulta.estudios && consulta.estudios.length > 0) {
+          consulta.estudios = consulta.estudios.map(est => {
+            let fechaIso = null;
+            let fechaFormateada = '-';
+            
+            console.log(`   🔍 Procesando: fecha_estudio="${est.fecha_estudio}", tipo=${typeof est.fecha_estudio}`);
+            
+            if (est.fecha_estudio) {
+              try {
+                let fechaStr = est.fecha_estudio;
+                
+                // Caso 1: Ya es string ISO completo "2026-03-16T00:00:00.000Z"
+                if (typeof fechaStr === 'string' && fechaStr.includes('T')) {
+                  fechaIso = fechaStr.split('T')[0];
+                  console.log(`   ✅ Tipo 1 (ISO completo): ${fechaIso}`);
+                }
+                // Caso 2: Ya es string ISO corto "2026-03-16"
+                else if (typeof fechaStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+                  fechaIso = fechaStr;
+                  console.log(`   ✅ Tipo 2 (ISO corto): ${fechaIso}`);
+                }
+                // Caso 3: Es un Date object (aunque no debería llegar aquí después de JSON.parse)
+                else if (typeof fechaStr === 'object' && fechaStr instanceof Date) {
+                  fechaIso = fechaStr.toISOString().split('T')[0];
+                  console.log(`   ✅ Tipo 3 (Date object): ${fechaIso}`);
+                }
+                // Caso 4: Intentar parsear como Date
+                else if (typeof fechaStr === 'string') {
+                  const d = new Date(fechaStr);
+                  if (!isNaN(d.getTime())) {
+                    fechaIso = d.toISOString().split('T')[0];
+                    console.log(`   ✅ Tipo 4 (Parse genérico): ${fechaIso}`);
+                  } else {
+                    console.log(`   ❌ Tipo 4 fallo: no es una fecha válida`);
+                  }
+                }
+                
+                // Si tenemos una fecha válida, formatear a DD/MM/YYYY
+                if (fechaIso && /^\d{4}-\d{2}-\d{2}$/.test(fechaIso)) {
+                  const [año, mes, dia] = fechaIso.split('-');
+                  fechaFormateada = `${dia}/${mes}/${año}`;
+                  console.log(`   📅 Formateada: ${fechaFormateada}`);
+                }
+              } catch (e) {
+                console.warn(`   ⚠️ Error procesando fecha: ${e.message}`);
+              }
+            } else {
+              console.log(`   ⚠️ fecha_estudio es null/undefined`);
+            }
+            
+            return {
+              ...est,
+              fecha_estudio: fechaIso,
+              fecha_formateada: fechaFormateada
+            };
+          });
+        }
+      });
+    }
+    
+    // ========== LOGGING DE ESTUDIOS ==========
+    if (historiaSerializada && historiaSerializada.consultas) {
+      historiaSerializada.consultas.forEach(consulta => {
+        if (consulta.estudios && consulta.estudios.length > 0) {
+          console.log(`🧹 Estudios en consulta ${consulta.id}: ${consulta.estudios.length} registros`);
+          if (consulta.estudios.length > 0) {
+            console.log(`📅 Datos de ejemplo:`, {
+              tipo: consulta.estudios[0].tipo_estudio,
+              resultado: consulta.estudios[0].resultado,
+              fecha_iso: consulta.estudios[0].fecha_estudio,
+              fecha_formateada: consulta.estudios[0].fecha_formateada
+            });
+          }
+        }
+      });
+    }
+
     res.render('pages/historia-detalle', {
       title: `Historia Clínica - ${paciente.persona?.nombre || 'Paciente'} ${paciente.persona?.apellido || ''}`,
       paciente: {
@@ -558,105 +684,7 @@ app.get('/historia/:pacienteId', requireAuth, async (req, res) => {
         numero_afiliado: paciente.numero_afiliado || 'N/A',
         observaciones_generales: paciente.observaciones_generales || ''
       },
-      historia: historia ? {
-        // 📋 DATOS FIJOS DE LA HISTORIA CLÍNICA
-        id: historia.id.toString(),
-        fecha_apertura: historia.fecha_apertura ? new Date(historia.fecha_apertura).toLocaleDateString('es-AR') : '-',
-        medico_apertura: historia.medico_apertura ? `Dr/Dra. ${historia.medico_apertura.nombre} ${historia.medico_apertura.apellido}` : '-',
-        activa: historia.activa,
-        
-        // ✅ ANTECEDENTES (FIJOS - de la Historia)
-        antecedentes: historia.antecedentes ? historia.antecedentes.map(a => ({
-          id: a.id?.toString() || '',
-          descripcion: a.descripcion || ''
-        })) : [],
-        
-        // 📁 DOCUMENTOS (FIJOS - de la Historia, pueden subirse nuevos)
-        documentos: historia.documentos ? historia.documentos.map(doc => ({
-          id: doc.id?.toString() || '',
-          nombre_archivo: doc.nombre_archivo || '',
-          tamano_bytes: doc.tamano_bytes?.toString() || '0',
-          tipo_mime: doc.tipo_mime || '',
-          url_storage: doc.url_storage || '',
-          cloudinary_id: doc.cloudinary_id || '',
-          fecha_subida: doc.fecha_subida ? new Date(doc.fecha_subida).toLocaleDateString('es-AR') : '-'
-        })) : [],
-        
-        // 🎯 SIGNOS VITALES DEL SIDEBAR (Primera consulta)
-        signos_vitales: historia.consultas && historia.consultas.length > 0 && historia.consultas[0].signos_vitales && historia.consultas[0].signos_vitales.length > 0
-          ? {
-              peso_kg: historia.consultas[0].signos_vitales[0].peso_kg,
-              talla_cm: historia.consultas[0].signos_vitales[0].talla_cm,
-              imc: historia.consultas[0].signos_vitales[0].imc,
-              presion_sistolica: historia.consultas[0].signos_vitales[0].presion_sistolica,
-              presion_diastolica: historia.consultas[0].signos_vitales[0].presion_diastolica,
-              frecuencia_cardiaca: historia.consultas[0].signos_vitales[0].frecuencia_cardiaca,
-              temperatura_c: historia.consultas[0].signos_vitales[0].temperatura_c,
-              glucemia_mg_dl: historia.consultas[0].signos_vitales[0].glucemia_mg_dl,
-              circunferencia_abd_cm: historia.consultas[0].signos_vitales[0].circunferencia_abd_cm,
-              fecha_registro: historia.consultas[0].signos_vitales[0].fecha_registro
-            }
-          : null,
-        
-        // 🏥 CONSULTAS MEDICAS (VARIABLES - cada consulta tiene sus datos)
-        consultas: historia.consultas ? historia.consultas.map(c => ({
-          id: c.id?.toString() || '',
-          historia_clinica_id: c.historia_clinica_id?.toString() || '',
-          fecha: c.fecha ? new Date(c.fecha).toLocaleDateString('es-AR') : '-',
-          medico: c.medico ? `Dr/Dra. ${c.medico.nombre} ${c.medico.apellido}` : '-',
-          motivo_consulta: c.motivo_consulta || '',
-          anamnesis: c.resumen || '',
-          estado_id: c.estado_id?.toString() || '',
-          
-          // Signos Vitales POR CONSULTA
-          signos_vitales: (c.signos_vitales || []).map(sv => ({
-            id: sv.id?.toString() || '',
-            peso_kg: sv.peso_kg || null,
-            talla_cm: sv.talla_cm || null,
-            imc: sv.imc || null,
-            presion_sistolica: sv.presion_sistolica || null,
-            presion_diastolica: sv.presion_diastolica || null,
-            frecuencia_cardiaca: sv.frecuencia_cardiaca || null,
-            temperatura_c: sv.temperatura_c || null,
-            glucemia_mg_dl: sv.glucemia_mg_dl || null,
-            circunferencia_abd_cm: sv.circunferencia_abd_cm || null,
-            saturacion_o2: sv.saturacion_o2 || null,
-            fecha_registro: sv.fecha_registro
-          })),
-          
-          // Diagnósticos POR CONSULTA
-          diagnosticos: (c.diagnosticos || []).map(d => ({
-            id: d.id?.toString() || '',
-            codigo: d.codigo || '',
-            descripcion: d.descripcion || '',
-            tipo: d.tipo || '',
-            principal: d.principal || false
-          })),
-          
-          // Tratamientos POR CONSULTA
-          tratamientos: (c.tratamientos || []).map(t => ({
-            id: t.id?.toString() || '',
-            medicamento: t.medicamento || '',
-            dosis: t.dosis || '',
-            unidad: t.unidad || '',
-            duracion: t.duracion || '',
-            instrucciones: t.instrucciones || ''
-          })),
-          
-          // Estudios Complementarios POR CONSULTA
-          estudios: (c.estudios || []).map(e => ({
-            id: e.id?.toString() || '',
-            nombre: e.nombre || '',
-            resultado: e.resultado || '',
-            observaciones: e.observaciones || '',
-            fecha_estudio: e.fecha_estudio ? new Date(e.fecha_estudio).toLocaleDateString('es-ES') : ''
-          }))
-        })) : [],
-        
-        // Atajos para compatibilidad (primera consulta)
-        motivo_consulta: historia.consultas && historia.consultas.length > 0 ? (historia.consultas[0].motivo_consulta || '') : '',
-        anamnesis: historia.consultas && historia.consultas.length > 0 ? (historia.consultas[0].resumen || '') : ''
-      } : null,
+      historia: historiaSerializada || null,
       turno_id: turno_id || '',
       is_new_consulta: !historia,
       user: {
@@ -767,160 +795,290 @@ app.get('/doctor/historia-nueva', requireAuth, async (req, res) => {
   }
 });
 
-// Actualizar historia clínica
-app.put('/api/historia/:historiaId', requireAuth, upload.array('documentos', 10), async (req, res) => {
+// ============================================================================
+// ACTUALIZAR CONSULTA MÉDICA (Con todos sus campos relacionados)
+// ============================================================================
+app.put('/api/historia/:historiaId', requireAuth, async (req, res) => {
   try {
     const { historiaId } = req.params;
     const { 
+      consulta_id,
       motivo_consulta, 
-      anamnesis, 
-      antecedentes, 
-      diagnostico_principal, 
-      impresion_clinica,
-      presion_arterial,
+      anamnesis,
+      antecedentes,
+      resumen,
+      presion_sistolica,
+      presion_diastolica,
       frecuencia_cardiaca,
       temperatura,
-      saturacion_o2
+      peso,
+      talla,
+      diagnosticos = [],
+      estudios = [],
+      adjuntos = []
     } = req.body;
 
-    console.log('📝 Guardando historia clínica...');
-    console.log('   - Historia ID:', historiaId);
-    console.log('   - Archivos recibidos:', req.files?.length || 0);
-    console.log('   - Campos recibidos:', { motivo_consulta: !!motivo_consulta, anamnesis: !!anamnesis, antecedentes: !!antecedentes, diagnostico_principal: !!diagnostico_principal, impresion_clinica: !!impresion_clinica });
-    console.log('   - Signos vitales:', { presion_arterial, frecuencia_cardiaca, temperatura, saturacion_o2 });
+    console.log('📝 Guardando consulta:', consulta_id, '| Historia:', historiaId);
 
-    // Verificar que la historia clínica existe
-    const historia = await prisma.historiaClinica.findUnique({
-      where: { id: BigInt(historiaId) }
-    });
+    // ========== 1. ACTUALIZAR CONSULTA MÉDICA ==========
+    const updateConsultaData = {};
+    if (motivo_consulta) updateConsultaData.motivo_consulta = motivo_consulta.trim();
+    if (resumen) updateConsultaData.resumen = resumen.trim();
 
-    if (!historia) {
-      return res.status(404).json({
-        success: false,
-        message: 'Historia clínica no encontrada'
+    if (Object.keys(updateConsultaData).length > 0) {
+      await prisma.consultaMedica.update({
+        where: { id: BigInt(consulta_id) },
+        data: updateConsultaData
       });
+      console.log('✅ Consulta médica actualizada');
     }
 
-    // Preparar datos para actualizar (solo incluir valores no vacíos)
-    const updateData = {};
-    if (motivo_consulta !== undefined && motivo_consulta !== '') {
-      updateData.motivo_consulta = motivo_consulta.trim();
-    }
-    if (anamnesis !== undefined && anamnesis !== '') {
-      updateData.anamnesis = anamnesis.trim();
-    }
-    if (antecedentes !== undefined && antecedentes !== '') {
-      updateData.antecedentes_patologicos_personales = antecedentes.trim();
-    }
-    if (diagnostico_principal !== undefined && diagnostico_principal !== '') {
-      updateData.diagnostico_principal = diagnostico_principal.trim();
-    }
-    if (impresion_clinica !== undefined && impresion_clinica !== '') {
-      updateData.impresion_clinica = impresion_clinica.trim();
-    }
-
-    // Actualizar historia existente
-    updateData.updated_at = new Date();
-    const historiaActualizada = await prisma.historiaClinica.update({
-      where: { id: BigInt(historiaId) },
-      data: updateData
-    });
-    console.log('✅ Historia clínica actualizada:', historiaId);
-
-    // Procesar signos vitales
-    if (presion_arterial || frecuencia_cardiaca || temperatura) {
-      console.log('📊 Procesando signos vitales...');
-      
-      let presion_sistolica, presion_diastolica;
-      if (presion_arterial && presion_arterial.includes('/')) {
-        const [sist, diast] = presion_arterial.split('/');
-        presion_sistolica = parseInt(sist);
-        presion_diastolica = parseInt(diast);
-      }
-
-      // Buscar si ya existe un registro de signos vitales para esta historia
-      const signoVitalExisting = await prisma.signoVital.findFirst({
-        where: { historia_clinica_id: BigInt(historiaId) }
+    // ========== 1.5 ANAMNESIS (tabla Anamnesis - Enfermedad Actual) ==========
+    if (anamnesis && anamnesis.trim() !== '') {
+      console.log('📝 Guardando Anamnesis:', anamnesis);
+      const anamnesisExistente = await prisma.anamnesis.findFirst({
+        where: { consulta_id: BigInt(consulta_id) }
       });
 
-      const signoVitalData = {};
-      if (presion_sistolica) signoVitalData.presion_sistolica = presion_sistolica;
-      if (presion_diastolica) signoVitalData.presion_diastolica = presion_diastolica;
-      if (frecuencia_cardiaca) signoVitalData.frecuencia_cardiaca = parseInt(frecuencia_cardiaca);
-      if (temperatura) signoVitalData.temperatura_c = parseFloat(temperatura);
-
-      if (signoVitalExisting) {
-        // Actualizar signos vitales existentes
-        console.log('🔄 Actualizando SignoVital...');
-        await prisma.signoVital.update({
-          where: { id: signoVitalExisting.id },
-          data: signoVitalData
-        });
-        console.log('✅ SignoVital actualizado');
-      } else {
-        // Crear nuevos signos vitales
-        console.log('🆕 Creando nuevo SignoVital...');
-        await prisma.signoVital.create({
-          data: {
-            historia_clinica_id: BigInt(historiaId),
-            ...signoVitalData
+      if (anamnesisExistente) {
+        console.log('🔄 Actualizando anamnesis existente:', anamnesisExistente.id);
+        const actualizada = await prisma.anamnesis.update({
+          where: { id: anamnesisExistente.id },
+          data: { 
+            enfermedad_actual: anamnesis.trim()
           }
         });
-        console.log('✅ SignoVital creado');
+        console.log('✅ Anamnesis actualizada. Nuevo valor:', actualizada.enfermedad_actual);
+      } else {
+        console.log('🆕 Creando anamnesis nueva para consulta:', consulta_id);
+        const nuevaAnamnesis = await prisma.anamnesis.create({
+          data: {
+            consulta_id: BigInt(consulta_id),
+            enfermedad_actual: anamnesis.trim()
+          }
+        });
+        console.log('✅ Anamnesis creada. ID:', nuevaAnamnesis.id, 'Valor:', nuevaAnamnesis.enfermedad_actual);
       }
+    } else {
+      console.log('⚠️ Anamnesis vacía, no se guarda');
     }
 
-    // Procesar archivos si existen
-    let filesCount = 0;
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
+    // ========== 2. ANTECEDENTES (tabla Antecedente) ==========
+    if (antecedentes && antecedentes.trim() !== '') {
+      console.log('📝 Guardando Antecedentes:', antecedentes);
+      // Buscar si ya existe un antecedente PERSONAL para esta historia
+      const antecedenteExistente = await prisma.antecedente.findFirst({
+        where: {
+          historia_clinica_id: BigInt(historiaId),
+          tipo: 'PERSONAL'
+        }
+      });
+
+      if (antecedenteExistente) {
+        console.log('🔄 Actualizando antecedente existente:', antecedenteExistente.id);
+        const actualizado = await prisma.antecedente.update({
+          where: { id: antecedenteExistente.id },
+          data: { 
+            descripcion: antecedentes.trim()
+          }
+        });
+        console.log('✅ Antecedente actualizado. Nuevo valor:', actualizado.descripcion);
+      } else {
+        console.log('🆕 Creando antecedente nuevo para historia:', historiaId);
+        const nuevoAntecedente = await prisma.antecedente.create({
+          data: {
+            historia_clinica_id: BigInt(historiaId),
+            tipo: 'PERSONAL',
+            descripcion: antecedentes.trim()
+          }
+        });
+        console.log('✅ Antecedente creado. ID:', nuevoAntecedente.id, 'Valor:', nuevoAntecedente.descripcion);
+      }
+    } else {
+      console.log('⚠️ Antecedentes vacíos, no se guardan');
+    }
+
+    // ========== 3. SIGNOS VITALES ==========
+    const tieneSignos = presion_sistolica || presion_diastolica || 
+                        frecuencia_cardiaca || temperatura || peso || talla;
+
+    if (tieneSignos) {
+      // Calcular IMC automáticamente si hay peso y talla
+      let imc = null;
+      if (peso && talla) {
         try {
-          const estudio = await prisma.estudioAdjunto.create({
-            data: {
-              historia_clinica_id: BigInt(historiaId),
-              tipo_estudio: 'Documento Adjunto',
-              nombre_archivo: file.originalname,
-              archivo_url: `/uploads/documentos/${file.filename}`,
-              archivo_mime_type: file.mimetype,
-              tama_o_bytes: BigInt(file.size),
-              descripcion: `Archivo cargado: ${file.originalname}`
-            }
-          });
-          filesCount++;
-          console.log(`   ✅ Archivo guardado: ${file.originalname} (${file.size} bytes)`);
-        } catch (err) {
-          console.error(`   ❌ Error guardando archivo ${file.originalname}:`, err.message);
+          const pesoNum = parseFloat(peso);
+          const tallaNum = parseFloat(talla);
+          if (pesoNum > 0 && tallaNum > 0) {
+            const tallaMt = tallaNum / 100;
+            imc = Math.round((pesoNum / (tallaMt * tallaMt)) * 10) / 10; // Redondear a 1 decimal
+          }
+        } catch (e) {
+          console.warn('⚠️ Error calculando IMC:', e.message);
+          imc = null;
         }
       }
+
+      const signosData = {
+        presion_sistolica:  presion_sistolica  ? parseInt(presion_sistolica)    : null,
+        presion_diastolica: presion_diastolica ? parseInt(presion_diastolica)   : null,
+        frecuencia_cardiaca: frecuencia_cardiaca ? parseInt(frecuencia_cardiaca) : null,
+        temperatura_c:      temperatura ? parseFloat(temperatura) : null,
+        peso_kg:            peso        ? parseFloat(peso)        : null,
+        talla_cm:           talla       ? parseFloat(talla)       : null,
+        imc:                imc ? parseFloat(imc) : null
+      };
+
+      const signoExistente = await prisma.signoVital.findFirst({
+        where: { consulta_id: BigInt(consulta_id) }
+      });
+
+      if (signoExistente) {
+        await prisma.signoVital.update({
+          where: { id: signoExistente.id },
+          data: signosData
+        });
+      } else {
+        await prisma.signoVital.create({
+          data: { consulta_id: BigInt(consulta_id), ...signosData }
+        });
+      }
+      console.log('✅ Signos vitales guardados, IMC:', imc);
     }
 
-    console.log(`✅ Historia clínica actualizada con ${filesCount} documento(s)`);
-
-    res.json({
-      success: true,
-      message: `Historia clínica guardada exitosamente (${filesCount} documento(s))`,
-      historia: {
-        id: historiaId,
-        fecha: historiaActualizada.fecha,
-        campos_guardados: {
-          motivo_consulta: !!motivo_consulta,
-          anamnesis: !!anamnesis,
-          antecedentes: !!antecedentes,
-          diagnostico_principal: !!diagnostico_principal,
-          impresion_clinica: !!impresion_clinica,
-          signos_vitales: !!(presion_arterial || frecuencia_cardiaca || temperatura)
-        },
-        documentos_guardados: filesCount
+    // ========== 4. DIAGNÓSTICOS ==========
+    if (diagnosticos.length > 0) {
+      await prisma.diagnostico.deleteMany({
+        where: { consulta_id: BigInt(consulta_id) }
+      });
+      for (const diag of diagnosticos) {
+        await prisma.diagnostico.create({
+          data: {
+            consulta_id: BigInt(consulta_id),
+            codigo_cie10: diag.codigo || '',
+            descripcion:  diag.descripcion || '',
+            principal:    diag.principal || false
+          }
+        });
       }
+      console.log('✅ Diagnósticos guardados:', diagnosticos.length);
+    }
+
+    // ========== 5. ESTUDIOS ==========
+    console.log('🔍 Procesando estudios - Total recibido:', estudios.length);
+    
+    // PRIMERO: Eliminar TODOS los estudios existentes para esta consulta
+    const estudiosEliminados = await prisma.estudioComplementario.deleteMany({
+      where: { consulta_id: BigInt(consulta_id) }
     });
+    if (estudiosEliminados.count > 0) {
+      console.log(`🧹 Estudios existentes eliminados: ${estudiosEliminados.count}`);
+    }
+    
+    // LUEGO: Procesar los nuevos/actualizados estudios que viene del frontend
+    if (estudios && estudios.length > 0) {
+      console.log('   📋 Primer estudio recibido:', JSON.stringify(estudios[0], null, 2));
+      
+      const estudiosVistosSet = new Set();
+      
+      for (const est of estudios) {
+        // Validar que tenga TODOS los campos requeridos
+        if (est.tipo_estudio?.trim() && est.resultado?.trim() && est.observaciones?.trim() && est.fecha_estudio) {
+          
+          // Validar no duplicados
+          const clave = `${est.tipo_estudio.trim()}|${est.resultado.trim()}|${est.observaciones.trim()}`;
+          if (estudiosVistosSet.has(clave)) {
+            console.log('⚠️ Estudio duplicado, ignorando:', clave);
+            continue;
+          }
+          estudiosVistosSet.add(clave);
+          
+          console.log('🆕 Creando estudio nuevo:', est.tipo_estudio);
+          console.log('   📋 Datos recibidos:', {
+            tipo_estudio: est.tipo_estudio,
+            resultado: est.resultado,
+            observaciones: est.observaciones,
+            fecha_estudio_raw: est.fecha_estudio,
+            fecha_tipo: typeof est.fecha_estudio
+          });
+          
+          // Parsear fecha correctamente
+          let fechaParsed = new Date();
+          if (est.fecha_estudio) {
+            console.log('   📅 Parseando fecha:', est.fecha_estudio);
+            
+            // Si viene como yyyy-mm-dd (input type="date")
+            if (typeof est.fecha_estudio === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(est.fecha_estudio)) {
+              fechaParsed = new Date(est.fecha_estudio + 'T00:00:00Z');
+              console.log('   ✅ Formato detectado: yyyy-mm-dd');
+            }
+            // Si viene como dd/mm/yyyy
+            else if (typeof est.fecha_estudio === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(est.fecha_estudio)) {
+              const partes = est.fecha_estudio.split('/');
+              fechaParsed = new Date(`${partes[2]}-${partes[1]}-${partes[0]}T00:00:00Z`);
+              console.log('   ✅ Formato detectado: dd/mm/yyyy');
+            }
+            // Fallback
+            else {
+              fechaParsed = new Date(est.fecha_estudio);
+              if (isNaN(fechaParsed.getTime())) {
+                console.log('   ⚠️ Fecha inválida, usando hoy');
+                fechaParsed = new Date();
+              } else {
+                console.log('   ✅ Formato detectado: fallback');
+              }
+            }
+          }
+          
+          console.log('   💾 Guardando en BD - fecha final:', fechaParsed.toISOString());
+          
+          await prisma.estudioComplementario.create({
+            data: {
+              consulta_id:   BigInt(consulta_id),
+              tipo_estudio:  est.tipo_estudio.trim(),
+              resultado:     est.resultado.trim(),
+              observaciones: est.observaciones.trim(),
+              medico_id:     BigInt(req.user.id),
+              fecha_estudio: fechaParsed
+            }
+          });
+        }
+      }
+      console.log('✅ Estudios procesados:', estudios.length);
+    }
+
+    // ========== 6. ADJUNTOS ==========
+    let archivosGuardados = 0;
+    for (const adj of adjuntos) {
+      if (!adj.cloudinary_id) continue;
+      const yaExiste = await prisma.documentoAdjunto.findFirst({
+        where: { cloudinary_id: adj.cloudinary_id }
+      });
+      if (!yaExiste) {
+        await prisma.documentoAdjunto.create({
+          data: {
+            historia_clinica_id:   BigInt(historiaId),
+            nombre_archivo:        adj.nombre_archivo || '',
+            url_storage:           adj.url_storage || '',
+            cloudinary_id:         adj.cloudinary_id,
+            tamano_bytes:          BigInt(adj.size || 0),
+            tipo_mime:             adj.tipo_mime || 'application/octet-stream',
+            subido_por_medico_id:  BigInt(req.user.id)
+          }
+        });
+        archivosGuardados++;
+      }
+    }
+
+    res.json(serializeBigInt({
+      success: true,
+      message: 'Consulta guardada exitosamente',
+      data: { consulta_id, diagnosticos_guardados: diagnosticos.length, archivos_guardados: archivosGuardados }
+    }));
 
   } catch (error) {
-    console.error('❌ Error al guardar historia:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al guardar historia clínica',
-      error: error.message
-    });
+    console.error('❌ Error al guardar:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -2764,57 +2922,75 @@ app.post('/api/turnos/crear-con-paciente', requireAuth, async (req, res) => {
 // ============================================================================
 app.post('/api/consultas/crear', requireAuth, async (req, res) => {
   try {
-    const { paciente_id, turno_id, motivo_consulta } = req.body;
+    const { paciente_id, historia_id, turno_id, motivo_consulta } = req.body;
 
-    if (!paciente_id || !motivo_consulta) {
+    // Aceptar tanto paciente_id como historia_id
+    let targetPacienteId = paciente_id;
+    let targetHistoriaId = historia_id;
+    
+    if (!targetPacienteId && !targetHistoriaId) {
       return res.status(400).json({
-        error: 'Faltan paciente_id y motivo_consulta'
+        error: 'Se requiere paciente_id o historia_id'
       });
     }
 
-    // Obtener o crear historia clínica
-    let historia = await prisma.historia_clinica.findFirst({
-      where: {
-        paciente_id: parseInt(paciente_id),
-        activa: true
+    // Si tenemos historia_id pero no paciente_id, obtener el paciente from historia
+    if (targetHistoriaId && !targetPacienteId) {
+      const historia = await prisma.historiaClinica.findUnique({
+        where: { id: BigInt(targetHistoriaId) }
+      });
+      if (historia) {
+        targetPacienteId = historia.paciente_id;
       }
-    });
+    }
+
+    if (!targetPacienteId) {
+      return res.status(400).json({
+        error: 'No se pudo determinar el paciente_id'
+      });
+    }
+
+    // Obtener o usar historia clínica existente
+    let historia = targetHistoriaId ? 
+      await prisma.historiaClinica.findUnique({
+        where: { id: BigInt(targetHistoriaId) }
+      }) :
+      await prisma.historiaClinica.findFirst({
+        where: {
+          paciente_id: BigInt(targetPacienteId),
+          activa: true
+        }
+      });
 
     if (!historia) {
-      historia = await prisma.historia_clinica.create({
+      historia = await prisma.historiaClinica.create({
         data: {
-          paciente_id: parseInt(paciente_id),
-          creada_por_medico: req.user.id,
+          paciente_id: BigInt(targetPacienteId),
+          creada_por_medico_id: BigInt(req.user.id),
           activa: true
         }
       });
     }
 
-    const consulta = await prisma.consulta_medica.create({
+    const consulta = await prisma.consultaMedica.create({
       data: {
         historia_clinica_id: historia.id,
-        medico_id: req.user.id,
-        turno_id: turno_id ? parseInt(turno_id) : null,
-        estado: 'INICIADA',
-        motivo_consulta: motivo_consulta,
+        medico_id: BigInt(req.user.id),
+        turno_id: turno_id ? BigInt(turno_id) : null,
+        motivo_consulta: motivo_consulta || 'Sin especificar',
         fecha: new Date()
-      },
-      include: {
-        historia_clinica: {
-          include: {
-            paciente: {
-              include: {
-                persona: true
-              }
-            }
-          }
-        }
       }
     });
 
+    console.log(`✅ Consulta creada: #${consulta.id} para historia #${historia.id}`);
     res.json({
       success: true,
-      data: consulta,
+      data: {
+        id: consulta.id.toString(),
+        historia_clinica_id: consulta.historia_clinica_id.toString(),
+        fecha: consulta.fecha,
+        medico_id: consulta.medico_id.toString()
+      },
       message: 'Consulta creada exitosamente'
     });
   } catch (error) {
@@ -2926,9 +3102,9 @@ app.post('/api/historia-clinica/crear', requireAuth, async (req, res) => {
     }
 
     // Verificar si ya tiene historia activa
-    const historiaExistente = await prisma.historia_clinica.findFirst({
+    const historiaExistente = await prisma.historiaClinica.findFirst({
       where: {
-        paciente_id: parseInt(paciente_id),
+        paciente_id: BigInt(paciente_id),
         activa: true
       }
     });
@@ -2941,10 +3117,10 @@ app.post('/api/historia-clinica/crear', requireAuth, async (req, res) => {
     }
 
     // Crear historia clínica
-    const historia = await prisma.historia_clinica.create({
+    const historia = await prisma.historiaClinica.create({
       data: {
-        paciente_id: parseInt(paciente_id),
-        creada_por_medico: req.user.id,
+        paciente_id: BigInt(paciente_id),
+        creada_por_medico_id: BigInt(req.user.id),
         activa: true
       }
     });
@@ -3364,6 +3540,7 @@ app.get('/doctor/pacientes/:paciente_id', requireAuth, requireRole(['doctor']), 
                     apellido: true
                   }
                 },
+                anamnesis: true,
                 tratamientos: true,
                 signos_vitales: true,
                 diagnosticos: true,
@@ -3442,11 +3619,92 @@ app.get('/doctor/pacientes/:paciente_id', requireAuth, requireRole(['doctor']), 
     }
 
     // Obtener historia clínica activa
-    const historias = paciente.historias_clinicas || [];
-    const historia = historias.length > 0 ? historias[0] : null;
+    let historias = paciente.historias_clinicas || [];
+    let historia = historias.length > 0 ? historias[0] : null;
+    
+    // Si no existe historia y viene de un turno, crear automáticamente
+    if (!historia && turno_id) {
+      try {
+        console.log(`📝 Creando história clínica automáticamente para paciente ${paciente_id} desde turno ${turno_id}`);
+        historia = await prisma.historiaClinica.create({
+          data: {
+            paciente_id: paciente_id,
+            creada_por_medico_id: BigInt(req.user.id),
+            activa: true
+          }
+        });
+        
+        // Crear consulta médica automáticamente asociada al turno
+        const nuevaConsulta = await prisma.consultaMedica.create({
+          data: {
+            historia_clinica_id: historia.id,
+            medico_id: BigInt(req.user.id),
+            turno_id: BigInt(turno_id),
+            estado: 'INICIADA',
+            fecha: new Date()
+          }
+        });
+        
+        console.log(`✅ Historia clínica creada automáticamente: ID ${historia.id}`);
+        console.log(`✅ Consulta médica creada automáticamente: ID ${nuevaConsulta.id}`);
+        
+        // Recargar historia con todas las relaciones
+        historia = await prisma.historiaClinica.findUnique({
+          where: { id: historia.id },
+          include: {
+            documentos: {
+              where: {
+                eliminado: false,
+                estudio_id: null
+              }
+            },
+            antecedentes: true,
+            consultas: {
+              include: {
+                medico: {
+                  select: {
+                    nombre: true,
+                    apellido: true
+                  }
+                },
+                tratamientos: true,
+                signos_vitales: true,
+                diagnosticos: true,
+                estudios: true
+              },
+              orderBy: { fecha: 'desc' }
+            },
+            medico_apertura: {
+              select: {
+                nombre: true,
+                apellido: true
+              }
+            }
+          }
+        });
+      } catch (createHistoriaError) {
+        console.error(`❌ Error al crear historia automáticamente:`, createHistoriaError);
+      }
+    }
+    
     const consultas = historia?.consultas || [];
     const consulta = consultas.length > 0 ? consultas[0] : null;
     const signosVitales = consulta?.signos_vitales?.length > 0 ? consulta.signos_vitales[0] : null;
+
+    console.log(`📊 Historia #${historia?.id}: ${consultas.length} consultas cargadas`);
+    if (consultas.length > 0) {
+      console.log(`   └─ Primera consulta: #${consultas[0].id}, estado: ${consultas[0].estado}`);
+      const anamRecuperada = consultas[0].anamnesis?.enfermedad_actual;
+      console.log(`   └─ Anamnesis recuperada de BD: "${anamRecuperada}" (${anamRecuperada ? 'CON VALOR' : 'VACÍA'})`);
+      
+      // ANTECEDENTES
+      const antPersonal = historia.antecedentes?.find(a => a.tipo === 'PERSONAL');
+      console.log(`   └─ Antecedentes en historia:`, {
+        totalAntecedentes: historia.antecedentes?.length || 0,
+        antecedentesArray: historia.antecedentes,
+        antPersonalEncontrado: antPersonal ? `SÍ - valor: "${antPersonal.descripcion}"` : 'NO'
+      });
+    }
 
     // Preparar datos para la vista
     const edad = paciente.persona?.fecha_nacimiento 
@@ -3491,6 +3749,7 @@ app.get('/doctor/pacientes/:paciente_id', requireAuth, requireRole(['doctor']), 
           fecha: c.fecha ? new Date(c.fecha).toLocaleDateString('es-AR') : '-',
           motivo_consulta: c.motivo_consulta || '-',
           resumen: c.resumen || '-',
+          anamnesis: c.anamnesis?.enfermedad_actual || '',
           medico: c.medico ? `Dr/Dra. ${c.medico.nombre} ${c.medico.apellido}` : '-',
           signos_vitales: (c.signos_vitales || []).map(sv => ({
             id: String(sv.id || ''),
@@ -3642,27 +3901,68 @@ app.post('/api/upload-documento', requireAuth, upload.single('file'), async (req
 
     const { historia_id } = req.body;
     const file = req.file;
+    
+    console.log(`📤 Subiendo documento a Cloudinary: ${file.originalname}`);
 
-    // TODO: Integrar con Cloudinary para subir archivo
-    // Por ahora guardar usando multer storage local
+    // Subir a Cloudinary
+    let cloudinaryResult;
+    try {
+      // Detectar tipo de recurso basado en MIME type
+      const resourceType = file.mimetype.startsWith('image/') ? 'image' : 'raw';
+      
+      cloudinaryResult = await cloudinary.uploader.upload(file.path, {
+        folder: 'medical_files',
+        resource_type: resourceType,
+        public_id: `documento_${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9]/g, '_')}`,
+        use_filename: true
+      });
+      
+      console.log(`✅ Archivo subido a Cloudinary:`, cloudinaryResult.public_id);
+    } catch (cloudinaryError) {
+      console.error('❌ Error subiendo a Cloudinary:', cloudinaryError.message);
+      throw new Error(`Error subiendo a Cloudinary: ${cloudinaryError.message}`);
+    }
 
+    // Guardar referencia en base de datos
     const documento = await prisma.documentoAdjunto.create({
       data: {
         historia_clinica_id: BigInt(historia_id),
         nombre_archivo: file.originalname,
         tipo_mime: file.mimetype,
         tamano_bytes: BigInt(file.size),
-        url_storage: `/uploads/documentos/${file.filename}`,
-        cloudinary_id: '', // Se llenarñ cuando se integre Cloudinary
+        url_storage: cloudinaryResult.secure_url,
+        cloudinary_id: cloudinaryResult.public_id,
         subido_por_medico_id: BigInt(req.user.id)
       }
     });
 
-    console.log(`✅ Documento ${file.originalname} subido`);
-    res.json({ success: true, message: 'Documento subido correctamente', documento });
+    // Eliminar archivo temporal
+    fs.unlink(file.path, (err) => {
+      if (err) console.error('Error eliminando archivo temporal:', err.message);
+    });
+
+    console.log(`✅ Documento ${file.originalname} registrado en BD`);
+    res.json({ 
+      success: true, 
+      message: 'Documento subido correctamente a Cloudinary', 
+      documento: {
+        id: documento.id.toString(),
+        nombre_archivo: documento.nombre_archivo,
+        url_storage: documento.url_storage,
+        cloudinary_id: documento.cloudinary_id
+      }
+    });
 
   } catch (error) {
     console.error('❌ Error subiendo documento:', error.message);
+    
+    // Limpiar archivo temporal en caso de error
+    if (req.file) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('Error eliminando archivo temporal:', err.message);
+      });
+    }
+    
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -3735,6 +4035,50 @@ app.delete('/api/antecedente/:antecedenteId', requireAuth, async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error eliminando antecedente:', error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ============================================================================
+// ELIMINAR DOCUMENTO ADJUNTO
+// ============================================================================
+app.delete('/api/documento/:documentoId', requireAuth, async (req, res) => {
+  try {
+    const { documentoId } = req.params;
+
+    // Obtener el documento para conseguir el cloudinary_id
+    const documento = await prisma.documentoAdjunto.findUnique({
+      where: { id: BigInt(documentoId) }
+    });
+
+    if (!documento) {
+      return res.status(404).json({ success: false, message: 'Documento no encontrado' });
+    }
+
+    // Eliminar de Cloudinary
+    if (documento.cloudinary_id) {
+      try {
+        await cloudinary.uploader.destroy(documento.cloudinary_id, {
+          resource_type: documento.tipo_mime?.startsWith('image/') ? 'image' : 'raw'
+        });
+        console.log(`✅ Documento eliminado de Cloudinary: ${documento.cloudinary_id}`);
+      } catch (cloudinaryError) {
+        console.error('⚠️ Error eliminando de Cloudinary:', cloudinaryError.message);
+        // Continuar de todas formas para eliminar de la BD
+      }
+    }
+
+    // Marcar como eliminado en la BD (soft delete)
+    await prisma.documentoAdjunto.update({
+      where: { id: BigInt(documentoId) },
+      data: { eliminado: true }
+    });
+
+    console.log(`✅ Documento ${documentoId} marcado como eliminado`);
+    res.json({ success: true, message: 'Documento eliminado correctamente' });
+
+  } catch (error) {
+    console.error('❌ Error eliminando documento:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -4005,5 +4349,7 @@ process.on('SIGINT', async () => {
 
 // Iniciar
 startServer();
+
+// FIN
 
 export { app, prisma };
