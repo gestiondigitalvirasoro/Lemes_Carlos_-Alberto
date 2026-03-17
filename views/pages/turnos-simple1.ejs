@@ -80,7 +80,6 @@
     .estado-CONFIRMADO { background: #28A745; color: white; }
     .estado-EN_CONSULTA { background: #17A2B8; color: white; }
     .estado-ATENDIDA { background: #28A745; color: white; }
-    .estado-FINALIZADA { background: #28A745; color: white; }
     .estado-CANCELADA { background: #DC3545; color: white; }
     
     .estado-select { padding: 8px 12px; border: 2px solid #E0E0E0; border-radius: 6px; 
@@ -363,15 +362,14 @@
           'CONFIRMADO': 'bg-success',
           'EN_CONSULTA': 'bg-info',
           'ATENDIDA': 'bg-success',
-          'FINALIZADA': 'bg-success',
           'CANCELADA': 'bg-danger'
         };
 
         let selectHtml = '';
         const estadoActual = turno.estado?.nombre || 'PENDIENTE';
         
-        if (estadoActual === 'CANCELADA' || estadoActual === 'FINALIZADA' || estadoActual === 'ATENDIDA') {
-          // Para CANCELADA y FINALIZADA, sin botones ni select
+        if (estadoActual === 'CANCELADA') {
+          // Para CANCELADA, sin botones ni select
           selectHtml = '';
         } else {
           // Para otros estados, mostrar SELECT + botones Ver/Modificar
@@ -387,7 +385,9 @@
               <option value="CANCELADA">CANCELADA</option>`;
           } else if (estadoActual === 'EN_CONSULTA') {
             opciones = `<option value="">-- Seleccionar --</option>
-              <option value="FINALIZADA">FINALIZADA</option>`;
+              <option value="ATENDIDA">ATENDIDA</option>`;
+          } else if (estadoActual === 'ATENDIDA') {
+            opciones = `<option value="">-- Seleccionar --</option>`;
           }
           
           const pacienteInfo2 = turno.persona || {};
@@ -688,7 +688,7 @@
               <div style="background: #ecf0f1; padding: 12px; border-radius: 8px; font-size: 14px;">
                 <div style="margin-bottom: 8px;"><strong>Fecha:</strong> ${fecha || 'N/A'}</div>
                 <div style="margin-bottom: 8px;"><strong>Hora:</strong> ${hora || 'N/A'}</div>
-                <div style="margin-bottom: 8px;"><strong>Estado:</strong> <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background: ${estado === 'PENDIENTE' ? '#f39c12' : estado === 'CONFIRMADO' ? '#27ae60' : estado === 'ATENDIDA' ? '#27ae60' : estado === 'FINALIZADA' ? '#27ae60' : estado === 'CANCELADA' ? '#e74c3c' : '#95a5a6'}; color: white; font-weight: bold;">${estado || 'N/A'}</span></div>
+                <div style="margin-bottom: 8px;"><strong>Estado:</strong> <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background: ${estado === 'PENDIENTE' ? '#f39c12' : estado === 'CONFIRMADO' ? '#27ae60' : estado === 'ATENDIDA' ? '#27ae60' : estado === 'CANCELADA' ? '#e74c3c' : '#95a5a6'}; color: white; font-weight: bold;">${estado || 'N/A'}</span></div>
                 <div><strong>Observaciones:</strong> ${turnoObservaciones && turnoObservaciones !== 'N/A' && turnoObservaciones !== '' ? turnoObservaciones : '<em style="color: #7f8c8d;">Ninguna</em>'}</div>
               </div>
             </div>

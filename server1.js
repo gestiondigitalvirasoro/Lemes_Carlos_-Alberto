@@ -3831,11 +3831,9 @@ app.get('/doctor/pacientes/:paciente_id', requireAuth, requireRole(['doctor']), 
             id: String(t.id || ''),
             medicamento: t.medicamento || '',
             dosis: t.dosis || '',
-            frecuencia: t.frecuencia || '',
-            duracion_dias: t.duracion_dias || null,
-            indicaciones: t.indicaciones || '',
-            fecha_inicio: t.fecha_inicio ? new Date(t.fecha_inicio).toISOString().split('T')[0] : null,
-            fecha_fin: t.fecha_fin ? new Date(t.fecha_fin).toISOString().split('T')[0] : null
+            unidad: t.unidad || '',
+            duracion: t.duracion || '',
+            instrucciones: t.instrucciones || ''
           })),
           estudios: (c.estudios || []).map(e => ({
             id: String(e.id || ''),
@@ -4337,66 +4335,6 @@ app.use('/api/admin', adminRoutes);
 
 // Rutas de doctor
 app.use('/api/doctor', doctorRoutes);
-
-
-// ============================================================================
-// TRATAMIENTOS - CREAR
-// ============================================================================
-app.post('/api/tratamientos', requireAuth, async (req, res) => {
-  try {
-    const { consulta_id, medicamento, dosis, frecuencia, fecha_inicio, duracion_dias, indicaciones } = req.body;
-
-    if (!consulta_id || !medicamento || !dosis || !frecuencia || !fecha_inicio) {
-      return res.status(400).json({ success: false, message: 'Faltan campos requeridos' });
-    }
-
-    const tratamiento = await prisma.tratamiento.create({
-      data: {
-        consulta_id: BigInt(consulta_id),
-        medicamento: medicamento.trim(),
-        dosis: dosis.trim(),
-        frecuencia: frecuencia.trim(),
-        fecha_inicio: new Date(fecha_inicio),
-        fecha_fin: duracion_dias
-          ? new Date(new Date(fecha_inicio).getTime() + duracion_dias * 86400000)
-          : null,
-        duracion_dias: duracion_dias ? parseInt(duracion_dias) : null,
-        indicaciones: indicaciones || null
-      }
-    });
-
-    console.log(`✅ Tratamiento creado: ${medicamento} para consulta ${consulta_id}`);
-    res.json({
-      success: true,
-      data: {
-        id: tratamiento.id.toString(),
-        medicamento: tratamiento.medicamento,
-        dosis: tratamiento.dosis,
-        frecuencia: tratamiento.frecuencia,
-        duracion_dias: tratamiento.duracion_dias,
-        indicaciones: tratamiento.indicaciones
-      }
-    });
-  } catch (error) {
-    console.error('❌ Error creando tratamiento:', error.message);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// ============================================================================
-// TRATAMIENTOS - ELIMINAR
-// ============================================================================
-app.delete('/api/tratamientos/:id', requireAuth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    await prisma.tratamiento.delete({ where: { id: BigInt(id) } });
-    console.log(`✅ Tratamiento ${id} eliminado`);
-    res.json({ success: true, message: 'Tratamiento eliminado' });
-  } catch (error) {
-    console.error('❌ Error eliminando tratamiento:', error.message);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
 
 // ============================================================================
 // MANEJO DE ERRORES

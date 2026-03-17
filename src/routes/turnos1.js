@@ -45,7 +45,7 @@ const validarCrearTurno = [
 const validarCambiarEstado = [
   body('estado')
     .notEmpty().withMessage('Nuevo estado es requerido')
-    .isIn(['PENDIENTE', 'CONFIRMADO', 'EN_CONSULTA', 'ATENDIDA', 'FINALIZADA', 'CANCELADA'])
+    .isIn(['PENDIENTE', 'CONFIRMADO', 'EN_CONSULTA', 'ATENDIDA', 'CANCELADA'])
     .withMessage('Estado inválido')
 ];
 

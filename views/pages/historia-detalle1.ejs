@@ -577,7 +577,33 @@
                     </div>
                 <% } %>
 
-                <!-- SIGNOS VITALES -->
+                <!-- SELECTOR DE CONSULTA ACTIVA -->
+                <section class="section" id="consultas-selector-top" style="border-left: 4px solid #17a2b8;">
+                    <div class="section-header" style="background: #e8f7fa;">
+                        <i class="bi bi-calendar3" style="color: #17a2b8;"></i>
+                        <h3 style="color: #17a2b8;">Consulta activa</h3>
+                    </div>
+                    <div class="section-body">
+                        <% if (historia && historia.consultas && historia.consultas.length > 0) { %>
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <select id="consultaSelector" onchange="confirmarCambioConsulta(this.value)" style="flex:1; min-width:200px; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px; cursor:pointer; background:white;">
+                                    <% historia.consultas?.forEach((cons, idx) => { %>
+                                        <option value="<%= idx %>" <%= idx === 0 ? 'selected' : '' %>>
+                                            <%= cons.fecha %> — <%= cons.motivo_consulta || 'Consulta' %> (<%= cons.medico || 'Sin médico' %>)
+                                        </option>
+                                    <% }); %>
+                                </select>
+                                <span style="font-size:13px; color:#666;">
+                                    <i class="bi bi-person-circle me-1"></i><span id="consultaMedico"></span>
+                                </span>
+                            </div>
+                        <% } else { %>
+                            <p style="color:#999; margin:0;">Sin consultas registradas</p>
+                        <% } %>
+                    </div>
+                </section>
+
+                                <!-- SIGNOS VITALES -->
                 <section class="section" id="signos-vitales">
                     <div class="section-header">
                         <i class="bi bi-heart-pulse"></i>
@@ -725,23 +751,103 @@
                         <h3>Plan de Tratamiento</h3>
                     </div>
                     <div class="section-body">
-                        <% if (historia && historia.consultas && historia.consultas.length > 0 && historia.consultas[0].tratamientos?.length > 0) { %>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
-                                <% historia.consultas[0].tratamientos?.forEach(trat => { %>
-                                    <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 3px solid #28a745;">
-                                        <strong><%= trat.medicamento %></strong>
-                                        <div style="font-size: 12px; color: #666; margin: 5px 0;">
-                                            <%= trat.dosis %> <%= trat.unidad %>
-                                        </div>
-                                        <small style="color: #999;"><%= trat.duracion || 'Duración no especificada' %></small>
+
+                        <!-- Grid de medicamentos -->
+                        <div id="tratamientosGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; margin-bottom:16px;">
+                            <% if (historia && historia.consultas && historia.consultas[0]?.tratamientos?.length > 0) { %>
+                                <% historia.consultas[0].tratamientos.forEach(trat => { %>
+                                    <div class="med-card-item" data-trat-id="<%= trat.id %>" style="background:#fff; border:0.5px solid #e9ecef; border-radius:10px; padding:1rem 1rem 1rem 1.25rem; position:relative; border-left:4px solid #1D9E75;">
+                                        <button onclick="eliminarTratamiento('<%= trat.id %>')" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;line-height:1;" title="Eliminar">×</button>
+                                        <div style="font-size:15px;font-weight:600;color:#1a1a1a;margin-bottom:3px;padding-right:20px;"><%= trat.medicamento %></div>
+                                        <div style="font-size:13px;font-weight:500;color:#1D9E75;margin-bottom:2px;"><%= trat.dosis %></div>
+                                        <div style="font-size:12px;color:#666;margin-bottom:8px;"><%= trat.frecuencia %><% if(trat.duracion_dias) { %> · <%= trat.duracion_dias %> días<% } %></div>
+                                        <% if(trat.indicaciones) { %><div style="font-size:11px;color:#888;margin-bottom:8px;font-style:italic;"><%= trat.indicaciones %></div><% } %>
+                                        <span style="background:#E1F5EE;color:#085041;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">✓ Activo</span>
                                     </div>
                                 <% }); %>
+                            <% } %>
+                        </div>
+
+                        <div id="tratamientosVacio" style="text-align:center;padding:20px;color:#999;display:<%= (historia?.consultas?.[0]?.tratamientos?.length > 0) ? 'none' : 'block' %>;">
+                            <p style="margin:0;">Sin medicamentos registrados en esta consulta</p>
+                        </div>
+
+                        <!-- Formulario agregar medicamento -->
+                        <div id="formTratamiento" style="background:#f8f9fa;border:0.5px solid #e9ecef;border-radius:10px;padding:1rem;display:none;">
+                            <div style="font-size:13px;font-weight:600;color:#333;margin-bottom:12px;">+ Agregar medicamento</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                                <div>
+                                    <label style="font-size:12px;color:#666;display:block;margin-bottom:3px;">Medicamento</label>
+                                    <select id="trat-med-select" onchange="toggleTratCustom(this)" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;background:white;">
+                                        <option value="">Seleccionar...</option>
+                                        <optgroup label="Antidiabéticos">
+                                            <option>Metformina</option><option>Empagliflozina</option><option>Dapagliflozina</option>
+                                            <option>Glibenclamida</option><option>Glimepirida</option><option>Sitagliptina</option>
+                                            <option>Insulina NPH</option><option>Insulina Glargina</option>
+                                        </optgroup>
+                                        <optgroup label="Antihipertensivos">
+                                            <option>Enalapril</option><option>Losartán</option><option>Amlodipina</option>
+                                            <option>Atenolol</option><option>Bisoprolol</option><option>Hidroclorotiazida</option>
+                                            <option>Espironolactona</option>
+                                        </optgroup>
+                                        <optgroup label="Hipolipemiantes">
+                                            <option>Atorvastatina</option><option>Rosuvastatina</option><option>Gemfibrozilo</option>
+                                        </optgroup>
+                                        <optgroup label="Analgésicos / AINEs">
+                                            <option>Ibuprofeno</option><option>Paracetamol</option><option>Diclofenac</option>
+                                            <option>Naproxeno</option><option>Ketorolac</option>
+                                        </optgroup>
+                                        <optgroup label="Antibióticos">
+                                            <option>Amoxicilina</option><option>Amoxicilina + Clavulánico</option>
+                                            <option>Azitromicina</option><option>Ciprofloxacina</option>
+                                        </optgroup>
+                                        <optgroup label="Otros comunes">
+                                            <option>Omeprazol</option><option>Ranitidina</option><option>Metoclopramida</option>
+                                            <option>Loratadina</option><option>Salbutamol</option>
+                                        </optgroup>
+                                        <option value="otro">Otro (escribir)</option>
+                                    </select>
+                                </div>
+                                <div id="trat-custom-wrap" style="display:none;">
+                                    <label style="font-size:12px;color:#666;display:block;margin-bottom:3px;">Nombre del medicamento</label>
+                                    <input type="text" id="trat-custom-name" placeholder="Escribí el medicamento" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+                                </div>
                             </div>
-                        <% } else { %>
-                            <div style="text-align: center; padding: 30px; color: #999;">
-                                <p>Sin medicamentos registrados</p>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                                <div>
+                                    <label style="font-size:12px;color:#666;display:block;margin-bottom:3px;">Dosis</label>
+                                    <input type="text" id="trat-dosis" placeholder="ej: 850 mg" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+                                </div>
+                                <div>
+                                    <label style="font-size:12px;color:#666;display:block;margin-bottom:3px;">Frecuencia</label>
+                                    <input type="text" id="trat-frecuencia" placeholder="ej: Cada 12 horas" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+                                </div>
                             </div>
-                        <% } %>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                                <div>
+                                    <label style="font-size:12px;color:#666;display:block;margin-bottom:3px;">Fecha inicio</label>
+                                    <input type="date" id="trat-fecha-inicio" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+                                </div>
+                                <div>
+                                    <label style="font-size:12px;color:#666;display:block;margin-bottom:3px;">Duración (días)</label>
+                                    <input type="number" id="trat-duracion" placeholder="ej: 30" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+                                </div>
+                            </div>
+                            <div style="margin-bottom:12px;">
+                                <label style="font-size:12px;color:#666;display:block;margin-bottom:3px;">Indicaciones</label>
+                                <textarea id="trat-indicaciones" placeholder="ej: Tomar con las comidas, evitar alcohol, no discontinuar..." rows="3" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
+                            </div>
+                            <div style="display:flex;gap:8px;">
+                                <button onclick="guardarTratamiento()" style="background:#1D9E75;color:white;border:none;border-radius:6px;padding:8px 20px;font-size:13px;cursor:pointer;font-weight:500;">Guardar medicamento</button>
+                                <button onclick="document.getElementById('formTratamiento').style.display='none'" style="background:none;border:1px solid #ddd;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;color:#666;">Cancelar</button>
+                            </div>
+                        </div>
+
+                        <!-- Botón abrir formulario (solo en modo edición) -->
+                        <button id="btnNuevoTratamiento" onclick="abrirFormTratamiento()" style="display:inline-block;margin-top:8px;background:none;border:1px solid #1D9E75;color:#1D9E75;border-radius:6px;padding:7px 16px;font-size:13px;cursor:pointer;">
+                            <i class="bi bi-plus"></i> Agregar medicamento
+                        </button>
+
                     </div>
                 </section>
 
@@ -759,53 +865,7 @@
                     </div>
                 </section>
 
-                <!-- CONSULTAS MÉDICAS SELECTOR -->
-                <section class="section" id="consultas-selector">
-                    <div class="section-header">
-                        <i class="bi bi-file-text"></i>
-                        <h3>Consultas Médicas</h3>
-                    </div>
-                    <div class="section-body">
-                        <% if (historia && historia.consultas && historia.consultas.length > 0) { %>
-                            <div style="margin-bottom: 16px;">
-                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Seleccionar Consulta:</label>
-                                <select id="consultaSelector" onchange="cambiarConsulta(this.value)" style="
-                                    width: 100%;
-                                    padding: 10px;
-                                    border: 1px solid #ddd;
-                                    border-radius: 6px;
-                                    font-size: 14px;
-                                    cursor: pointer;
-                                    background: white;
-                                ">
-                                    <% historia.consultas?.forEach((cons, idx) => { %>
-                                        <option value="<%= idx %>" <%= idx === 0 ? 'selected' : '' %>>
-                                            <%= cons.fecha %> - <%= cons.motivo_consulta || 'Consulta' %> (Dr/Dra. <%= cons.medico || 'Sin médico' %>)
-                                        </option>
-                                    <% }); %>
-                                </select>
-                            </div>
-                            <div style="background: #f8f9fa; padding: 16px; border-radius: 6px; border-left: 4px solid #007bff;">
-                                <div style="margin-bottom: 12px;">
-                                    <div style="font-weight: 700; color: #333; font-size: 16px; margin-bottom: 8px;">
-                                        📅 <span id="consultaFecha"></span>
-                                    </div>
-                                    <div style="font-size: 13px; color: #666; margin-bottom: 6px;">
-                                        <strong>Motivo:</strong> <span id="consultaMotivo"></span>
-                                    </div>
-                                    <div style="font-size: 13px; color: #666;">
-                                        <strong>Médico:</strong> <span id="consultaMedico"></span>
-                                    </div>
-                                </div>
-                            </div>
-                        <% } else { %>
-                            <div style="text-align: center; padding: 30px; color: #999;">
-                                <i class="bi bi-file-text" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
-                                <p>Sin consultas registradas</p>
-                            </div>
-                        <% } %>
-                    </div>
-                </section>
+
 
                 <!-- ESTUDIOS COMPLEMENTARIOS -->
                 <section class="section" id="estudios">
@@ -955,7 +1015,32 @@
           console.log('📝 Sin consultas - será una nueva');
         }
 
-        function cambiarConsulta(idx) {
+        // Confirmar cambio de consulta si hay cambios pendientes
+        function confirmarCambioConsulta(idx) {
+            if (modoEdicion) {
+                const confirmar = confirm('Tenés cambios sin guardar. ¿Querés guardar antes de cambiar de consulta?');
+                if (confirmar) {
+                    guardarCambios().then(() => {
+                        modoEdicion = false;
+                        cambiarConsulta(idx);
+                        // Actualizar select por si acaso
+                        const sel = document.getElementById('consultaSelector');
+                        if (sel) sel.value = idx;
+                    }).catch(() => {
+                        alert('Error al guardar. Revisá los datos e intentá de nuevo.');
+                    });
+                    return;
+                }
+                // Descartar cambios y cambiar
+                modoEdicion = false;
+                document.getElementById('btnEditar').style.display = 'flex';
+                document.getElementById('btnGuardar').style.display = 'none';
+                document.getElementById('btnCancelar').style.display = 'none';
+            }
+            cambiarConsulta(idx);
+        }
+
+                function cambiarConsulta(idx) {
             consultaActualIdx = parseInt(idx);
             const consulta = historiaData.consultas?.[consultaActualIdx];
             
@@ -1024,6 +1109,30 @@
             const anamnesisElem = document.getElementById('anamnesis');
             if (anamnesisElem) anamnesisElem.value = consulta.anamnesis || '';
             
+            // Actualizar Tratamientos
+            const tratGrid = document.getElementById('tratamientosGrid');
+            const tratVacio = document.getElementById('tratamientosVacio');
+            if (tratGrid) {
+                tratGrid.innerHTML = '';
+                const tratamientos = consulta.tratamientos || [];
+                if (tratVacio) tratVacio.style.display = tratamientos.length === 0 ? 'block' : 'none';
+                tratamientos.forEach(trat => {
+                    const card = document.createElement('div');
+                    card.className = 'med-card-item';
+                    card.dataset.tratId = trat.id;
+                    card.style.cssText = 'background:#fff;border:0.5px solid #e9ecef;border-radius:10px;padding:1rem 1rem 1rem 1.25rem;position:relative;border-left:4px solid #1D9E75;';
+                    card.innerHTML = `
+                        <button onclick="eliminarTratamiento('${trat.id}')" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;line-height:1;">×</button>
+                        <div style="font-size:15px;font-weight:600;color:#1a1a1a;margin-bottom:3px;padding-right:20px;">${trat.medicamento}</div>
+                        <div style="font-size:13px;font-weight:500;color:#1D9E75;margin-bottom:2px;">${trat.dosis}</div>
+                        <div style="font-size:12px;color:#666;margin-bottom:8px;">${trat.frecuencia}${trat.duracion_dias ? ' · ' + trat.duracion_dias + ' días' : ''}</div>
+                        ${trat.indicaciones ? `<div style="font-size:11px;color:#888;margin-bottom:8px;font-style:italic;">${trat.indicaciones}</div>` : ''}
+                        <span style="background:#E1F5EE;color:#085041;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">✓ Activo</span>
+                    `;
+                    tratGrid.appendChild(card);
+                });
+            }
+
             // Actualizar Diagnósticos
             diagnosticosSeleccionados = consulta.diagnosticos || [];
             const diagContainer = document.getElementById('diagnosticosContainer');
@@ -1057,26 +1166,27 @@
                 consulta.estudios.forEach((est, idx) => {
                     const tr = document.createElement('tr');
                     tr.setAttribute('data-estudio-idx', idx);
+                    tr.setAttribute('data-tipo', est.tipo_estudio || '');
+                    tr.setAttribute('data-resultado', est.resultado || '');
+                    tr.setAttribute('data-observaciones', est.observaciones || '');
+                    tr.setAttribute('data-fecha', est.fecha_estudio || '');
                     tr.style.borderBottom = '1px solid #f0f0f0';
+
+                    const fechaMostrar = est.fecha_estudio
+                        ? (() => {
+                            const d = new Date(est.fecha_estudio + 'T00:00:00Z');
+                            return !isNaN(d.getTime())
+                              ? d.toLocaleDateString('es-AR', {day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC'})
+                              : '-';
+                          })()
+                        : '-';
+
                     tr.innerHTML = `
-                        <td style="padding: 12px; color: #333; font-weight: 600;">${est.tipo_estudio || est.parametro || est.nombre || '-'}</td>
+                        <td style="padding: 12px; color: #333; font-weight: 600;">${est.tipo_estudio || '-'}</td>
                         <td style="padding: 12px; color: #e74c3c; font-weight: 600; font-size: 14px;">${est.resultado || '-'}</td>
                         <td style="padding: 12px; color: #666;">${est.observaciones || '-'}</td>
-                        <td style="padding: 12px; color: #999; font-size: 13px;">
-                            ${ 
-                              est.fecha_formateada && est.fecha_formateada !== '-' 
-                                ? est.fecha_formateada 
-                                : (est.fecha_estudio 
-                                    ? (() => {
-                                        const d = new Date(est.fecha_estudio + 'T00:00:00Z');
-                                        return !isNaN(d.getTime()) 
-                                          ? d.toLocaleDateString('es-AR', {day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC'})
-                                          : '-';
-                                      })()
-                                    : '-')
-                            }
-                        </td>
-                        <td style="padding: 12px; display: none;"></td>
+                        <td style="padding: 12px; color: #999; font-size: 13px;">${fechaMostrar}</td>
+                        <td style="padding: 12px; display: none;" class="estudio-accion-td"></td>
                     `;
                     estudiosBody.appendChild(tr);
                 });
@@ -1091,20 +1201,8 @@
             const estCount = document.getElementById('estudiosCount');
             if (estCount) estCount.textContent = consulta.estudios?.length || 0;
             
-            // Actualizar Antecedentes (viene como string directo del backend)
-            const anteElem = document.getElementById('antecedentes');
-            console.log('🔍 DEBUG antecedentes:', {
-              hasElement: !!anteElem,
-              antecedentesData: historiaData.antecedentes,
-              type: typeof historiaData.antecedentes
-            });
-            if (anteElem && historiaData.antecedentes) {
-              anteElem.value = historiaData.antecedentes || '';
-              console.log('✅ Antecedente cargado:', historiaData.antecedentes);
-            } else {
-              console.log('⚠️ No hay antecedentes para mostrar');
-            }
-            
+            // Antecedentes y Adjuntos son PERMANENTES de la historia - no se actualizan al cambiar consulta
+
             // Actualizar Impresión Diagnóstica (Valoración Médica)
             const impresionElem = document.getElementById('impresion');
             if (impresionElem && consulta?.resumen) {
@@ -1131,6 +1229,7 @@
                 const isPdf = adj.nombre_archivo.toLowerCase().includes('pdf');
                 
                 const div = document.createElement('div');
+                div.dataset.id = String(adj.id);
                 div.style.cssText = `
                   position: relative;
                   border-radius: 12px;
@@ -1217,7 +1316,98 @@
         }
 
         function imprimirHistoria() {
-            window.print();
+            // Datos del paciente
+            document.getElementById('rp-paciente').textContent =
+                '<%- paciente.nombre %> <%- paciente.apellido %>  ·  DNI: <%- paciente.dni %>  ·  <%- paciente.edad %> años';
+
+            // Fecha
+            const hoy = new Date();
+            document.getElementById('rp-fecha').textContent =
+                'Santo Tomé, ' + hoy.toLocaleDateString('es-AR', {day:'2-digit',month:'long',year:'numeric'});
+
+            // Medicamentos desde diagnosticosSeleccionados y cards
+            const medCards = document.querySelectorAll('.med-card-item');
+            const medContainer = document.getElementById('rp-meds');
+            medContainer.innerHTML = '';
+            if (medCards.length === 0) {
+                medContainer.innerHTML = '<p style="color:#999;font-size:12px;font-style:italic;margin:4px 0 4px 14px;">Sin medicamentos registrados</p>';
+            } else {
+                medCards.forEach(card => {
+                    const divs = card.querySelectorAll('div');
+                    const nombre = divs[1]?.textContent?.trim() || '';
+                    const dosis  = divs[2]?.textContent?.trim() || '';
+                    const freq   = divs[3]?.textContent?.trim() || '';
+                    const ind    = divs[4]?.textContent?.trim() || '';
+                    const d = document.createElement('div');
+                    d.style.cssText = 'margin:7px 0 7px 14px;font-size:12px;line-height:1.6;';
+                    d.innerHTML = '<strong>' + nombre + '</strong> ' + dosis +
+                        '<br><small style="color:#555;">' + freq + (ind && !ind.includes('Activo') ? ' · ' + ind : '') + '</small>';
+                    medContainer.appendChild(d);
+                });
+            }
+
+            // Diagnósticos desde el DOM — usar data-codigo y el texto del párrafo
+            const diagCards = document.querySelectorAll('#diagnosticosContainer .diagnostic-card');
+            const diagContainer = document.getElementById('rp-diag-contenido');
+            diagContainer.innerHTML = '';
+            if (diagCards.length === 0) {
+                diagContainer.innerHTML = '<span style="font-size:11px;color:#999;font-style:italic;">Sin diagnósticos</span>';
+            } else {
+                diagCards.forEach(card => {
+                    const codigo = card.dataset.codigo || card.querySelector('strong')?.textContent?.trim() || '';
+                    const desc   = card.querySelector('p')?.textContent?.trim() || '';
+                    const d = document.createElement('div');
+                    d.style.cssText = 'font-size:11px;line-height:1.9;';
+                    d.innerHTML = '<strong style="color:#1D9E75;">' + codigo + '</strong> ' + desc;
+                    diagContainer.appendChild(d);
+                });
+            }
+
+            // Tratamientos
+            const tratCards = document.querySelectorAll('.med-card-item');
+            const tratContainer = document.getElementById('rp-trat-contenido');
+            tratContainer.innerHTML = '';
+            if (tratCards.length === 0) {
+                tratContainer.innerHTML = '<span style="font-size:11px;color:#999;font-style:italic;">Sin tratamiento registrado</span>';
+            } else {
+                tratCards.forEach(card => {
+                    const divs = card.querySelectorAll('div');
+                    const nombre = divs[1]?.textContent?.trim() || '';
+                    const dosis  = divs[2]?.textContent?.trim() || '';
+                    const freq   = divs[3]?.textContent?.trim() || '';
+                    const d = document.createElement('div');
+                    d.style.cssText = 'margin:5px 0 5px 14px;font-size:12px;line-height:1.5;';
+                    d.innerHTML = '<strong>' + nombre + '</strong> ' + dosis + '<br><small style="color:#555;">' + freq + '</small>';
+                    tratContainer.appendChild(d);
+                });
+            }
+
+            document.getElementById('modalReceta').style.display = 'flex';
+        }
+
+        function actualizarVistaReceta() {
+            document.getElementById('rp-paciente-wrap').style.display = document.getElementById('chk-paciente').checked ? 'block' : 'none';
+            document.getElementById('rp-meds-wrap').style.display    = document.getElementById('chk-meds').checked    ? 'block' : 'none';
+            document.getElementById('rp-diag-wrap').style.display    = document.getElementById('chk-diag').checked    ? 'block' : 'none';
+            document.getElementById('rp-trat-wrap').style.display    = document.getElementById('chk-trat').checked    ? 'block' : 'none';
+            document.getElementById('rp-firma-wrap').style.display   = document.getElementById('chk-firma').checked   ? 'block' : 'none';
+        }
+
+        function cerrarModalReceta() {
+            document.getElementById('modalReceta').style.display = 'none';
+        }
+
+        function imprimirReceta() {
+            const receta = document.getElementById('recetaImprimible');
+            const win = window.open('', '_blank', 'width=620,height=850');
+            win.document.write('<html><head><title>Receta Dr. Carlos Alberto Lemes</title>');
+            win.document.write('<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Times New Roman",serif;font-size:12px;color:#222;}@media print{@page{margin:0}body{margin:0}}');
+            win.document.write('</style></head><body>');
+            win.document.write(receta.outerHTML);
+            win.document.write('</body></html>');
+            win.document.close();
+            win.focus();
+            setTimeout(() => { win.print(); win.close(); }, 600);
         }
 
         function habilitarEdicion() {
@@ -1229,6 +1419,8 @@
                 document.getElementById('btnGuardar').style.display = 'flex';
                 document.getElementById('btnCancelar').style.display = 'flex';
                 document.getElementById('btnAgregarDiag').style.display = 'inline-block';
+                const btnTrat = document.getElementById('btnNuevoTratamiento');
+                if (btnTrat) btnTrat.style.display = 'inline-block';
                 document.getElementById('btnAgregarEstudio').style.display = 'inline-block';
                 
                 // Habilitar campos: quitar readonly
@@ -1274,27 +1466,24 @@
                         
                         for (let i = 0; i < 4; i++) {
                             const celda = celdas[i];
-                            const valor = valores[i];
-                            
-                            if (valor && valor !== '-') {
-                                const input = document.createElement('input');
-                                input.type = (i === 3) ? 'date' : 'text';
-                                
-                                // Convertir fecha a formato input (YYYY-MM-DD)
-                                if (i === 3 && valor) {
-                                    input.value = convertirFechaToInput(valor);
-                                } else {
-                                    input.value = valor;
-                                }
-                                
-                                input.className = (i === 0) ? 'estudio-tipo' : 
-                                                 (i === 1) ? 'estudio-resultado' : 
-                                                 (i === 2) ? 'estudio-observaciones' : 'estudio-fecha';
-                                input.style.cssText = 'width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;';
-                                
-                                celda.innerHTML = '';
-                                celda.appendChild(input);
+                            const valor = (valores[i] && valores[i] !== '-') ? valores[i] : '';
+
+                            const input = document.createElement('input');
+                            input.type = (i === 3) ? 'date' : 'text';
+
+                            if (i === 3) {
+                                input.value = valor ? convertirFechaToInput(valor) : '';
+                            } else {
+                                input.value = valor;
                             }
+
+                            input.className = (i === 0) ? 'estudio-tipo' :
+                                             (i === 1) ? 'estudio-resultado' :
+                                             (i === 2) ? 'estudio-observaciones' : 'estudio-fecha';
+                            input.style.cssText = 'width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;';
+
+                            celda.innerHTML = '';
+                            celda.appendChild(input);
                         }
                     }
                     
@@ -1344,6 +1533,15 @@
         function cancelarEdicion() {
             if (confirm('¿Descartar cambios?')) {
                 modoEdicion = false;
+                // Restaurar botones
+                document.getElementById('btnEditar').style.display = 'flex';
+                document.getElementById('btnGuardar').style.display = 'none';
+                document.getElementById('btnCancelar').style.display = 'none';
+                const btnAgrDiag = document.getElementById('btnAgregarDiag');
+                if (btnAgrDiag) btnAgrDiag.style.display = 'none';
+                const btnEstudio = document.getElementById('btnAgregarEstudio');
+                if (btnEstudio) btnEstudio.style.display = 'none';
+                // Recargar para restaurar todos los datos
                 location.reload();
             }
         }
@@ -2075,33 +2273,204 @@
         }
         
         async function eliminarAdjunto(id, nombre) {
-            if (!confirm('¿Eliminar archivo: ' + nombre + '?')) return;
-            
+            if (!confirm('¿Seguro que querés eliminar "' + nombre + '"?\nEsta acción no se puede deshacer.')) return;
+
+            // Buscar la card por data-id (comparar como string)
+            const card = document.querySelector(`[data-id="${String(id)}"]`);
+
+            // Feedback inmediato — atenuar
+            if (card) {
+                card.style.opacity = '0.4';
+                card.style.pointerEvents = 'none';
+            }
+
             try {
                 console.log('🗑️ Eliminando adjunto:', id);
                 const response = await fetch(`/api/documento/${id}`, {
                     method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' }
                 });
-                
-                if (!response.ok) throw new Error('Error al eliminar');
-                
-                // Eliminar del DOM
-                document.querySelector(`[data-id="${id}"]`)?.remove();
-                console.log('✅ Archivo eliminado');
-                
-                // Actualizar contador
-                const adjContainer = document.getElementById('adjuntosContainer');
-                const count = adjContainer.children.length;
-                const adjCount = document.getElementById('adjuntosCount');
-                if (adjCount) adjCount.textContent = count;
-                
+
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(result.message || 'Error al eliminar');
+
+                // Animación de salida y luego remover del DOM
+                if (card) {
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.transform = 'scale(0)';
+                    card.style.opacity = '0';
+                    setTimeout(() => {
+                        card.remove();
+                        // Actualizar contadores
+                        const adjContainer = document.getElementById('adjuntosContainer');
+                        const adjCount = document.getElementById('adjuntosCount');
+                        const adjCountSidebar = document.getElementById('adjuntosCountSidebar');
+                        const count = adjContainer ? adjContainer.querySelectorAll('[data-id]').length : 0;
+                        if (adjCount) adjCount.textContent = count;
+                        if (adjCountSidebar) adjCountSidebar.textContent = count;
+
+                        // Eliminar del array en memoria
+                        if (historiaData.documentos) {
+                            historiaData.documentos = historiaData.documentos.filter(d => String(d.id) !== String(id));
+                        }
+
+                        // Mostrar mensaje vacío si no quedan
+                        if (count === 0 && adjContainer) {
+                            adjContainer.innerHTML = `
+                                <div style="grid-column:1/-1; text-align:center; padding:30px; color:#999;">
+                                    <i class="bi bi-inbox" style="font-size:2rem; display:block; margin-bottom:10px;"></i>
+                                    <p>Sin archivos adjuntos</p>
+                                </div>`;
+                        }
+                    }, 300);
+                }
+
+                // Toast verde
+                mostrarToast('✅ Archivo eliminado correctamente');
+                console.log('✅ Archivo eliminado:', nombre);
+
             } catch (error) {
                 console.error('❌ Error:', error);
-                alert('Error al eliminar el archivo: ' + error.message);
+                if (card) {
+                    card.style.opacity = '1';
+                    card.style.pointerEvents = 'auto';
+                }
+                alert('Error al eliminar: ' + error.message);
             }
+        }
+
+        function toggleTratCustom(sel) {
+            document.getElementById('trat-custom-wrap').style.display = sel.value === 'otro' ? 'block' : 'none';
+        }
+
+        function abrirFormTratamiento() {
+            if (!modoEdicion) {
+                if (confirm('Para agregar medicamentos necesitás activar el modo Editar. ¿Activarlo ahora?')) {
+                    habilitarEdicion();
+                }
+                return;
+            }
+            document.getElementById('formTratamiento').style.display = 'block';
+            document.getElementById('btnNuevoTratamiento').style.display = 'none';
+        }
+
+        async function guardarTratamiento() {
+            const sel = document.getElementById('trat-med-select');
+            const nombre = sel.value === 'otro'
+                ? document.getElementById('trat-custom-name').value.trim()
+                : sel.value;
+            const dosis = document.getElementById('trat-dosis').value.trim();
+            const frecuencia = document.getElementById('trat-frecuencia').value.trim();
+            const fechaInicio = document.getElementById('trat-fecha-inicio').value;
+            const duracion = document.getElementById('trat-duracion').value;
+            const indicaciones = document.getElementById('trat-indicaciones').value.trim();
+
+            if (!nombre) { alert('Seleccioná o escribí un medicamento'); return; }
+            if (!dosis)   { alert('Ingresá la dosis'); return; }
+            if (!frecuencia) { alert('Ingresá la frecuencia'); return; }
+            if (!fechaInicio) { alert('Ingresá la fecha de inicio'); return; }
+
+            const consulta = historiaData.consultas?.[consultaActualIdx];
+            if (!consulta?.id) { alert('No hay consulta activa'); return; }
+
+            try {
+                const response = await fetch('/api/tratamientos', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        consulta_id: consulta.id,
+                        medicamento: nombre,
+                        dosis: dosis,
+                        frecuencia: frecuencia,
+                        fecha_inicio: fechaInicio,
+                        duracion_dias: duracion ? parseInt(duracion) : null,
+                        indicaciones: indicaciones || null
+                    })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || 'Error al guardar');
+
+                // Agregar card al grid
+                const grid = document.getElementById('tratamientosGrid');
+                const vacio = document.getElementById('tratamientosVacio');
+                if (vacio) vacio.style.display = 'none';
+
+                const card = document.createElement('div');
+                card.className = 'med-card-item';
+                card.dataset.tratId = result.data.id;
+                card.style.cssText = 'background:#fff;border:0.5px solid #e9ecef;border-radius:10px;padding:1rem 1rem 1rem 1.25rem;position:relative;border-left:4px solid #1D9E75;';
+                card.innerHTML = `
+                    <button onclick="eliminarTratamiento('${result.data.id}')" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;line-height:1;">×</button>
+                    <div style="font-size:15px;font-weight:600;color:#1a1a1a;margin-bottom:3px;padding-right:20px;">${nombre}</div>
+                    <div style="font-size:13px;font-weight:500;color:#1D9E75;margin-bottom:2px;">${dosis}</div>
+                    <div style="font-size:12px;color:#666;margin-bottom:8px;">${frecuencia}${duracion ? ' · ' + duracion + ' días' : ''}</div>
+                    ${indicaciones ? `<div style="font-size:11px;color:#888;margin-bottom:8px;font-style:italic;">${indicaciones}</div>` : ''}
+                    <span style="background:#E1F5EE;color:#085041;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">✓ Activo</span>
+                `;
+                grid.appendChild(card);
+
+                // Limpiar formulario
+                sel.value = '';
+                document.getElementById('trat-dosis').value = '';
+                document.getElementById('trat-frecuencia').value = '';
+                document.getElementById('trat-fecha-inicio').value = '';
+                document.getElementById('trat-duracion').value = '';
+                document.getElementById('trat-indicaciones').value = '';
+                document.getElementById('trat-custom-wrap').style.display = 'none';
+                document.getElementById('formTratamiento').style.display = 'none';
+                document.getElementById('btnNuevoTratamiento').style.display = 'inline-block';
+
+                mostrarToast('✅ Medicamento agregado');
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function eliminarTratamiento(id) {
+            if (!modoEdicion) {
+                alert('Activá el modo Editar para eliminar medicamentos.');
+                return;
+            }
+            if (!confirm('¿Eliminar este medicamento del tratamiento?')) return;
+            const card = document.querySelector(`[data-trat-id="${id}"]`);
+            if (card) { card.style.opacity = '0.4'; card.style.pointerEvents = 'none'; }
+
+            try {
+                const response = await fetch(`/api/tratamientos/${id}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                if (!response.ok) throw new Error('Error al eliminar');
+
+                if (card) {
+                    card.style.transition = 'all 0.3s';
+                    card.style.transform = 'scale(0)';
+                    card.style.opacity = '0';
+                    setTimeout(() => {
+                        card.remove();
+                        const grid = document.getElementById('tratamientosGrid');
+                        const vacio = document.getElementById('tratamientosVacio');
+                        if (grid && grid.querySelectorAll('.med-card-item').length === 0 && vacio) {
+                            vacio.style.display = 'block';
+                        }
+                    }, 300);
+                }
+                mostrarToast('✅ Medicamento eliminado');
+            } catch (err) {
+                if (card) { card.style.opacity = '1'; card.style.pointerEvents = 'auto'; }
+                alert('Error: ' + err.message);
+            }
+        }
+
+                function mostrarToast(mensaje, tipo = 'success') {
+            const color = tipo === 'success' ? '#198754' : '#dc3545';
+            const toast = document.createElement('div');
+            toast.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;background:${color};color:white;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.2);transition:opacity 0.3s;`;
+            toast.textContent = mensaje;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2500);
         }
         
         // Cerrar modal al hacer clic fuera de él
@@ -2112,6 +2481,74 @@
             }
         });
     </script>
+
+    <!-- ========== MODAL RECETA ========== -->
+    <div id="modalReceta" style="display:none;position:fixed;z-index:10000;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;">
+      <div style="background:white;border-radius:12px;width:100%;max-width:760px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+        <div style="background:#f8f9fa;padding:16px 20px;border-bottom:1px solid #e9ecef;display:flex;justify-content:space-between;align-items:center;">
+          <h5 style="margin:0;font-size:16px;font-weight:600;">Vista previa de receta</h5>
+          <button onclick="cerrarModalReceta()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#666;line-height:1;">×</button>
+        </div>
+        <div style="display:grid;grid-template-columns:200px 1fr;min-height:500px;">
+          <div style="padding:16px;border-right:1px solid #e9ecef;background:#fafafa;">
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#666;margin-bottom:12px;">Incluir en receta</div>
+            <label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px;cursor:pointer;"><input type="checkbox" id="chk-paciente" checked onchange="actualizarVistaReceta()" style="accent-color:#1D9E75;width:15px;height:15px;"> Datos del paciente</label>
+            <label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px;cursor:pointer;"><input type="checkbox" id="chk-meds" checked onchange="actualizarVistaReceta()" style="accent-color:#1D9E75;width:15px;height:15px;"> Medicamentos</label>
+            <label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px;cursor:pointer;"><input type="checkbox" id="chk-diag" checked onchange="actualizarVistaReceta()" style="accent-color:#1D9E75;width:15px;height:15px;"> Diagnósticos CIE-10</label>
+            <label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px;cursor:pointer;"><input type="checkbox" id="chk-trat" checked onchange="actualizarVistaReceta()" style="accent-color:#1D9E75;width:15px;height:15px;"> Tratamiento</label>
+            <label style="display:flex;align-items:center;gap:8px;padding:8px 0;font-size:13px;cursor:pointer;"><input type="checkbox" id="chk-firma" checked onchange="actualizarVistaReceta()" style="accent-color:#1D9E75;width:15px;height:15px;"> Fecha y firma</label>
+          </div>
+          <div style="padding:20px;background:#e9ecef;overflow-y:auto;">
+            <div id="recetaImprimible" style="background:white;padding:24px;font-family:'Times New Roman',serif;font-size:12px;color:#222;position:relative;overflow:hidden;min-height:480px;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+              <div style="position:absolute;top:48%;left:50%;transform:translate(-50%,-50%);opacity:0.07;pointer-events:none;z-index:0;">
+                <svg width="380" height="320" viewBox="0 0 420 360" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M10 130 L35 130 C40 128 44 120 48 132 C52 144 54 118 58 124 C62 130 65 133 70 130 C74 127 76 116 80 128 C84 140 86 120 90 125 C92 129 95 131 100 130 L112 130 C115 127 117 104 120 82 C123 60 126 172 129 186 C131 192 134 133 140 130 L155 130 C158 127 161 118 165 136 C169 154 171 116 175 123 C177 129 180 132 184 130 L198 130 C201 127 204 116 208 138 C212 160 214 110 218 120 C220 128 223 132 228 130 L244 130 C247 127 249 104 252 82 C255 60 258 175 261 190 C263 196 267 134 273 130 L290 130 C293 127 296 118 300 136 C304 154 306 116 310 124 C312 130 315 132 320 130 L350 130 L380 130" fill="none" stroke="#000" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M120 186 Q116 222 110 250 Q102 278 82 298 Q65 315 50 308" fill="none" stroke="#000" stroke-width="7" stroke-linecap="round"/>
+                  <circle cx="44" cy="312" r="28" fill="#000"/>
+                  <line x1="44" y1="290" x2="44" y2="334" stroke="white" stroke-width="4"/>
+                  <line x1="20" y1="312" x2="68" y2="312" stroke="white" stroke-width="4"/>
+                  <text x="10" y="358" font-family="'Brush Script MT',cursive" font-size="18" fill="#000">L y L  Consultorio privado</text>
+                </svg>
+              </div>
+              <div style="position:relative;z-index:1;">
+                <div style="text-align:center;border-bottom:2px solid #222;padding-bottom:12px;margin-bottom:14px;">
+                  <div style="font-size:18px;font-weight:bold;font-family:'Brush Script MT',cursive;margin-bottom:4px;">Dr. Carlos Alberto Lemes</div>
+                  <div style="font-size:10px;line-height:1.7;">MÉDICO – M.P. 6306 &nbsp;M.N. 158.838<br>Medicina General y Familiar – Endocrinología<br>Ex Residente Hospital San Juan Bautista</div>
+                  <div style="font-size:10px;font-style:italic;color:#444;margin-top:4px;">"El que no vive para servir, no sirve para vivir"</div>
+                </div>
+                <div id="rp-paciente-wrap"><div id="rp-paciente" style="font-size:11px;margin-bottom:10px;color:#333;"></div></div>
+                <div id="rp-meds-wrap">
+                  <div style="font-size:15px;font-weight:bold;margin:8px 0;">Rp./</div>
+                  <div id="rp-meds"></div>
+                </div>
+                <div id="rp-diag-wrap" style="margin-top:12px;padding-top:8px;border-top:1px dashed #bbb;">
+                  <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.06em;color:#666;margin-bottom:5px;">Diagnósticos</div>
+                  <div id="rp-diag-contenido"></div>
+                </div>
+                <div id="rp-trat-wrap" style="margin-top:12px;padding-top:8px;border-top:1px dashed #bbb;">
+                  <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.06em;color:#666;margin-bottom:5px;">Tratamiento</div>
+                  <div id="rp-trat-contenido"></div>
+                </div>
+                <div id="rp-firma-wrap" style="margin-top:32px;text-align:right;font-size:10px;color:#444;">
+                  <div id="rp-fecha"></div>
+                  <div style="border-top:1px solid #222;width:150px;margin:8px 0 4px auto;"></div>
+                  <div>Dr. Carlos Alberto Lemes</div>
+                  <div style="font-size:9px;">M.P. 6306 · M.N. 158.838</div>
+                </div>
+                <div style="margin-top:20px;display:flex;justify-content:space-between;font-size:9px;color:#555;border-top:1px solid #ccc;padding-top:6px;">
+                  <span>Solo WhatsApp: (3756) 619763</span>
+                  <span>Ángel S. Blanco 121 · Santo Tomé – Ctes.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:14px 20px;border-top:1px solid #e9ecef;display:flex;gap:10px;justify-content:flex-end;background:#f8f9fa;">
+          <button onclick="cerrarModalReceta()" style="background:none;border:1px solid #ddd;border-radius:6px;padding:9px 20px;font-size:13px;cursor:pointer;color:#666;">Cancelar</button>
+          <button onclick="imprimirReceta()" style="background:#1D9E75;color:white;border:none;border-radius:6px;padding:9px 24px;font-size:13px;cursor:pointer;font-weight:500;"><i class="bi bi-printer"></i> Imprimir receta</button>
+        </div>
+      </div>
+    </div>
 
     <!-- ========== MODAL PARA VER ARCHIVOS ========== -->
     <div id="archivoModal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); padding: 20px; animation: fadeIn 0.3s ease;">

@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendar Turno</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .contenedor { max-width: 700px; margin: 0 auto; }
+        .tarjeta {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .titulo { 
+            font-size: 24px; 
+            font-weight: 700; 
+            color: #1a3a3a;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .form-group { margin-bottom: 20px; }
+        label { 
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            display: block;
+            font-size: 14px;
+        }
+        input, textarea, select { 
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        .btn-buscar {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s;
+        }
+        .btn-buscar:hover { background: #764ba2; }
+        .btn-guardar {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            transition: background 0.3s;
+        }
+        .btn-guardar:hover { background: #059669; }
+        .btn-volver {
+            background: #e2e8f0;
+            color: #1a3a3a;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-volver:hover { background: #cbd5e1; }
+        .persona-info {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .persona-info p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .persona-info strong { color: #059669; }
+        .alert {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        .alert-error { 
+            background: #fee;
+            color: #c00;
+            border: 1px solid #fcc;
+        }
+        .alert-success {
+            background: #efe;
+            color: #080;
+            border: 1px solid #cfc;
+        }
+        .alert-info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #90caf9;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="contenedor">
+        <!-- ENCABEZADO -->
+        <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="color: white; margin: 0; display: flex; align-items: center; gap: 10px;">
+                <i class="bi bi-calendar-event"></i> Agendar Turno
+            </h1>
+            <button class="btn-volver" onclick="history.back()">
+                <i class="bi bi-arrow-left"></i> Volver
+            </button>
+        </div>
+
+        <!-- TARJETA PRINCIPAL -->
+        <div class="tarjeta">
+            <div id="alertContainer"></div>
+
+            <!-- PASO 1: BUSCAR PERSONA -->
+            <div class="titulo">
+                <i class="bi bi-search"></i> Paso 1: Buscar Persona
+            </div>
+
+            <div class="form-group">
+                <label for="dni">DNI de la Persona *</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="dni" placeholder="12345678" maxlength="10">
+                    <button class="btn-buscar" onclick="buscarPersona()">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
+            </div>
+
+            <div id="loadingBuscar" class="loading">
+                <div class="spinner"></div>
+                <p>Buscando...</p>
+            </div>
+
+            <div id="personaEncontrada" style="display: none;">
+                <div class="persona-info">
+                    <p><strong>✅ Persona encontrada:</strong></p>
+                    <p><strong>Nombre:</strong> <span id="personaNombre"></span> <span id="personaApellido"></span></p>
+                    <p><strong>DNI:</strong> <span id="personaDni"></span></p>
+                    <p><strong>Estado:</strong> <span id="personaEstado"></span></p>
+                </div>
+            </div>
+
+            <div id="personaNoEncontrada" style="display: none;">
+                <p style="color: #666; font-style: italic;">
+                    Cette personne n'existe pas dans le système. Veuillez compléter les données pour la créer.
+                </p>
+            </div>
+
+            <!-- PASO 2: DATOS PERSONALES -->
+            <div class="titulo" style="margin-top: 30px;">
+                <i class="bi bi-person"></i> Paso 2: Datos Personales
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label for="nombre">Nombre *</label>
+                    <input type="text" id="nombre" placeholder="Juan">
+                </div>
+                <div class="form-group">
+                    <label for="apellido">Apellido *</label>
+                    <input type="text" id="apellido" placeholder="Pérez">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label for="telefono">Teléfono</label>
+                    <input type="text" id="telefono" placeholder="3756-123456">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="juan@example.com">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label for="fechaNacimiento">Fecha de Nacimiento</label>
+                    <input type="date" id="fechaNacimiento">
+                </div>
+                <div class="form-group">
+                    <label for="sexo">Sexo</label>
+                    <select id="sexo">
+                        <option value="">Seleccionar...</option>
+                        <option value="M">Masculino</option>
+                        <option value="F">Femenino</option>
+                        <option value="O">Otro</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="direccion">Dirección</label>
+                <input type="text" id="direccion" placeholder="Calle y número">
+            </div>
+
+            <!-- PASO 3: ASIGNAR TURNO -->
+            <div class="titulo" style="margin-top: 30px;">
+                <i class="bi bi-calendar2-event"></i> Paso 3: Asignar Turno
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label for="fecha">Fecha del Turno *</label>
+                    <input type="date" id="fecha">
+                </div>
+                <div class="form-group">
+                    <label for="hora">Hora del Turno *</label>
+                    <input type="time" id="hora">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="turnoObservaciones">Observaciones del Turno</label>
+                <textarea id="turnoObservaciones" rows="2" placeholder="Motivo de la consulta, notas..."></textarea>
+            </div>
+
+            <!-- BOTÓN GUARDAR -->
+            <button class="btn-guardar" onclick="guardarTurno()">
+                <i class="bi bi-check-circle"></i> Agendar Turno
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // BUSCAR PERSONA POR DNI
+        // ============================================================================
+        async function buscarPersona() {
+            const dni = document.getElementById('dni').value;
+
+            if (!dni) {
+                mostrarAlerta('DNI es requerido', 'error');
+                return;
+            }
+
+            document.getElementById('loadingBuscar').style.display = 'block';
+            document.getElementById('personaEncontrada').style.display = 'none';
+            document.getElementById('personaNoEncontrada').style.display = 'none';
+
+            try {
+                const response = await fetch(`/api/turnos/buscar-persona?dni=${dni}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                document.getElementById('loadingBuscar').style.display = 'none';
+
+                if (data.encontrada) {
+                    // ✅ PERSONA ENCONTRADA
+                    console.log('✅ Persona encontrada:', data);
+                    
+                    const tipo = data.tipo; // 'paciente_existente' | 'persona_sin_paciente'
+                    
+                    document.getElementById('personaNombre').textContent = data.persona.nombre;
+                    document.getElementById('personaApellido').textContent = data.persona.apellido;
+                    document.getElementById('personaDni').textContent = data.persona.dni;
+                    
+                    // Mostrar estado según tipo
+                    let estadoMsg = '';
+                    if (tipo === 'paciente_existente') {
+                        estadoMsg = '✅ Paciente Registrado';
+                    } else if (tipo === 'persona_sin_paciente') {
+                        estadoMsg = '⚠️ Persona sin paciente';
+                    }
+                    document.getElementById('personaEstado').textContent = estadoMsg;
+                    document.getElementById('personaEncontrada').style.display = 'block';
+
+                    // Llenar campos con datos existentes
+                    document.getElementById('nombre').value = data.persona.nombre;
+                    document.getElementById('apellido').value = data.persona.apellido;
+                    document.getElementById('telefono').value = data.persona.telefono || '';
+                    document.getElementById('email').value = data.persona.email || '';
+                    document.getElementById('fechaNacimiento').value = formatearFecha(data.persona.fecha_nacimiento) || '';
+                    document.getElementById('sexo').value = data.persona.sexo || '';
+                    document.getElementById('direccion').value = data.persona.direccion || '';
+
+                    // ============================================================================
+                    // DEFINIR READONLY SEGÚN TIPO
+                    // ============================================================================
+                    // TODOS LOS CAMPOS SON EDITABLES - El usuario puede modificarlos
+                    marcarCamposReadonly([
+                        'nombre', 'apellido', 'telefono', 'email', 
+                        'fechaNacimiento', 'sexo', 'direccion'
+                    ], false, '');
+                    
+                    if (tipo === 'paciente_existente') {
+                        mostrarAlerta('✅ Paciente encontrado. Puedes editar los datos si es necesario.', 'success');
+                    } else if (tipo === 'persona_sin_paciente') {
+                        mostrarAlerta('⚠️ Persona encontrada pero sin registro de paciente. Completa el formulario.', 'info');
+                    }
+                } else {
+                    // ❌ PERSONA NO ENCONTRADA
+                    console.log('❌ Persona no encontrada');
+                    
+                    document.getElementById('personaNoEncontrada').style.display = 'block';
+                    
+                    // Limpiar TODOS los campos para que se puedan llenar
+                    document.getElementById('nombre').value = '';
+                    document.getElementById('apellido').value = '';
+                    document.getElementById('telefono').value = '';
+                    document.getElementById('email').value = '';
+                    document.getElementById('fechaNacimiento').value = '';
+                    document.getElementById('sexo').value = '';
+                    document.getElementById('direccion').value = '';
+
+                    // Remover readonly para poder editar
+                    marcarCamposReadonly([
+                        'nombre', 'apellido', 'telefono', 'email', 
+                        'fechaNacimiento', 'sexo', 'direccion'
+                    ], false, '');
+                    
+                    // Enfocar en nombre para que complete los datos
+                    document.getElementById('nombre').focus();
+                    mostrarAlerta('Persona no registrada. Por favor ingrese los datos para crearla.', 'info');
+                }
+            } catch (error) {
+                document.getElementById('loadingBuscar').style.display = 'none';
+                console.error('Error:', error);
+                mostrarAlerta('Error al buscar persona: ' + error.message, 'error');
+            }
+        }
+
+        // ============================================================================
+        // UTILIDADES
+        // ============================================================================
+        function marcarCamposReadonly(ids, readonly, backgroundColor) {
+            ids.forEach(id => {
+                const campo = document.getElementById(id);
+                if (campo) {
+                    if (readonly) {
+                        campo.setAttribute('readonly', 'readonly');
+                        campo.style.backgroundColor = backgroundColor || '#f0f0f0';
+                        campo.style.cursor = 'not-allowed';
+                        campo.style.opacity = '0.9';
+                    } else {
+                        campo.removeAttribute('readonly');
+                        campo.style.backgroundColor = '';
+                        campo.style.cursor = '';
+                        campo.style.opacity = '1';
+                    }
+                }
+            });
+        }
+
+        function formatearFecha(fecha) {
+            if (!fecha) return '';
+            // Si es un formato ISO (YYYY-MM-DD HH:mm:ss), convertir a YYYY-MM-DD
+            if (typeof fecha === 'string') {
+                const partes = fecha.split(' ')[0]; // Sacar solo la fecha
+                return partes;
+            }
+            return fecha;
+        }
+
+        // ============================================================================
+        // GUARDAR TURNO (CREAR O ACTUALIZAR)
+        // ============================================================================
+        async function guardarTurno() {
+            // Validar campos obligatorios
+            const nombre = document.getElementById('nombre').value;
+            const apellido = document.getElementById('apellido').value;
+            const dni = document.getElementById('dni').value;
+            const fecha = document.getElementById('fecha').value;
+            const hora = document.getElementById('hora').value;
+
+            if (!nombre || !apellido || !dni || !fecha || !hora) {
+                mostrarAlerta('Todos los campos obligatorios (*) deben ser completados', 'error');
+                return;
+            }
+
+            // Obtener valores del formulario
+            const sexoValue = document.getElementById('sexo').value;
+            const sexoMap = {
+                'Masculino': 'M',
+                'Femenino': 'F',
+                'Otro': 'O',
+                'M': 'M',
+                'F': 'F',
+                'O': 'O'
+            };
+            const sexoFinal = sexoMap[sexoValue] || sexoValue;
+
+            // ========================================================================
+            // FUNCIÓN PARA LIMPIAR VALORES VACÍOS
+            // ========================================================================
+            const limpiarValor = (val) => {
+                if (val === '' || val === undefined) return null;
+                return val;
+            };
+
+            // Convertir fecha a ISO8601 (YYYY-MM-DD)
+            let fechaISO = fecha;
+            if (fecha && fecha.includes('/')) {
+                const [dia, mes, anio] = fecha.split('/');
+                fechaISO = `${anio}-${mes}-${dia}`;
+            }
+
+            // Convertir fecha_nacimiento a ISO8601
+            const fechaNac = document.getElementById('fechaNacimiento').value;
+            let fechaNacISO = null;
+            if (fechaNac && fechaNac.includes('/')) {
+                const [dia, mes, anio] = fechaNac.split('/');
+                fechaNacISO = `${anio}-${mes}-${dia}`;
+            } else if (fechaNac) {
+                fechaNacISO = fechaNac;
+            }
+
+            const datos = {
+                // ✅ Campos de Persona (con prefijo persona_)
+                persona_nombre: limpiarValor(nombre),
+                persona_apellido: limpiarValor(apellido),
+                persona_dni: limpiarValor(dni),
+                persona_telefono: limpiarValor(document.getElementById('telefono').value),
+                persona_email: limpiarValor(document.getElementById('email').value),
+                persona_fecha_nacimiento: limpiarValor(fechaNacISO),
+                persona_sexo: limpiarValor(sexoFinal),
+                persona_direccion: limpiarValor(document.getElementById('direccion').value),
+                // ✅ Campos de Turno
+                medico_id: <%= user.medico_id %>,
+                fecha: limpiarValor(fechaISO),
+                hora: limpiarValor(hora),
+                observaciones: limpiarValor(document.getElementById('turnoObservaciones').value),
+                motivo: limpiarValor(document.getElementById('turnoObservaciones').value)
+            };
+
+            // Detectar si estamos editando
+            const btnGuardar = document.querySelector('button[onclick="guardarTurno()"]');
+            const turnoId = btnGuardar.dataset.turnoId;
+            const esEdicion = !!turnoId;
+
+            console.log(esEdicion ? '✏️ Actualizar turno:' : '📅 Agendar turno:', datos);
+
+            // ========================================================================
+            // MOSTRAR INDICADOR DE CARGA
+            // ========================================================================
+            const btnOriginalText = btnGuardar.textContent;
+            btnGuardar.disabled = true;
+            btnGuardar.innerHTML = '⏳ Guardando...';
+            btnGuardar.style.opacity = '0.6';
+
+            try {
+                mostrarAlerta('⏳ Guardando turno...', 'info');
+
+                // Elegir URL y método según si es edición o creación
+                const url = esEdicion ? `/api/turnos/${turnoId}` : '/api/turnos/agendar';
+                const method = esEdicion ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(datos)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    const errorMsg = data.errors ? data.errors.map(e => e.msg).join(', ') : data.message;
+                    mostrarAlerta('❌ Error: ' + errorMsg, 'error');
+                    btnGuardar.disabled = false;
+                    btnGuardar.innerHTML = btnOriginalText;
+                    btnGuardar.style.opacity = '1';
+                    return;
+                }
+
+                // ✅ MOSTRAR ÉXITO
+                const mensaje = esEdicion 
+                    ? '✅ ¡Turno actualizado exitosamente!' 
+                    : '✅ ¡Turno guardado exitosamente! ID: ' + data.turno.id;
+                mostrarAlerta(mensaje, 'success');
+                
+                // Redirigir a turnos después de 2 segundos
+                setTimeout(() => {
+                    window.location.href = '/doctor/turnos';
+                }, 2000);
+            } catch (error) {
+                mostrarAlerta('❌ Error al guardar turno: ' + error.message, 'error');
+                btnGuardar.disabled = false;
+                btnGuardar.innerHTML = btnOriginalText;
+                btnGuardar.style.opacity = '1';
+            }
+        }
+
+        // ============================================================================
+        // UTILIDADES
+        // ============================================================================
+        function mostrarAlerta(mensaje, tipo) {
+            const container = document.getElementById('alertContainer');
+            let claseCSS = 'alert-success';
+            
+            if (tipo === 'error') {
+                claseCSS = 'alert-error';
+            } else if (tipo === 'info') {
+                claseCSS = 'alert-info';
+            }
+            
+            container.innerHTML = `<div class="alert ${claseCSS}">${mensaje}</div>`;
+            
+            if (tipo === 'success') {
+                setTimeout(() => {
+                    container.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        // Auto-buscar cuando se ingresa DNI y se presiona Enter
+        document.getElementById('dni').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') buscarPersona();
+        });
+
+        // ============================================================================
+        // CARGAR TURNO PARA EDITAR
+        // ============================================================================
+        async function cargarTurnoParaEditar() {
+            // Detectar si estamos en modo edición
+            const params = new URLSearchParams(window.location.search);
+            const turnoId = params.get('editar');
+
+            console.log('🔍 URL params:', { turnoId });
+
+            if (!turnoId) {
+                console.log('❌ No hay turnoId en URL, modo creación');
+                return; // No estamos editando
+            }
+
+            console.log('✏️ Modo edición detectado, cargando turno ID:', turnoId);
+
+            // Mostrar loading
+            mostrarAlerta('⏳ Cargando datos del turno...', 'info');
+
+            try {
+                console.log('📡 Fetching /api/turnos/' + turnoId);
+                const response = await fetch(`/api/turnos/${turnoId}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                console.log('📊 Response status:', response.status);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('❌ Error response:', errorData);
+                    mostrarAlerta('❌ Turno no encontrado (' + response.status + ')', 'error');
+                    return;
+                }
+
+                const resultado = await response.json();
+                console.log('✅ Datos recibidos:', resultado);
+
+                const turno = resultado.data;
+
+                // Verificar que turno existe
+                if (!turno) {
+                    console.error('❌ turno.data es undefined');
+                    mostrarAlerta('❌ Datos incompletos del turno', 'error');
+                    return;
+                }
+
+                console.log('📋 Rellenando Paso 1: DNI');
+                // Rellenar Paso 1: DNI
+                const dniInput = document.getElementById('dni');
+                if (dniInput) {
+                    dniInput.value = turno.persona.dni;
+                    console.log('✅ DNI:', turno.persona.dni);
+                } else {
+                    console.warn('⚠️ No encontré elemento #dni');
+                }
+
+                console.log('📋 Rellenando Paso 2: Datos Persona');
+                // Rellenar Paso 2: Datos Persona
+                const nombreInput = document.getElementById('nombre');
+                if (nombreInput) {
+                    nombreInput.value = turno.persona.nombre || '';
+                    console.log('✅ Nombre:', turno.persona.nombre);
+                } else {
+                    console.warn('⚠️ No encontré elemento #nombre');
+                }
+
+                const apellidoInput = document.getElementById('apellido');
+                if (apellidoInput) {
+                    apellidoInput.value = turno.persona.apellido || '';
+                    console.log('✅ Apellido:', turno.persona.apellido);
+                } else {
+                    console.warn('⚠️ No encontré elemento #apellido');
+                }
+
+                const telefonoInput = document.getElementById('telefono');
+                if (telefonoInput) {
+                    telefonoInput.value = turno.persona.telefono || '';
+                    console.log('✅ Teléfono:', turno.persona.telefono);
+                } else {
+                    console.warn('⚠️ No encontré elemento #telefono');
+                }
+
+                const emailInput = document.getElementById('email');
+                if (emailInput) {
+                    emailInput.value = turno.persona.email || '';
+                    console.log('✅ Email:', turno.persona.email);
+                } else {
+                    console.warn('⚠️ No encontré elemento #email');
+                }
+                
+                // Fecha de nacimiento (convertir a formato YYYY-MM-DD)
+                if (turno.persona.fecha_nacimiento) {
+                    const fechaNacInput = document.getElementById('fechaNacimiento');
+                    if (fechaNacInput) {
+                        const fecha = new Date(turno.persona.fecha_nacimiento);
+                        const fechaFormato = fecha.toISOString().split('T')[0];
+                        fechaNacInput.value = fechaFormato;
+                        console.log('✅ Fecha Nacimiento:', fechaFormato);
+                    } else {
+                        console.warn('⚠️ No encontré elemento #fechaNacimiento');
+                    }
+                }
+                
+                const sexoInput = document.getElementById('sexo');
+                if (sexoInput) {
+                    sexoInput.value = turno.persona.sexo || '';
+                    console.log('✅ Sexo:', turno.persona.sexo);
+                } else {
+                    console.warn('⚠️ No encontré elemento #sexo');
+                }
+
+                const direccionInput = document.getElementById('direccion');
+                if (direccionInput) {
+                    direccionInput.value = turno.persona.direccion || '';
+                    console.log('✅ Dirección:', turno.persona.direccion);
+                } else {
+                    console.warn('⚠️ No encontré elemento #direccion');
+                }
+
+                console.log('📋 Rellenando Paso 3: Datos de Salud (Paciente)');
+                // Rellenar Paso 3: Datos de Salud (Paciente)
+                if (turno.persona.paciente) {
+                    const obraSocialInput = document.getElementById('obraSocial');
+                    if (obraSocialInput) {
+                        obraSocialInput.value = turno.persona.paciente.obra_social || '';
+                        console.log('✅ Obra Social:', turno.persona.paciente.obra_social);
+                    } else {
+                        console.warn('⚠️ No encontré elemento #obraSocial');
+                    }
+
+                    const numeroAfiliadoInput = document.getElementById('numeroAfiliado');
+                    if (numeroAfiliadoInput) {
+                        numeroAfiliadoInput.value = turno.persona.paciente.numero_afiliado || '';
+                        console.log('✅ Número Afiliado:', turno.persona.paciente.numero_afiliado);
+                    } else {
+                        console.warn('⚠️ No encontré elemento #numeroAfiliado');
+                    }
+
+                    const observacionesInput = document.getElementById('observaciones');
+                    if (observacionesInput) {
+                        observacionesInput.value = turno.persona.paciente.observaciones_generales || '';
+                        console.log('✅ Observaciones:', turno.persona.paciente.observaciones_generales);
+                    } else {
+                        console.warn('⚠️ No encontré elemento #observaciones');
+                    }
+                } else {
+                    console.log('ℹ️ No hay datos de paciente');
+                }
+
+                console.log('📋 Rellenando Paso 4: Datos del Turno');
+                // Rellenar Paso 4: Datos del Turno
+                // Convertir fecha a formato YYYY-MM-DD
+                const fechaTurno = new Date(turno.fecha);
+                const fechaTurnoFormato = fechaTurno.toISOString().split('T')[0];
+                const fechaInput = document.getElementById('fecha');
+                if (fechaInput) {
+                    fechaInput.value = fechaTurnoFormato;
+                    console.log('✅ Fecha Turno:', fechaTurnoFormato);
+                } else {
+                    console.warn('⚠️ No encontré elemento #fecha');
+                }
+                
+                const horaInput = document.getElementById('hora');
+                if (horaInput) {
+                    horaInput.value = turno.hora || '';
+                    console.log('✅ Hora:', turno.hora);
+                } else {
+                    console.warn('⚠️ No encontré elemento #hora');
+                }
+
+                const turnoObservacionesInput = document.getElementById('turnoObservaciones');
+                if (turnoObservacionesInput) {
+                    turnoObservacionesInput.value = turno.observaciones || '';
+                    console.log('✅ Observaciones Turno:', turno.observaciones);
+                } else {
+                    console.warn('⚠️ No encontré elemento #turnoObservaciones');
+                }
+
+                // Cambiar texto del botón
+                const btnGuardar = document.querySelector('button[onclick="guardarTurno()"]');
+                if (btnGuardar) {
+                    btnGuardar.textContent = 'Actualizar Turno';
+                    btnGuardar.dataset.turnoId = turnoId;
+                    console.log('✅ Botón actualizado a "Actualizar Turno"');
+                } else {
+                    console.warn('⚠️ No encontré botón guardar');
+                }
+
+                console.log('🎉 Todos los datos cargados exitosamente');
+                mostrarAlerta('✅ Datos cargados correctamente', 'success');
+
+            } catch (error) {
+                console.error('❌ Error cargando turno:', error);
+                mostrarAlerta('❌ Error al cargar el turno: ' + error.message, 'error');
+            }
+        }
+
+        // Ejecutar cuando la página carga
+        console.log('⏳ Esperando DOMContentLoaded...');
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ DOMContentLoaded disparado, ejecutando cargarTurnoParaEditar');
+            cargarTurnoParaEditar();
+        });
+    </script>
+</body>
+</html>

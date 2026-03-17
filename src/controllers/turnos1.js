@@ -10,8 +10,7 @@ const estadoIdMap = {
   PENDIENTE: BigInt(10),
   CONFIRMADO: BigInt(11),
   EN_CONSULTA: BigInt(12),
-  ATENDIDA: BigInt(13),   // legacy
-  FINALIZADA: BigInt(13), // mismo ID que ATENDIDA (renombrado en BD)
+  ATENDIDA: BigInt(13),
   CANCELADA: BigInt(14)
 };
 
@@ -19,7 +18,7 @@ const estadoNombreMap = {
   10: 'PENDIENTE',
   11: 'CONFIRMADO',
   12: 'EN_CONSULTA',
-  13: 'FINALIZADA',
+  13: 'ATENDIDA',
   14: 'CANCELADA'
 };
 
@@ -33,9 +32,8 @@ const estadoNombreMap = {
 const estadosValidos = {
   PENDIENTE: ['CONFIRMADO', 'EN_CONSULTA', 'CANCELADA'],
   CONFIRMADO: ['EN_CONSULTA', 'CANCELADA'],
-  EN_CONSULTA: ['ATENDIDA', 'FINALIZADA'], // finalizar consulta
+  EN_CONSULTA: ['ATENDIDA'], // NO permite cancelar una consulta en progreso
   ATENDIDA: [], // NO permite cambios si ya fue atendido
-  FINALIZADA: [], // Estado final
   CANCELADA: [] // NO permite cambios si fue cancelado
 };
 
