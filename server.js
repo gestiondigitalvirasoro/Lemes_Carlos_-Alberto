@@ -296,8 +296,8 @@ app.get('/dashboard', requireAuth, (req, res) => {
   }
 
   if (role === 'secretaria') {
-    return res.redirect('/secretaria/dashboard');
-  }
+  return res.redirect('/doctor/turnos');
+}
 
   // Fallback para otros roles o si no coincide
   res.render('pages/dashboard-agenda', {
