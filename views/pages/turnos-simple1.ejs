@@ -130,7 +130,6 @@
     </div>
 
     <nav class="sidebar-nav">
-      <% if (user.rol !== 'secretaria') { %>
       <div class="nav-item">
         <a href="/doctor/dashboard" class="nav-link">
           <i class="fas fa-chart-line"></i>
@@ -143,11 +142,22 @@
           <span>Pacientes</span>
         </a>
       </div>
-      <% } %>
       <div class="nav-item">
         <a href="/doctor/turnos" class="nav-link active">
           <i class="fas fa-calendar-check"></i>
           <span>Turnos</span>
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="/historias" class="nav-link">
+          <i class="fas fa-notes-medical"></i>
+          <span>Historias Clínicas</span>
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="/doctor/agendar-turno" class="nav-link">
+          <i class="fas fa-plus-circle"></i>
+          <span>Agendar Turno</span>
         </a>
       </div>
     </nav>
