@@ -1710,13 +1710,12 @@ app.get('/api/doctor-todos-turnos', requireAuth, async (req, res) => {
     console.log(`   req.user.role: ${req.user.role}`);
     console.log(`   req.user.email: ${req.user.email}\n`);
 
-    const medicoId = BigInt(req.user.medicoId);
+    const medicoId = req.user.role === 'secretaria' ? null : BigInt(req.user.medicoId);
 
     // Obtener todos los turnos del doctor (SIN filtro de fecha)
+    // Si es secretaria, trae todos los turnos sin filtrar por médico
     const turnos = await prisma.turno.findMany({
-      where: {
-        medico_id: medicoId
-      },
+      where: medicoId ? { medico_id: medicoId } : {},
       include: {
         persona: {
           select: {

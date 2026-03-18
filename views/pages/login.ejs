@@ -307,9 +307,9 @@
                         redirectUrl = '/admin/dashboard';
                     } else if (userRole === 'doctor') {
                         redirectUrl = '/doctor/dashboard';
-                    } else if (userRole === 'secretaria') {
-                        redirectUrl = '/secretaria/dashboard';
-                    }
+                     } else if (userRole === 'secretaria') {
+                          redirectUrl = '/doctor/turnos';
+}
                     
                     setTimeout(() => {
                         window.location.href = redirectUrl;
