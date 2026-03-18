@@ -1141,13 +1141,13 @@
               diagnosticosSeleccionados.forEach(d => {
                 const div = document.createElement('div');
                 div.className = 'diagnostic-card';
-                div.dataset.codigo = d.codigo_cie10;
+                div.dataset.codigo = d.codigo;
                 div.innerHTML = `
                     <div>
-                        <strong>${d.codigo_cie10}</strong>
+                        <strong>${d.codigo}</strong>
                         <p>${d.descripcion}</p>
                     </div>
-                    <button class="btn-remove" onclick="removeDiagnostico('${d.codigo_cie10}')" style="display: inline-block;">
+                    <button class="btn-remove" onclick="removeDiagnostico('${d.codigo}')" style="display: inline-block;">
                         <i class="bi bi-trash"></i>
                     </button>
                 `;
@@ -1416,7 +1416,7 @@
             const receta = document.getElementById('recetaImprimible');
             const win = window.open('', '_blank', 'width=620,height=850');
             win.document.write('<html><head><title>Receta Dr. Carlos Alberto Lemes</title>');
-            win.document.write('<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Times New Roman",serif;font-size:12px;color:#222;}@media print{@page{margin:0}body{margin:0}}');
+            win.document.write('<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Times New Roman",serif;font-size:12px;color:#222;}@media print{@page{size:A4;margin:0}body{margin:0}#recetaImprimible{height:148mm;max-height:148mm;overflow:hidden;page-break-after:always;}}');
             win.document.write('</style></head><body>');
             win.document.write(receta.outerHTML);
             win.document.write('</body></html>');
