@@ -67,16 +67,16 @@
 
   <nav class="sidebar-nav">
     <% if (user.rol !== 'secretaria') { %>
-    <a href="/doctor/dashboard" class="<%= (locals.page === 'dashboard') ? 'active' : '' %>">
+    <a href="/doctor/dashboard" class="<%= page === 'dashboard' ? 'active' : '' %>">
       <i class="fas fa-chart-line"></i>
       <span>Dashboard</span>
     </a>
-    <a href="/doctor/pacientes" class="<%= (locals.page === 'pacientes') ? 'active' : '' %>">
+    <a href="/doctor/pacientes" class="<%= page === 'pacientes' ? 'active' : '' %>">
       <i class="fas fa-users"></i>
       <span>Pacientes</span>
     </a>
     <% } %>
-    <a href="/doctor/turnos" class="<%= (locals.page === 'turnos') ? 'active' : '' %>">
+    <a href="/doctor/turnos" class="<%= page === 'turnos' ? 'active' : '' %>">
       <i class="fas fa-calendar-check"></i>
       <span>Turnos</span>
     </a>
