@@ -3400,7 +3400,17 @@ app.get('/doctor/dashboard', requireAuth, requireRole(['doctor', 'admin']), (req
 });
 
 // Agendar Turno
-app.get('/doctor/agendar-turno', requireAuth, requireRole(['doctor', 'secretaria', 'admin']), (req, res) => {
+app.get('/doctor/agendar-turno', requireAuth, requireRole(['doctor', 'secretaria', 'admin']), async (req, res) => {
+  // Si es secretaria o admin, buscar el primer médico activo disponible
+  let medico_id = req.user.medicoId;
+  if (req.user.role === 'secretaria' || req.user.role === 'admin') {
+    const doctor = await prisma.medico.findFirst({
+      where: { role: 'doctor', activo: true },
+      select: { id: true },
+      orderBy: { id: 'asc' }
+    });
+    medico_id = doctor ? doctor.id.toString() : medico_id;
+  }
   res.render('doctor/pages/agendar-turno-nueva', {
     title: 'Agendar Turno',
     token: req.cookies.access_token,
@@ -3408,7 +3418,7 @@ app.get('/doctor/agendar-turno', requireAuth, requireRole(['doctor', 'secretaria
       nombre: req.user.nombre,
       apellido: req.user.apellido,
       rol: req.user.role,
-      medico_id: req.user.medicoId
+      medico_id: medico_id
     }
   });
 });
