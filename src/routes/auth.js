@@ -1,6 +1,6 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
-import { login, logout, me, signup, updateProfile } from '../controllers/auth.js';
+import { login, logout, me, signup, updateProfile, forgotPassword, resetPassword } from '../controllers/auth.js';
 import { authMiddleware, roleMiddleware } from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -62,6 +62,31 @@ router.post(
  * Desconectar usuario (SIN requerir autenticación, para poder limpiar cookies)
  */
 router.post('/logout', logout);
+
+/**
+ * POST /api/auth/forgot-password
+ * Enviar email de recuperación de contraseña
+ */
+router.post(
+  '/forgot-password',
+  [body('email').isEmail().withMessage('Email inválido')],
+  validarErrores,
+  forgotPassword
+);
+
+/**
+ * POST /api/auth/reset-password
+ * Restablecer contraseña con el token recibido por email
+ */
+router.post(
+  '/reset-password',
+  [
+    body('token').notEmpty().withMessage('Token requerido'),
+    body('password').isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres')
+  ],
+  validarErrores,
+  resetPassword
+);
 
 // ============================================================================
 // RUTAS PROTEGIDAS (Requieren autenticación)

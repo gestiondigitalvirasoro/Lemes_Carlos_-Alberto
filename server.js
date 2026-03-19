@@ -73,6 +73,10 @@ app.use(cookieParser());
 
 // Configurar multer para uploads
 const uploadDir = path.join(__dirname, 'uploads', 'documentos');
+// Crear el directorio si no existe
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
@@ -80,7 +84,10 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
-    const name = path.basename(file.originalname, ext);
+    // Sanitizar nombre: quitar caracteres especiales (ñ, acentos, espacios, etc.)
+    const name = path.basename(file.originalname, ext)
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar acentos/tildes
+      .replace(/[^a-zA-Z0-9_-]/g, '_');                // reemplazar caracteres especiales
     cb(null, name + '-' + uniqueSuffix + ext);
   }
 });
@@ -1251,6 +1258,16 @@ app.post('/api/pacientes', requireAuth, async (req, res) => {
 // 🔐 Actualizar Token - Página Helper
 app.get('/update-token', (req, res) => {
   res.sendFile(path.join(__dirname, 'TOKEN_UPDATE_HELPER.html'));
+});
+
+// Recuperar contraseña (página pública)
+app.get('/forgot-password', (req, res) => {
+  res.render('shared/forgot-password', { title: 'Recuperar Contraseña' });
+});
+
+// Restablecer contraseña (página pública - llega desde el email de Supabase)
+app.get('/reset-password', (req, res) => {
+  res.render('shared/reset-password', { title: 'Nueva Contraseña' });
 });
 
 // Login (SIN autenticación - página pública)
@@ -3441,10 +3458,15 @@ app.get('/doctor/pacientes', requireAuth, requireRole(['doctor', 'admin', 'secre
       include: {
         persona: true,
         historias_clinicas: {
-          select: { 
+          select: {
             id: true,
             activa: true,
-            fecha_apertura: true
+            fecha_apertura: true,
+            consultas: {
+              select: { fecha: true },
+              orderBy: { fecha: 'desc' },
+              take: 1
+            }
           },
           take: 1
         }
@@ -3468,6 +3490,12 @@ app.get('/doctor/pacientes', requireAuth, requireRole(['doctor', 'admin', 'secre
           }
         }
 
+        // Calcular estado: Activo si tuvo consulta en el último año, Inactivo si no
+        const ultimaConsulta = p.historias_clinicas?.[0]?.consultas?.[0]?.fecha;
+        const unAnoAtras = new Date();
+        unAnoAtras.setFullYear(unAnoAtras.getFullYear() - 1);
+        const estado = ultimaConsulta && new Date(ultimaConsulta) > unAnoAtras ? 'Activo' : 'Inactivo';
+
         return {
           id: p.id.toString(),
           dni: p.persona.dni || '-',
@@ -3476,7 +3504,7 @@ app.get('/doctor/pacientes', requireAuth, requireRole(['doctor', 'admin', 'secre
           email: p.persona.email || '-',
           edad: edad,
           obra_social: p.obra_social || '-',
-          estado: 'Activo',
+          estado: estado,
           tiene_historia: p.historias_clinicas && p.historias_clinicas.length > 0,
           historia_activa: p.historias_clinicas && p.historias_clinicas.length > 0 ? p.historias_clinicas[0].activa : false
         };

@@ -424,11 +424,113 @@ export const updateProfile = async (req, res) => {
   }
 };
 
+// ============================================================================
+// CONTROLLER: OLVIDÉ MI CONTRASEÑA - Enviar email de recuperación
+// ============================================================================
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        error: 'Bad request',
+        message: 'El email es requerido'
+      });
+    }
+
+    const appUrl = `${req.protocol}://${req.get('host')}`;
+    const redirectTo = `${appUrl}/reset-password`;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo
+    });
+
+    if (error) {
+      console.error('Error al enviar email de recuperación:', error);
+      return res.status(400).json({
+        error: 'Bad request',
+        message: error.message
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Si el email existe, recibirás un enlace para restablecer tu contraseña.'
+    });
+  } catch (error) {
+    console.error('Error en forgotPassword:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+};
+
+// ============================================================================
+// CONTROLLER: RESTABLECER CONTRASEÑA - Actualizar con token del email
+// ============================================================================
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({
+        error: 'Bad request',
+        message: 'Token y nueva contraseña son requeridos'
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: 'Bad request',
+        message: 'La contraseña debe tener al menos 6 caracteres'
+      });
+    }
+
+    // Decodificar el token para obtener el user ID (sub)
+    const decoded = jwt.decode(token);
+    if (!decoded || !decoded.sub) {
+      return res.status(400).json({
+        error: 'Bad request',
+        message: 'Token inválido'
+      });
+    }
+
+    const userId = decoded.sub;
+
+    // Actualizar la contraseña usando el Admin API de Supabase
+    const { error } = await supabase.auth.admin.updateUserById(userId, {
+      password
+    });
+
+    if (error) {
+      console.error('Error al actualizar contraseña:', error);
+      return res.status(400).json({
+        error: 'Bad request',
+        message: error.message
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Contraseña actualizada correctamente'
+    });
+  } catch (error) {
+    console.error('Error en resetPassword:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+};
+
 export default {
   signup,
   login,
   logout,
   me,
-  updateProfile
+  updateProfile,
+  forgotPassword,
+  resetPassword
 };
 
