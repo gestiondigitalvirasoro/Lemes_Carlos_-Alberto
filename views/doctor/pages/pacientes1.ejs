@@ -71,7 +71,8 @@
     .patient-info-item span { color: #666; font-size: 0.95rem; }
 
     @media (max-width: 768px) {
-      .main-content { margin-left: 0 !important; padding-top: 60px !important; }
+      .sidebar { width: 100%; height: auto; position: static; }
+      .main-content { margin-left: 0; }
       .page-title h1 { font-size: 1.8rem; }
       .patient-info-grid { grid-template-columns: 1fr; }
     }
@@ -130,8 +131,43 @@
 <body>
   <div class="container-dashboard">
     <!-- Sidebar -->
-    <% var page = 'pacientes'; %>
-    <%- include('../../partials/sidebar-shared') %>
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <i class="bi bi-capsule"></i>
+        LEMES
+      </div>
+      
+      <nav class="sidebar-nav">
+        <a href="/doctor/dashboard">
+          <i class="bi bi-speedometer2"></i>
+          Dashboard
+        </a>
+        <a href="/doctor/pacientes" class="active">
+          <i class="bi bi-people"></i>
+          Pacientes
+        </a>
+        <a href="/doctor/turnos">
+          <i class="bi bi-calendar-check"></i>
+          Turnos
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <p class="username">Dr. <%= user.nombre %> <%= user.apellido %></p>
+          <p><%= user.email %></p>
+          <p>
+            <span class="badge" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%);">
+              <%= user.rol.toUpperCase() %>
+            </span>
+          </p>
+        </div>
+        <a href="javascript:void(0)" onclick="logout()" class="btn btn-outline-light btn-sm w-100">
+          <i class="bi bi-box-arrow-right"></i>
+          Cerrar Sesión
+        </a>
+      </div>
+    </aside>
 
     <!-- Main Content -->
     <main class="main-content">

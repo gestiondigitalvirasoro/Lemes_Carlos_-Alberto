@@ -6,7 +6,6 @@
   <title><%= title %> - LEMES</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; }
@@ -108,7 +107,8 @@
       .acciones-grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 768px) {
-      .main-content { margin-left: 0 !important; padding-top: 60px !important; }
+      .sidebar { width: 100%; height: auto; position: static; }
+      .main-content { margin-left: 0; }
       .page-title h1 { font-size: 1.8rem; }
       .acciones-grid { grid-template-columns: 1fr; }
     }
@@ -167,8 +167,39 @@
 <body>
   <div class="container-dashboard">
     <!-- Sidebar -->
-    <% var page = 'dashboard'; %>
-    <%- include('../../partials/sidebar-shared') %>
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <i class="bi bi-capsule"></i>
+        LEMES
+      </div>
+      
+      <nav class="sidebar-nav">
+        <a href="/doctor/pacientes" class="active">
+          <i class="bi bi-people"></i>
+          Pacientes
+        </a>
+        <a href="/doctor/turnos">
+          <i class="bi bi-calendar-check"></i>
+          Turnos
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <p class="username">Dr. <%= user.nombre %> <%= user.apellido %></p>
+          <p><%= user.email %></p>
+          <p>
+            <span class="badge" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%);">
+              <%= user.rol.toUpperCase() %>
+            </span>
+          </p>
+        </div>
+        <a href="javascript:void(0)" onclick="logout()" class="btn btn-outline-light btn-sm w-100">
+          <i class="bi bi-box-arrow-right"></i>
+          Cerrar Sesión
+        </a>
+      </div>
+    </aside>
 
     <!-- Main Content -->
     <main class="main-content">

@@ -426,31 +426,13 @@
 
         @media (max-width: 768px) {
             .historia-container { flex-direction: column; }
-            .sidebar { width: 280px; position: fixed; left: -280px; top: 0; height: 100vh; 
-              transition: left 0.3s ease; z-index: 1000; overflow-y: auto; }
-            .sidebar.open { left: 0; }
-            .main-content { margin-left: 0 !important; padding-top: 60px !important; }
+            .sidebar { width: 100%; }
             .header { flex-direction: column; align-items: start; gap: 15px; }
             .header-actions { width: 100%; }
-            .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-              background: rgba(0,0,0,0.5); z-index: 999; }
-            .sidebar-overlay.active { display: block; }
         }
-        .hamburger-btn {
-          display: none; position: fixed; top: 12px; left: 12px; z-index: 2000;
-          background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%);
-          border: none; border-radius: 8px; padding: 10px 12px; cursor: pointer; color: white;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3); font-size: 1.1rem;
-        }
-        @media (max-width: 768px) { .hamburger-btn { display: block; } }
     </style>
 </head>
 <body>
-    <!-- Hamburger -->
-    <button class="hamburger-btn" onclick="toggleSidebarHistoria()">
-      <i class="bi bi-list"></i>
-    </button>
-    <div class="sidebar-overlay" id="historiaOverlay" onclick="toggleSidebarHistoria()"></div>
     <!-- LOADING OVERLAY -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-box">
@@ -461,7 +443,7 @@
 
     <div class="historia-container">
         <!-- SIDEBAR -->
-        <aside class="sidebar" id="historiasSidebar">
+        <aside class="sidebar">
             <!-- BOTÓN VOLVER -->
             <div style="margin-bottom: 20px;">
                 <button class="btn btn-sm" style="background: transparent; color: #b0b7c4; border: none; padding: 0;" onclick="volverAtras()">
@@ -2623,11 +2605,6 @@
         }
       }
     </style>
-    <script>
-      function toggleSidebarHistoria() {
-        document.getElementById('historiasSidebar').classList.toggle('open');
-        document.getElementById('historiaOverlay').classList.toggle('active');
-      }
-    </script>
+
 </body>
 </html>
