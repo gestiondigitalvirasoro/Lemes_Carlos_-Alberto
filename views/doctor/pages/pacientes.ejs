@@ -71,6 +71,7 @@
     .patient-info-item span { color: #666; font-size: 0.95rem; }
 
     @media (max-width: 768px) {
+      .hamburger-btn { display: block !important; }
       .main-content { margin-left: 0 !important; padding-top: 60px !important; }
       .page-title h1 { font-size: 1.8rem; }
       .patient-info-grid { grid-template-columns: 1fr; }
@@ -144,9 +145,9 @@
         <p>Gestiona el historial de tus pacientes</p>
       </div>
 
-      <!-- Botón Dar de Alta de Consulta -->
+      <!-- Botón Dar de Alta de Consulta (oculto) -->
       <div style="margin-bottom: 30px;">
-        <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#modalDarAltaConsulta" onclick="verificarConsultaActiva()" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); border: none; padding: 12px 30px; font-weight: 600;">
+        <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#modalDarAltaConsulta" onclick="verificarConsultaActiva()" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); border: none; padding: 12px 30px; font-weight: 600; display: none;">
           <i class="bi bi-plus-circle"></i>
           Dar de Alta de Consulta
         </button>
@@ -197,8 +198,8 @@
                 <th>Teléfono</th>
                 <th>Edad</th>
                 <th>Obra Social</th>
-                <th>Estado</th>
-                <th style="text-align: center; width: 60px;"></th>
+                <th>Historia Clínica</th>
+
               </tr>
             </thead>
             <tbody>
@@ -211,16 +212,12 @@
                     <td><%= p.telefono || '-' %></td>
                     <td><%= p.edad %></td>
                     <td><%= p.obra_social || '-' %></td>
-                    <td>
-                      <span class="estado-badge <%= 'estado-' + (p.estado || 'Activo') %>">
-                        <%= p.estado || 'Activo' %>
-                      </span>
-                    </td>
                     <td style="text-align: center;">
-                      <a href="/doctor/pacientes/<%= p.id %>" title="Ver Historia Clínica" style="font-size: 1.3rem; color: #D97F7F; text-decoration: none; transition: all 0.3s;">
-                        <i class="bi bi-file-earmark-text" style="hover: color: #5CAEA3;"></i>
+                      <a href="/doctor/pacientes/<%= p.id %>" class="btn btn-sm" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; border: none; border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; font-weight: 600; text-decoration: none;">
+                        <i class="bi bi-file-earmark-medical"></i> Ver
                       </a>
                     </td>
+
                   </tr>
                 <% }); %>
               <% } else { %>
