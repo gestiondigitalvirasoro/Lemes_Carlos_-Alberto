@@ -272,7 +272,7 @@ app.get('/', (req, res) => {
 
 // Dashboard Secretaria
 app.get('/secretaria/dashboard', requireAuth, requireRole(['secretaria']), (req, res) => {
-  res.render('pages/dashboard-agenda', {
+  res.render('secretaria/pages/dashboard-agenda', {
     title: 'Dashboard Secretaría',
     user: {
       nombre: req.user.nombre,
@@ -300,7 +300,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
 }
 
   // Fallback para otros roles o si no coincide
-  res.render('pages/dashboard-agenda', {
+  res.render('secretaria/pages/dashboard-agenda', {
     title: 'Dashboard',
     user: {
       nombre: req.user.nombre,
@@ -313,7 +313,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
 
 // Pacientes
 app.get('/pacientes', requireAuth, (req, res) => {
-  res.render('pages/pacientes', {
+  res.render('doctor/pages/pacientes', {
     title: 'Pacientes',
     user: {
       nombre: req.user.nombre,
@@ -340,7 +340,7 @@ app.get('/agendar-turno', requireAuth, async (req, res) => {
       orderBy: { nombre: 'asc' }
     });
 
-    res.render('pages/agendar-turno', {
+    res.render('doctor/pages/agendar-turno', {
       title: 'Agendar Turno',
       user: {
         nombre: req.user.nombre,
@@ -352,7 +352,7 @@ app.get('/agendar-turno', requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error al obtener doctores:', error);
-    res.render('pages/agendar-turno', {
+    res.render('doctor/pages/agendar-turno', {
       title: 'Agendar Turno',
       user: {
         nombre: req.user.nombre,
@@ -367,7 +367,7 @@ app.get('/agendar-turno', requireAuth, async (req, res) => {
 
 // Turnos - Solo SECRETARIA y DOCTOR
 app.get('/doctor/turnos', requireAuth, requireRole(['secretaria', 'doctor']), (req, res) => {
-  res.render('pages/turnos-simple', {
+  res.render('secretaria/pages/turnos-simple', {
     title: 'Mis Turnos',
     page: 'turnos',
     user: {
@@ -381,7 +381,7 @@ app.get('/doctor/turnos', requireAuth, requireRole(['secretaria', 'doctor']), (r
 
 // Agendar Nuevo Turno
 app.get('/agendar-turno', requireAuth, (req, res) => {
-  res.render('pages/agendar-turno-nuevo', {
+  res.render('doctor/pages/agendar-turno-nuevo', {
     title: 'Agendar Turno'
   });
 });
@@ -435,7 +435,7 @@ app.get('/historias', requireAuth, async (req, res) => {
         };
       });
 
-    res.render('pages/historias', {
+    res.render('doctor/pages/historias', {
       title: 'Historias Clínicas',
       historias: historiasFormato || [],
       error: null,
@@ -443,7 +443,7 @@ app.get('/historias', requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error al obtener historias:', error);
-    res.render('pages/historias', {
+    res.render('doctor/pages/historias', {
       title: 'Historias Clínicas',
       historias: [],
       error: error.message || 'Error al cargar historias',
@@ -667,7 +667,7 @@ app.get('/historia/:pacienteId', requireAuth, async (req, res) => {
       });
     }
 
-    res.render('pages/historia-detalle', {
+    res.render('doctor/pages/historia-detalle', {
       title: `Historia Clínica - ${paciente.persona?.nombre || 'Paciente'} ${paciente.persona?.apellido || ''}`,
       paciente: {
         id: paciente.id.toString(),
@@ -760,7 +760,7 @@ app.get('/doctor/historia-nueva', requireAuth, async (req, res) => {
     console.log(`📂 Historia Nueva Vacía - Paciente: ${paciente.persona?.nombre}, Turno: ${turno_id}`);
 
     // Renderizar historia clínica VACÍA (sin datos, para que el doctor la complete)
-    res.render('pages/historia-detalle-full', {
+    res.render('doctor/pages/historia-detalle-full', {
       title: 'Historia Clínica - Nueva Consulta',
       paciente: {
         id: paciente.id.toString(),
@@ -1285,7 +1285,7 @@ app.get('/login', async (req, res) => {
     }
   }
   
-  res.render('pages/login', {
+  res.render('shared/login', {
     title: 'Iniciar Sesión'
   });
 });
@@ -1302,7 +1302,7 @@ app.get('/logout', (req, res) => {
 
 // Dashboard Admin
 app.get('/admin/dashboard', requireAuth, requireRole(['admin']), (req, res) => {
-  res.render('pages/admin-dashboard', {
+  res.render('shared/admin-dashboard', {
     title: 'Panel Administrativo',
     user: {
       nombre: req.user.nombre,
@@ -3386,8 +3386,8 @@ app.get('/admin/estadisticas', requireAuth, (req, res) => {
 
 
 // Dashboard Doctor
-app.get('/doctor/dashboard', requireAuth, requireRole(['doctor']), (req, res) => {
-  res.render('pages/dashboard-doctor', {
+app.get('/doctor/dashboard', requireAuth, requireRole(['doctor', 'admin']), (req, res) => {
+  res.render('doctor/pages/dashboard-doctor', {
     title: 'Mi Agenda',
     token: req.cookies.access_token,
     user: {
@@ -3400,8 +3400,8 @@ app.get('/doctor/dashboard', requireAuth, requireRole(['doctor']), (req, res) =>
 });
 
 // Agendar Turno
-app.get('/doctor/agendar-turno', requireAuth, requireRole(['doctor']), (req, res) => {
-  res.render('pages/agendar-turno-nueva', {
+app.get('/doctor/agendar-turno', requireAuth, requireRole(['doctor', 'secretaria', 'admin']), (req, res) => {
+  res.render('doctor/pages/agendar-turno-nueva', {
     title: 'Agendar Turno',
     token: req.cookies.access_token,
     user: {
@@ -3414,7 +3414,7 @@ app.get('/doctor/agendar-turno', requireAuth, requireRole(['doctor']), (req, res
 });
 
 // Pacientes del Doctor
-app.get('/doctor/pacientes', requireAuth, requireRole(['doctor']), async (req, res) => {
+app.get('/doctor/pacientes', requireAuth, requireRole(['doctor', 'admin', 'secretaria']), async (req, res) => {
   try {
     // Obtener solo pacientes ACTIVOS que tengan Historia Clínica
     const pacientes = await prisma.paciente.findMany({
@@ -3474,7 +3474,7 @@ app.get('/doctor/pacientes', requireAuth, requireRole(['doctor']), async (req, r
 
     console.log(`✅ ${pacientesList.length} pacientes con Historia Clínica cargados`);
 
-    res.render('pages/pacientes', {
+    res.render('doctor/pages/pacientes', {
       title: 'Mis Pacientes',
       pacientes: pacientesList,
       user: {
@@ -3486,7 +3486,7 @@ app.get('/doctor/pacientes', requireAuth, requireRole(['doctor']), async (req, r
     });
   } catch (error) {
     console.error('Error al obtener pacientes:', error);
-    res.render('pages/pacientes', {
+    res.render('doctor/pages/pacientes', {
       title: 'Mis Pacientes',
       pacientes: [],
       user: {
@@ -3500,7 +3500,7 @@ app.get('/doctor/pacientes', requireAuth, requireRole(['doctor']), async (req, r
 });
 
 // Ruta para ver detalles de paciente (historia completa)
-app.get('/doctor/pacientes/:paciente_id', requireAuth, requireRole(['doctor']), async (req, res) => {
+app.get('/doctor/pacientes/:paciente_id', requireAuth, requireRole(['doctor', 'admin']), async (req, res) => {
   try {
     const paciente_id = BigInt(req.params.paciente_id);
     const { turno_id } = req.query;
@@ -3861,7 +3861,7 @@ app.get('/doctor/pacientes/:paciente_id', requireAuth, requireRole(['doctor']), 
       is_new_consulta: !historia
     };
 
-    res.render('pages/historia-detalle', datos);
+    res.render('doctor/pages/historia-detalle', datos);
   } catch (error) {
     console.error('Error al obtener historia clínica:', error);
     res.status(500).render('pages/500', {

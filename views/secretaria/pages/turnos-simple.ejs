@@ -186,7 +186,7 @@
       <div class="user-role"><%= user.rol %></div>
     </div>
 
-    <a href="/logout" class="logout-btn">
+    <a href="javascript:void(0)" onclick="logout()" class="logout-btn">
       <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
     </a>
   </div>
@@ -1007,6 +1007,17 @@
     const overlay = document.getElementById('sidebarOverlay');
     sidebar.classList.toggle('open');
     overlay.classList.toggle('active');
+  }
+</script>
+<script>
+  async function logout() {
+    if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) return;
+    localStorage.clear();
+    sessionStorage.clear();
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch(e) {}
+    setTimeout(() => { window.location.href = '/login'; }, 300);
   }
 </script>
 </body>
