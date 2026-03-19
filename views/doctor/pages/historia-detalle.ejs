@@ -2631,7 +2631,7 @@
           <h5 style="margin:0;font-size:16px;font-weight:600;">Vista previa de receta</h5>
           <button onclick="cerrarModalReceta()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#666;line-height:1;">×</button>
         </div>
-        <div style="display:grid;grid-template-columns:200px 1fr;min-height:500px;">
+        <div id="recetaModalGrid" style="display:grid;grid-template-columns:200px 1fr;min-height:500px;">
           <div style="padding:16px;border-right:1px solid #e9ecef;background:#fafafa;">
             <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#666;margin-bottom:12px;">Incluir en receta</div>
             <label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px;cursor:pointer;"><input type="checkbox" id="chk-paciente" checked onchange="actualizarVistaReceta()" style="accent-color:#1D9E75;width:15px;height:15px;"> Datos del paciente</label>
@@ -2731,7 +2731,14 @@
           transform: translateY(0);
         }
       }
-    </style>
+    
+  @media (max-width: 600px) {
+    #recetaModalGrid { grid-template-columns: 1fr !important; }
+    #recetaModalGrid > div:first-child { border-right: none !important; border-bottom: 1px solid #e9ecef; display: flex; flex-wrap: wrap; gap: 4px; padding: 10px !important; }
+    #recetaModalGrid > div:first-child label { padding: 4px 8px !important; font-size: 12px !important; }
+    #recetaImprimible { min-height: auto !important; font-size: 11px !important; padding: 16px !important; }
+  }
+</style>
     <script>
       function toggleSidebarHistoria() {
         document.getElementById('historiasSidebar').classList.toggle('open');

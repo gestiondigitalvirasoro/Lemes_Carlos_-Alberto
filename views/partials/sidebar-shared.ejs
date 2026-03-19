@@ -1,4 +1,5 @@
 <!-- SIDEBAR COMPARTIDO - Mobile Responsive -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 <style>
   .sidebar {
     width: 280px; background: linear-gradient(180deg, #1a3a3a 0%, #0d1f1f 100%); color: white;
@@ -51,7 +52,7 @@
 
 <!-- Botón hamburger (solo mobile) -->
 <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()">
-  <i class="fas fa-bars"></i>
+  <i class="bi bi-list" style="font-size:1.4rem;"></i>
 </button>
 
 <!-- Overlay -->
@@ -60,7 +61,7 @@
 <!-- Sidebar -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
-    <i class="fas fa-clinic-medical"></i>
+    <i class="bi bi-hospital"></i>
     <h4>LEMES</h4>
     <p>Sistema Médico</p>
   </div>
@@ -68,16 +69,16 @@
   <nav class="sidebar-nav">
     <% if (user.rol !== 'secretaria') { %>
     <a href="/doctor/dashboard" class="<%= (locals.page === 'dashboard') ? 'active' : '' %>">
-      <i class="fas fa-chart-line"></i>
+      <i class="bi bi-bar-chart-line"></i>
       <span>Dashboard</span>
     </a>
     <a href="/doctor/pacientes" class="<%= (locals.page === 'pacientes') ? 'active' : '' %>">
-      <i class="fas fa-users"></i>
+      <i class="bi bi-people"></i>
       <span>Pacientes</span>
     </a>
     <% } %>
     <a href="/doctor/turnos" class="<%= (locals.page === 'turnos') ? 'active' : '' %>">
-      <i class="fas fa-calendar-check"></i>
+      <i class="bi bi-calendar-check"></i>
       <span>Turnos</span>
     </a>
   </nav>
@@ -91,7 +92,7 @@
   </div>
 
   <a class="logout-btn" href="javascript:void(0)" onclick="logout()">
-    <i class="fas fa-sign-out-alt"></i>
+    <i class="bi bi-box-arrow-right"></i>
     Cerrar Sesión
   </a>
 </aside>
