@@ -3095,6 +3095,147 @@ app.post('/api/pacientes/alta', requireAuth, async (req, res) => {
 });
 
 // ============================================================================
+// ENDPOINT: BUSCAR PERSONA POR DNI (para migración)
+// ============================================================================
+app.get('/api/personas/buscar-dni/:dni', requireAuth, requireRole(['doctor', 'admin']), async (req, res) => {
+  try {
+    const dni = parseInt(req.params.dni);
+    if (!dni) return res.status(400).json({ error: 'DNI inválido' });
+
+    const persona = await prisma.persona.findUnique({
+      where: { dni },
+      include: {
+        paciente: {
+          select: { id: true, obra_social: true, numero_afiliado: true }
+        }
+      }
+    });
+
+    if (!persona) return res.json({ encontrado: false });
+
+    res.json({
+      encontrado: true,
+      persona: {
+        id: persona.id.toString(),
+        nombre: persona.nombre,
+        apellido: persona.apellido,
+        dni: persona.dni,
+        fecha_nacimiento: persona.fecha_nacimiento ? new Date(persona.fecha_nacimiento).toISOString().split('T')[0] : '',
+        sexo: persona.sexo || '',
+        telefono: persona.telefono || '',
+        email: persona.email || '',
+        tiene_paciente: !!persona.paciente,
+        paciente_id: persona.paciente?.id?.toString() || null,
+        obra_social: persona.paciente?.obra_social || '',
+        numero_afiliado: persona.paciente?.numero_afiliado || ''
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================================================
+// ENDPOINT: ALTA MANUAL DE PACIENTE EXISTENTE (migración)
+// ============================================================================
+app.post('/api/pacientes/migracion', requireAuth, requireRole(['doctor', 'admin']), async (req, res) => {
+  try {
+    const { nombre, apellido, dni, fecha_nacimiento, sexo, telefono, email,
+            obra_social, numero_afiliado, consultas } = req.body;
+
+    if (!nombre || !apellido || !dni) {
+      return res.status(400).json({ error: 'Nombre, apellido y DNI son obligatorios' });
+    }
+
+    // 1. Crear o encontrar Persona
+    let persona = await prisma.persona.findUnique({ where: { dni: parseInt(dni) } });
+    if (!persona) {
+      persona = await prisma.persona.create({
+        data: {
+          nombre,
+          apellido,
+          dni: parseInt(dni),
+          fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
+          sexo: sexo || null,
+          telefono: telefono || null,
+          email: email || null
+        }
+      });
+    } else {
+      // Actualizar datos si ya existía
+      persona = await prisma.persona.update({
+        where: { id: persona.id },
+        data: {
+          nombre, apellido,
+          ...(fecha_nacimiento && { fecha_nacimiento: new Date(fecha_nacimiento) }),
+          ...(sexo && { sexo }),
+          ...(telefono && { telefono }),
+          ...(email && { email })
+        }
+      });
+    }
+
+    // 2. Crear o encontrar Paciente
+    let paciente = await prisma.paciente.findUnique({ where: { persona_id: persona.id } });
+    if (!paciente) {
+      paciente = await prisma.paciente.create({
+        data: {
+          persona_id: persona.id,
+          obra_social: obra_social || null,
+          numero_afiliado: numero_afiliado || null,
+          activo: true
+        }
+      });
+    }
+
+    // 3. Crear o encontrar Historia Clínica
+    let historia = await prisma.historiaClinica.findFirst({
+      where: { paciente_id: paciente.id, activa: true }
+    });
+    if (!historia) {
+      historia = await prisma.historiaClinica.create({
+        data: {
+          paciente_id: paciente.id,
+          creada_por_medico_id: BigInt(req.user.id),
+          activa: true
+        }
+      });
+    }
+
+    // 4. Crear consultas previas (migración)
+    if (consultas && consultas.length > 0) {
+      for (const c of consultas) {
+        if (!c.fecha || !c.motivo) continue;
+        await prisma.consultaMedica.create({
+          data: {
+            historia_clinica_id: historia.id,
+            medico_id: BigInt(req.user.id),
+            turno_id: null,
+            estado_id: BigInt(5),
+            fecha: new Date(c.fecha),
+            motivo_consulta: c.motivo,
+            resumen: [
+              c.diagnostico ? `Diagnóstico: ${c.diagnostico}` : '',
+              c.medicacion ? `Medicación: ${c.medicacion}` : ''
+            ].filter(Boolean).join(' | ') || null
+          }
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Paciente cargado exitosamente',
+      paciente_id: paciente.id.toString(),
+      historia_id: historia.id.toString()
+    });
+  } catch (error) {
+    console.error('❌ Error en migración:', error);
+    res.status(500).json({ error: 'Error al cargar paciente', message: error.message });
+  }
+});
+
+// ============================================================================
 // ENDPOINT: EDITAR DATOS DEL PACIENTE
 // ============================================================================
 app.put('/api/pacientes/:id', requireAuth, requireRole(['doctor', 'admin']), async (req, res) => {
@@ -3557,6 +3698,7 @@ app.get('/doctor/pacientes', requireAuth, requireRole(['doctor', 'admin', 'secre
           obra_social: p.obra_social || '',
           numero_afiliado: p.numero_afiliado || '',
           estado: estado,
+          ultima_consulta: ultimaConsulta ? new Date(ultimaConsulta).toISOString().split('T')[0] : '',
           tiene_historia: p.historias_clinicas && p.historias_clinicas.length > 0,
           historia_activa: p.historias_clinicas && p.historias_clinicas.length > 0 ? p.historias_clinicas[0].activa : false
         };
@@ -3564,9 +3706,17 @@ app.get('/doctor/pacientes', requireAuth, requireRole(['doctor', 'admin', 'secre
 
     console.log(`✅ ${pacientesList.length} pacientes con Historia Clínica cargados`);
 
+    const stats = {
+      total: pacientesList.length,
+      activos: pacientesList.filter(p => p.estado === 'Activo').length,
+      inactivos: pacientesList.filter(p => p.estado === 'Inactivo').length,
+      sin_obra_social: pacientesList.filter(p => !p.obra_social || p.obra_social === '-').length
+    };
+
     res.render('doctor/pages/pacientes', {
       title: 'Mis Pacientes',
       pacientes: pacientesList,
+      stats,
       user: {
         nombre: req.user.nombre,
         apellido: req.user.apellido,

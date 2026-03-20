@@ -61,6 +61,18 @@
     .btn-visualizar:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(217, 127, 127, 0.3); }
     
     .empty-state { text-align: center; padding: 40px 20px; color: #999; }
+
+    .pill-filter { background:#f0f0f0;border:1.5px solid #ddd;border-radius:20px;padding:5px 14px;font-size:0.82rem;cursor:pointer;color:#555;transition:all .2s; }
+    .pill-filter.active { background:#1a3a3a;border-color:#1a3a3a;color:white; }
+    .pill-date { background:white;border:1.5px solid #ddd;border-radius:20px;padding:4px 12px;font-size:0.78rem;cursor:pointer;color:#555;transition:all .2s; }
+    .pill-date:hover { border-color:#5CAEA3;color:#5CAEA3; }
+
+    .stat-card { background: white; border-radius: 12px; padding: 18px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07); display: flex; align-items: center; gap: 15px; }
+    .stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex;
+      align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0; }
+    .stat-number { font-size: 1.8rem; font-weight: 700; color: #1a3a3a; line-height: 1; }
+    .stat-label { font-size: 0.8rem; color: #888; margin-top: 3px; }
     .empty-state i { font-size: 2.5rem; color: #d97f7f; margin-bottom: 10px; display: block; }
 
     /* Modal de detalles */
@@ -155,25 +167,75 @@
         </button>
       </div>
 
-      <!-- Filtros -->
-      <div class="filtros">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label">Buscar por nombre o DNI</label>
-            <div class="input-group">
-              <span class="input-group-text">
-                <i class="bi bi-search"></i>
-              </span>
-              <input type="text" class="form-control" placeholder="Buscar..." id="searchInput">
+      <!-- Botón cargar paciente existente -->
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+        <button class="btn" data-bs-toggle="modal" data-bs-target="#modalMigracion" onclick="resetMigracion()" style="background:linear-gradient(135deg,#1a3a3a,#2d6a6a);color:white;border:none;border-radius:8px;padding:9px 20px;font-weight:600;font-size:0.88rem;">
+          <i class="bi bi-person-plus"></i> Cargar paciente existente
+        </button>
+      </div>
+
+      <!-- Estadísticas -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="stat-card" style="border-left: 4px solid #5CAEA3;">
+            <div class="stat-icon" style="background: #e8f5f3; color: #5CAEA3;"><i class="bi bi-people"></i></div>
+            <div class="stat-info">
+              <div class="stat-number"><%= stats.total %></div>
+              <div class="stat-label">Total pacientes</div>
             </div>
           </div>
-          <div class="col-md-4">
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card" style="border-left: 4px solid #28A745;">
+            <div class="stat-icon" style="background: #e8f5eb; color: #28A745;"><i class="bi bi-person-check"></i></div>
+            <div class="stat-info">
+              <div class="stat-number"><%= stats.activos %></div>
+              <div class="stat-label">Activos</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card" style="border-left: 4px solid #6C757D;">
+            <div class="stat-icon" style="background: #f0f0f0; color: #6C757D;"><i class="bi bi-person-dash"></i></div>
+            <div class="stat-info">
+              <div class="stat-number"><%= stats.inactivos %></div>
+              <div class="stat-label">Inactivos</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card" style="border-left: 4px solid #D97F7F;">
+            <div class="stat-icon" style="background: #fdf0f0; color: #D97F7F;"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="stat-info">
+              <div class="stat-number"><%= stats.sin_obra_social %></div>
+              <div class="stat-label">Sin obra social</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filtros">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-7">
+            <label class="form-label">Buscar por nombre o DNI</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" placeholder="Buscar..." id="searchInput" oninput="aplicarFiltros()" onkeyup="aplicarFiltros()">
+            </div>
+          </div>
+          <div class="col-md-3">
             <label class="form-label">Estado</label>
-            <select class="form-select" id="estadoFilter">
+            <select class="form-select" id="estadoFilter" onchange="aplicarFiltros()">
               <option value="">Todos</option>
               <option value="Activo">Activo</option>
               <option value="Inactivo">Inactivo</option>
             </select>
+          </div>
+          <div class="col-md-2">
+            <button class="btn w-100" onclick="abrirFiltrosAvanzados()" style="background: linear-gradient(135deg, #1a3a3a, #2d6a6a); color:white; border:none; border-radius:8px; padding:10px; font-size:0.85rem; font-weight:600;">
+              <i class="bi bi-sliders"></i> Filtros avanzados
+            </button>
           </div>
         </div>
       </div>
@@ -202,7 +264,13 @@
             <tbody>
               <% if (pacientes && pacientes.length > 0) { %>
                 <% pacientes.forEach(function(p) { %>
-                  <tr data-estado="<%= p.estado %>" data-busqueda="<%= [p.dni, p.nombre, p.email, p.telefono, p.edad, p.obra_social].join(' ').toLowerCase() %>">
+                  <tr
+                    data-estado="<%= p.estado %>"
+                    data-edad="<%= p.edad %>"
+                    data-sexo="<%= p.sexo %>"
+                    data-obra-social="<%= p.obra_social ? '1' : '0' %>"
+                    data-ultima-consulta="<%= p.ultima_consulta %>"
+                    data-busqueda="<%= [p.dni, p.nombre, p.email, p.telefono, p.edad, p.obra_social].join(' ').toLowerCase() %>">
                     <td><strong><%= p.dni %></strong></td>
                     <td><%= p.nombre %></td>
                     <td><%= p.email || '-' %></td>
@@ -303,6 +371,95 @@
     </div>
   </div>
 
+  <!-- MODAL: CARGAR PACIENTE EXISTENTE (MIGRACIÓN) -->
+  <div class="modal fade" id="modalMigracion" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header" style="background:linear-gradient(135deg,#1a3a3a,#2d6a6a);color:white;border:none;">
+          <h5 class="modal-title"><i class="bi bi-person-plus"></i> Cargar paciente existente</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter:brightness(0) invert(1);"></button>
+        </div>
+        <div class="modal-body">
+
+          <!-- PASO 1: Buscar por DNI -->
+          <div id="mig-paso1">
+            <p class="text-muted mb-3" style="font-size:0.88rem;"><i class="bi bi-info-circle"></i> Ingresá el DNI del paciente. Si ya existe en el sistema se precargan los datos.</p>
+            <div class="input-group">
+              <input type="number" id="mig-dni" class="form-control" placeholder="Ingresá el DNI..." style="font-size:1.1rem;">
+              <button class="btn btn-primary" onclick="buscarPorDni()" style="background:linear-gradient(135deg,#1a3a3a,#2d6a6a);border:none;font-weight:600;">
+                <i class="bi bi-search"></i> Buscar
+              </button>
+            </div>
+            <div id="mig-dni-resultado" style="margin-top:10px;display:none;"></div>
+          </div>
+
+          <!-- PASO 2: Formulario (oculto hasta buscar) -->
+          <div id="mig-paso2" style="display:none;margin-top:20px;">
+            <hr style="margin:0 0 18px 0;">
+            <h6 style="font-weight:700;color:#1a3a3a;margin-bottom:14px;"><i class="bi bi-person"></i> Datos del paciente</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Nombre *</label>
+                <input type="text" class="form-control" id="mig-nombre">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Apellido *</label>
+                <input type="text" class="form-control" id="mig-apellido">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Fecha de nacimiento</label>
+                <input type="date" class="form-control" id="mig-fecha-nac">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Sexo</label>
+                <select class="form-select" id="mig-sexo">
+                  <option value="">-- Sin especificar --</option>
+                  <option value="M">Masculino</option>
+                  <option value="F">Femenino</option>
+                  <option value="X">Otro</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Teléfono</label>
+                <input type="text" class="form-control" id="mig-telefono">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Email</label>
+                <input type="email" class="form-control" id="mig-email">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Obra Social</label>
+                <input type="text" class="form-control" id="mig-obra-social">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Nº Afiliado</label>
+                <input type="text" class="form-control" id="mig-num-afiliado">
+              </div>
+            </div>
+
+            <!-- Consultas previas -->
+            <hr style="margin:20px 0 16px 0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <h6 style="font-weight:700;color:#1a3a3a;margin:0;"><i class="bi bi-journal-medical"></i> Consultas previas <span style="font-weight:400;color:#888;font-size:0.8rem;">(opcional)</span></h6>
+              <button type="button" class="btn btn-sm btn-outline-success" onclick="agregarConsultaMigracion()">
+                <i class="bi bi-plus"></i> Agregar consulta
+              </button>
+            </div>
+            <div id="mig-consultas-container">
+              <p class="text-muted" style="font-size:0.85rem;text-align:center;padding:12px 0;" id="mig-consultas-vacio">Sin consultas previas cargadas</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" id="mig-footer" style="display:none;">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-success" onclick="guardarMigracion()" style="font-weight:600;">
+            <i class="bi bi-check-lg"></i> Guardar paciente
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: EDITAR PACIENTE -->
   <div class="modal fade" id="modalEditarPaciente" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -361,6 +518,98 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- OVERLAY FILTROS AVANZADOS -->
+  <div id="filtrosOverlay" onclick="cerrarFiltrosAvanzados()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1040;"></div>
+
+  <!-- PANEL FILTROS AVANZADOS -->
+  <div id="filtrosPanel" style="position:fixed;top:0;right:-420px;width:400px;height:100vh;background:white;z-index:1050;box-shadow:-4px 0 20px rgba(0,0,0,0.15);transition:right 0.3s ease;display:flex;flex-direction:column;">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:1.1rem;font-weight:700;color:#1a3a3a;"><i class="bi bi-sliders"></i> Filtros avanzados</div>
+        <div style="font-size:0.8rem;color:#888;margin-top:2px;">Refiná la búsqueda de pacientes</div>
+      </div>
+      <button onclick="cerrarFiltrosAvanzados()" style="background:none;border:none;font-size:1.4rem;color:#aaa;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px 24px;">
+
+      <!-- Rango de edad -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:10px;">Rango de edad</div>
+        <div style="display:flex;gap:12px;">
+          <div style="flex:1;">
+            <label style="font-size:0.75rem;color:#666;margin-bottom:4px;display:block;">Mínima</label>
+            <input type="number" id="f-edad-min" min="0" max="120" value="0" class="form-control form-control-sm">
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:0.75rem;color:#666;margin-bottom:4px;display:block;">Máxima</label>
+            <input type="number" id="f-edad-max" min="0" max="120" value="120" class="form-control form-control-sm">
+          </div>
+        </div>
+      </div>
+
+      <!-- Sexo / Género -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:10px;">Sexo / Género</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;" id="f-sexo-group">
+          <button class="pill-filter active" data-val="M" onclick="togglePill(this,'f-sexo-group')">Masculino</button>
+          <button class="pill-filter active" data-val="F" onclick="togglePill(this,'f-sexo-group')">Femenino</button>
+          <button class="pill-filter active" data-val="X" onclick="togglePill(this,'f-sexo-group')">Otro</button>
+          <button class="pill-filter active" data-val="" onclick="togglePill(this,'f-sexo-group')">Sin especificar</button>
+        </div>
+      </div>
+
+      <!-- Fecha última consulta -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:10px;">Fecha de última consulta</div>
+        <div style="display:flex;gap:12px;margin-bottom:10px;">
+          <div style="flex:1;">
+            <label style="font-size:0.75rem;color:#666;margin-bottom:4px;display:block;">Desde</label>
+            <input type="date" id="f-fecha-desde" class="form-control form-control-sm">
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:0.75rem;color:#666;margin-bottom:4px;display:block;">Hasta</label>
+            <input type="date" id="f-fecha-hasta" class="form-control form-control-sm">
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <button class="pill-date" onclick="setFechaRapida(7)">Última semana</button>
+          <button class="pill-date" onclick="setFechaRapida(30)">Último mes</button>
+          <button class="pill-date" onclick="setFechaRapida(90)">3 meses</button>
+          <button class="pill-date" onclick="setFechaRapida(365)">Este año</button>
+        </div>
+      </div>
+
+      <!-- Obra social -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:10px;">Obra social</div>
+        <div style="background:#f8f9fa;border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:0.9rem;font-weight:600;color:#333;">Solo sin obra social</div>
+            <div style="font-size:0.75rem;color:#888;">Mostrar pacientes sin cobertura</div>
+          </div>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="f-sin-obra-social" style="width:2.5rem;height:1.3rem;cursor:pointer;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Estado -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:10px;">Estado del paciente</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;" id="f-estado-group">
+          <button class="pill-filter active" data-val="Activo" onclick="togglePill(this,'f-estado-group')"><span style="width:8px;height:8px;border-radius:50%;background:#28a745;display:inline-block;margin-right:5px;"></span>Activo</button>
+          <button class="pill-filter active" data-val="Inactivo" onclick="togglePill(this,'f-estado-group')"><span style="width:8px;height:8px;border-radius:50%;background:#6c757d;display:inline-block;margin-right:5px;"></span>Inactivo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer botones -->
+    <div style="padding:16px 24px;border-top:1px solid #eee;display:flex;gap:10px;">
+      <button onclick="limpiarFiltrosAvanzados()" class="btn btn-outline-secondary" style="flex:1;border-radius:8px;"><i class="bi bi-arrow-counterclockwise"></i> Limpiar</button>
+      <button onclick="aplicarFiltrosAvanzados()" class="btn" style="flex:1;border-radius:8px;background:linear-gradient(135deg,#1a3a3a,#2d6a6a);color:white;border:none;font-weight:600;"><i class="bi bi-check-lg"></i> Aplicar filtros</button>
     </div>
   </div>
 
@@ -654,6 +903,192 @@
 
     window.abrirEditarPaciente = abrirEditarPaciente;
     window.guardarEdicionPaciente = guardarEdicionPaciente;
+
+    // ── Migración ──
+    var consultasMigracion = [];
+
+    function resetMigracion() {
+      document.getElementById('mig-dni').value = '';
+      document.getElementById('mig-dni-resultado').style.display = 'none';
+      document.getElementById('mig-paso2').style.display = 'none';
+      document.getElementById('mig-footer').style.display = 'none';
+      consultasMigracion = [];
+      renderConsultasMigracion();
+    }
+
+    async function buscarPorDni() {
+      var dni = document.getElementById('mig-dni').value.trim();
+      if (!dni) { alert('Ingresá un DNI'); return; }
+      var res = document.getElementById('mig-dni-resultado');
+      res.style.display = 'block';
+      res.innerHTML = '<span class="text-muted">Buscando...</span>';
+      try {
+        var r = await fetch('/api/personas/buscar-dni/' + dni, { credentials: 'include' });
+        var data = await r.json();
+        if (data.encontrado) {
+          res.innerHTML = '<div class="alert alert-info py-2 mb-0"><i class="bi bi-person-check"></i> Persona encontrada: <strong>' + data.persona.nombre + ' ' + data.persona.apellido + '</strong>. Los datos fueron precargados.</div>';
+          var p = data.persona;
+          document.getElementById('mig-nombre').value = p.nombre;
+          document.getElementById('mig-apellido').value = p.apellido;
+          document.getElementById('mig-fecha-nac').value = p.fecha_nacimiento;
+          document.getElementById('mig-sexo').value = p.sexo;
+          document.getElementById('mig-telefono').value = p.telefono;
+          document.getElementById('mig-email').value = p.email;
+          document.getElementById('mig-obra-social').value = p.obra_social;
+          document.getElementById('mig-num-afiliado').value = p.numero_afiliado;
+        } else {
+          res.innerHTML = '<div class="alert alert-warning py-2 mb-0"><i class="bi bi-person-plus"></i> DNI no encontrado. Completá los datos para crear el paciente.</div>';
+          ['mig-nombre','mig-apellido','mig-fecha-nac','mig-telefono','mig-email','mig-obra-social','mig-num-afiliado'].forEach(function(id){ document.getElementById(id).value=''; });
+          document.getElementById('mig-sexo').value = '';
+        }
+        document.getElementById('mig-paso2').style.display = 'block';
+        document.getElementById('mig-footer').style.display = 'flex';
+      } catch(e) {
+        res.innerHTML = '<div class="alert alert-danger py-2 mb-0">Error al buscar</div>';
+      }
+    }
+
+    function agregarConsultaMigracion() {
+      consultasMigracion.push({ fecha: '', motivo: '', diagnostico: '', medicacion: '' });
+      renderConsultasMigracion();
+    }
+
+    function eliminarConsultaMigracion(idx) {
+      consultasMigracion.splice(idx, 1);
+      renderConsultasMigracion();
+    }
+
+    function renderConsultasMigracion() {
+      var cont = document.getElementById('mig-consultas-container');
+      var vacio = document.getElementById('mig-consultas-vacio');
+      if (consultasMigracion.length === 0) {
+        cont.innerHTML = '<p class="text-muted" style="font-size:0.85rem;text-align:center;padding:12px 0;" id="mig-consultas-vacio">Sin consultas previas cargadas</p>';
+        return;
+      }
+      var html = '';
+      consultasMigracion.forEach(function(c, i) {
+        html += '<div style="background:#f8f9fa;border-radius:10px;padding:14px;margin-bottom:10px;border-left:3px solid #5CAEA3;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+          '<strong style="font-size:0.85rem;color:#1a3a3a;">Consulta ' + (i+1) + '</strong>' +
+          '<button type="button" onclick="eliminarConsultaMigracion(' + i + ')" style="background:none;border:none;color:#dc3545;cursor:pointer;font-size:1.1rem;">&times;</button></div>' +
+          '<div class="row g-2">' +
+          '<div class="col-md-6"><label style="font-size:0.75rem;color:#666;">Fecha *</label>' +
+          '<input type="date" class="form-control form-control-sm" value="' + c.fecha + '" onchange="consultasMigracion[' + i + '].fecha=this.value"></div>' +
+          '<div class="col-md-6"><label style="font-size:0.75rem;color:#666;">Motivo *</label>' +
+          '<input type="text" class="form-control form-control-sm" placeholder="Motivo de consulta" value="' + c.motivo + '" oninput="consultasMigracion[' + i + '].motivo=this.value"></div>' +
+          '<div class="col-md-6"><label style="font-size:0.75rem;color:#666;">Diagnóstico</label>' +
+          '<input type="text" class="form-control form-control-sm" placeholder="Diagnóstico" value="' + c.diagnostico + '" oninput="consultasMigracion[' + i + '].diagnostico=this.value"></div>' +
+          '<div class="col-md-6"><label style="font-size:0.75rem;color:#666;">Medicación</label>' +
+          '<input type="text" class="form-control form-control-sm" placeholder="Medicación indicada" value="' + c.medicacion + '" oninput="consultasMigracion[' + i + '].medicacion=this.value"></div>' +
+          '</div></div>';
+      });
+      cont.innerHTML = html;
+    }
+
+    async function guardarMigracion() {
+      var nombre = document.getElementById('mig-nombre').value.trim();
+      var apellido = document.getElementById('mig-apellido').value.trim();
+      var dni = document.getElementById('mig-dni').value.trim();
+      if (!nombre || !apellido || !dni) { alert('Nombre, apellido y DNI son obligatorios'); return; }
+      showLoading('Guardando paciente...');
+      try {
+        var resp = await fetch('/api/pacientes/migracion', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            nombre, apellido, dni,
+            fecha_nacimiento: document.getElementById('mig-fecha-nac').value || null,
+            sexo: document.getElementById('mig-sexo').value,
+            telefono: document.getElementById('mig-telefono').value.trim(),
+            email: document.getElementById('mig-email').value.trim(),
+            obra_social: document.getElementById('mig-obra-social').value.trim(),
+            numero_afiliado: document.getElementById('mig-num-afiliado').value.trim(),
+            consultas: consultasMigracion
+          })
+        });
+        var data = await resp.json();
+        hideLoading();
+        if (resp.ok) {
+          bootstrap.Modal.getInstance(document.getElementById('modalMigracion')).hide();
+          location.reload();
+        } else {
+          alert('Error: ' + (data.error || 'No se pudo guardar'));
+        }
+      } catch(e) {
+        hideLoading();
+        alert('Error de red');
+      }
+    }
+
+    // ── Filtros avanzados ──
+    function abrirFiltrosAvanzados() {
+      document.getElementById('filtrosPanel').style.right = '0';
+      document.getElementById('filtrosOverlay').style.display = 'block';
+    }
+    function cerrarFiltrosAvanzados() {
+      document.getElementById('filtrosPanel').style.right = '-420px';
+      document.getElementById('filtrosOverlay').style.display = 'none';
+    }
+    function togglePill(btn, groupId) {
+      btn.classList.toggle('active');
+    }
+    function setFechaRapida(dias) {
+      var hasta = new Date();
+      var desde = new Date();
+      desde.setDate(desde.getDate() - dias);
+      document.getElementById('f-fecha-desde').value = desde.toISOString().split('T')[0];
+      document.getElementById('f-fecha-hasta').value = hasta.toISOString().split('T')[0];
+    }
+    function limpiarFiltrosAvanzados() {
+      document.getElementById('f-edad-min').value = '0';
+      document.getElementById('f-edad-max').value = '120';
+      document.getElementById('f-fecha-desde').value = '';
+      document.getElementById('f-fecha-hasta').value = '';
+      document.getElementById('f-sin-obra-social').checked = false;
+      document.querySelectorAll('#f-sexo-group .pill-filter, #f-estado-group .pill-filter').forEach(function(p) { p.classList.add('active'); });
+      aplicarFiltros();
+    }
+    function aplicarFiltrosAvanzados() {
+      aplicarFiltros();
+      cerrarFiltrosAvanzados();
+    }
+
+    function aplicarFiltros() {
+      var texto = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+      var estadoBasico = document.getElementById('estadoFilter').value;
+      var edadMin = parseInt(document.getElementById('f-edad-min').value) || 0;
+      var edadMax = parseInt(document.getElementById('f-edad-max').value) || 120;
+      var fechaDesde = document.getElementById('f-fecha-desde').value;
+      var fechaHasta = document.getElementById('f-fecha-hasta').value;
+      var soloSinObraSocial = document.getElementById('f-sin-obra-social').checked;
+
+      var sexosActivos = Array.from(document.querySelectorAll('#f-sexo-group .pill-filter.active')).map(function(p){ return p.getAttribute('data-val'); });
+      var estadosActivos = Array.from(document.querySelectorAll('#f-estado-group .pill-filter.active')).map(function(p){ return p.getAttribute('data-val'); });
+
+      var filas = document.querySelectorAll('#pacientesTable tbody tr');
+      for (var i = 0; i < filas.length; i++) {
+        var fila = filas[i];
+        var busqueda = (fila.getAttribute('data-busqueda') || '');
+        var estadoFila = (fila.getAttribute('data-estado') || '');
+        var edadFila = parseInt(fila.getAttribute('data-edad')) || 0;
+        var sexoFila = (fila.getAttribute('data-sexo') || '');
+        var obraSocial = fila.getAttribute('data-obra-social');
+        var ultimaConsulta = fila.getAttribute('data-ultima-consulta') || '';
+
+        var ok = true;
+        if (texto && !busqueda.includes(texto)) ok = false;
+        if (estadoBasico && estadoFila !== estadoBasico) ok = false;
+        if (edadFila < edadMin || edadFila > edadMax) ok = false;
+        if (sexosActivos.indexOf(sexoFila) === -1) ok = false;
+        if (estadosActivos.indexOf(estadoFila) === -1) ok = false;
+        if (soloSinObraSocial && obraSocial === '1') ok = false;
+        if (fechaDesde && ultimaConsulta && ultimaConsulta < fechaDesde) ok = false;
+        if (fechaHasta && ultimaConsulta && ultimaConsulta > fechaHasta) ok = false;
+
+        fila.style.display = ok ? '' : 'none';
+      }
+    }
   </script>
 </body>
 </html>
