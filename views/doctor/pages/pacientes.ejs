@@ -175,12 +175,6 @@
               <option value="Inactivo">Inactivo</option>
             </select>
           </div>
-          <div class="col-md-2 d-flex align-items-end">
-            <button class="btn btn-outline-primary w-100" id="btnFiltrar">
-              <i class="bi bi-funnel"></i>
-              Filtrar
-            </button>
-          </div>
         </div>
       </div>
 
@@ -202,12 +196,13 @@
                 <th>Obra Social</th>
                 <th>Estado</th>
                 <th>Historia Clínica</th>
+                <th>Editar</th>
               </tr>
             </thead>
             <tbody>
               <% if (pacientes && pacientes.length > 0) { %>
                 <% pacientes.forEach(function(p) { %>
-                  <tr data-estado="<%= p.estado %>">
+                  <tr data-estado="<%= p.estado %>" data-busqueda="<%= [p.dni, p.nombre, p.email, p.telefono, p.edad, p.obra_social].join(' ').toLowerCase() %>">
                     <td><strong><%= p.dni %></strong></td>
                     <td><%= p.nombre %></td>
                     <td><%= p.email || '-' %></td>
@@ -224,11 +219,25 @@
                         <i class="bi bi-file-earmark-medical"></i> Ver
                       </a>
                     </td>
+                    <td style="text-align: center;">
+                      <button class="btn btn-sm btn-outline-secondary btn-editar-paciente" style="border-radius:6px;padding:5px 12px;font-size:0.8rem;"
+                        data-id="<%= p.id %>"
+                        data-nombre="<%= p.nombre_solo %>"
+                        data-apellido="<%= p.apellido %>"
+                        data-email="<%= p.email %>"
+                        data-telefono="<%= p.telefono %>"
+                        data-fecha-nacimiento="<%= p.fecha_nacimiento %>"
+                        data-sexo="<%= p.sexo %>"
+                        data-obra-social="<%= p.obra_social %>"
+                        data-numero-afiliado="<%= p.numero_afiliado %>">
+                        <i class="bi bi-pencil"></i> Editar
+                      </button>
+                    </td>
                   </tr>
                 <% }); %>
               <% } else { %>
                 <tr>
-                  <td colspan="8" class="text-center text-muted py-4">
+                  <td colspan="9" class="text-center text-muted py-4">
                     <i class="bi bi-inbox"></i>
                     <p>No hay pacientes en el sistema</p>
                   </td>
@@ -294,6 +303,67 @@
     </div>
   </div>
 
+  <!-- MODAL: EDITAR PACIENTE -->
+  <div class="modal fade" id="modalEditarPaciente" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; border: none;">
+          <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Editar Datos del Paciente</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter: brightness(0) invert(1);"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="edit-paciente-id">
+          <p class="text-muted mb-3" style="font-size:0.85rem;"><i class="bi bi-info-circle"></i> El DNI no puede modificarse. Los datos de obra social pertenecen al paciente; el resto a la persona.</p>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nombre *</label>
+              <input type="text" class="form-control" id="edit-nombre">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Apellido *</label>
+              <input type="text" class="form-control" id="edit-apellido">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Email</label>
+              <input type="email" class="form-control" id="edit-email">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Teléfono</label>
+              <input type="text" class="form-control" id="edit-telefono">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Fecha de Nacimiento</label>
+              <input type="date" class="form-control" id="edit-fecha-nacimiento">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Sexo</label>
+              <select class="form-select" id="edit-sexo">
+                <option value="">-- Sin especificar --</option>
+                <option value="M">Masculino</option>
+                <option value="F">Femenino</option>
+                <option value="X">Otro</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Obra Social</label>
+              <input type="text" class="form-control" id="edit-obra-social">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nº Afiliado</label>
+              <input type="text" class="form-control" id="edit-numero-afiliado">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="guardarEdicionPaciente()" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); border: none;">
+            <i class="bi bi-check-lg"></i> Guardar cambios
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- LOADER OVERLAY -->
   <div class="loader-overlay" id="loaderOverlay">
     <div class="loader-container">
@@ -337,24 +407,11 @@
       }
     }
 
-    function filtrarTabla() {
-      const searchInput = document.getElementById('searchInput').value.toLowerCase();
-      const estadoFilter = document.getElementById('estadoFilter').value;
-      const filas = document.querySelectorAll('#pacientesTable tbody tr');
-
-      filas.forEach(fila => {
-        const textoFila = fila.textContent.toLowerCase();
-        const estado = fila.dataset.estado || '';
-        const cumpleBusqueda = !searchInput || textoFila.includes(searchInput);
-        const cumpleEstado = !estadoFilter || estado === estadoFilter;
-        fila.style.display = (cumpleBusqueda && cumpleEstado) ? '' : 'none';
-      });
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-      document.getElementById('searchInput').addEventListener('keyup', filtrarTabla);
-      document.getElementById('estadoFilter').addEventListener('change', filtrarTabla);
-      document.getElementById('btnFiltrar').addEventListener('click', filtrarTabla);
+    document.getElementById('pacientesTable').addEventListener('click', function(e) {
+      const btn = e.target.closest('.btn-editar-paciente');
+      if (!btn) return;
+      const d = btn.dataset;
+      abrirEditarPaciente(d.id, d.nombre, d.apellido, d.email, d.telefono, d.fechaNacimiento, d.sexo, d.obraSocial, d.numeroAfiliado);
     });
 
     async function logout() {
@@ -544,6 +601,59 @@
     window.verificarConsultaActiva = verificarConsultaActiva;
     window.iniciarConsultaAlta = iniciarConsultaAlta;
     window.logout = logout;
+
+    function abrirEditarPaciente(id, nombre, apellido, email, telefono, fechaNac, sexo, obraSocial, numAfiliado) {
+      document.getElementById('edit-paciente-id').value = id;
+      document.getElementById('edit-nombre').value = nombre;
+      document.getElementById('edit-apellido').value = apellido;
+      document.getElementById('edit-email').value = email;
+      document.getElementById('edit-telefono').value = telefono;
+      document.getElementById('edit-fecha-nacimiento').value = fechaNac;
+      document.getElementById('edit-sexo').value = sexo;
+      document.getElementById('edit-obra-social').value = obraSocial;
+      document.getElementById('edit-numero-afiliado').value = numAfiliado;
+      new bootstrap.Modal(document.getElementById('modalEditarPaciente')).show();
+    }
+
+    async function guardarEdicionPaciente() {
+      const id = document.getElementById('edit-paciente-id').value;
+      const nombre = document.getElementById('edit-nombre').value.trim();
+      const apellido = document.getElementById('edit-apellido').value.trim();
+      if (!nombre || !apellido) { alert('Nombre y apellido son obligatorios'); return; }
+
+      showLoading('Guardando cambios...');
+      try {
+        const resp = await fetch(`/api/pacientes/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            nombre,
+            apellido,
+            email:            document.getElementById('edit-email').value.trim(),
+            telefono:         document.getElementById('edit-telefono').value.trim(),
+            fecha_nacimiento: document.getElementById('edit-fecha-nacimiento').value || null,
+            sexo:             document.getElementById('edit-sexo').value,
+            obra_social:      document.getElementById('edit-obra-social').value.trim(),
+            numero_afiliado:  document.getElementById('edit-numero-afiliado').value.trim()
+          })
+        });
+        const data = await resp.json();
+        hideLoading();
+        if (resp.ok) {
+          bootstrap.Modal.getInstance(document.getElementById('modalEditarPaciente')).hide();
+          location.reload();
+        } else {
+          alert('Error: ' + (data.error || 'No se pudo guardar'));
+        }
+      } catch (e) {
+        hideLoading();
+        alert('Error de red al guardar');
+      }
+    }
+
+    window.abrirEditarPaciente = abrirEditarPaciente;
+    window.guardarEdicionPaciente = guardarEdicionPaciente;
   </script>
 </body>
 </html>

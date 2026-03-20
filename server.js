@@ -918,7 +918,8 @@ app.put('/api/historia/:historiaId', requireAuth, async (req, res) => {
           const tallaNum = parseFloat(talla);
           if (pesoNum > 0 && tallaNum > 0) {
             const tallaMt = tallaNum / 100;
-            imc = Math.round((pesoNum / (tallaMt * tallaMt)) * 10) / 10; // Redondear a 1 decimal
+            const imcCalc = Math.round((pesoNum / (tallaMt * tallaMt)) * 10) / 10;
+            imc = imcCalc <= 999.99 ? imcCalc : null; // Limitar para no hacer overflow en DB
           }
         } catch (e) {
           console.warn('⚠️ Error calculando IMC:', e.message);
@@ -3094,6 +3095,51 @@ app.post('/api/pacientes/alta', requireAuth, async (req, res) => {
 });
 
 // ============================================================================
+// ENDPOINT: EDITAR DATOS DEL PACIENTE
+// ============================================================================
+app.put('/api/pacientes/:id', requireAuth, requireRole(['doctor', 'admin']), async (req, res) => {
+  try {
+    const pacienteId = BigInt(req.params.id);
+    const { nombre, apellido, email, telefono, fecha_nacimiento, sexo, obra_social, numero_afiliado } = req.body;
+
+    // Obtener persona_id del paciente
+    const paciente = await prisma.paciente.findUnique({
+      where: { id: pacienteId },
+      select: { persona_id: true }
+    });
+
+    if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' });
+
+    // Actualizar Persona (campos no-clave)
+    await prisma.persona.update({
+      where: { id: paciente.persona_id },
+      data: {
+        ...(nombre    && { nombre }),
+        ...(apellido  && { apellido }),
+        ...(email     !== undefined && { email: email || null }),
+        ...(telefono  !== undefined && { telefono: telefono || null }),
+        ...(fecha_nacimiento !== undefined && { fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null }),
+        ...(sexo      !== undefined && { sexo: sexo || null })
+      }
+    });
+
+    // Actualizar Paciente
+    await prisma.paciente.update({
+      where: { id: pacienteId },
+      data: {
+        ...(obra_social      !== undefined && { obra_social: obra_social || null }),
+        ...(numero_afiliado  !== undefined && { numero_afiliado: numero_afiliado || null })
+      }
+    });
+
+    res.json({ success: true, message: 'Paciente actualizado correctamente' });
+  } catch (error) {
+    console.error('❌ Error al actualizar paciente:', error);
+    res.status(500).json({ error: 'Error al actualizar paciente', message: error.message });
+  }
+});
+
+// ============================================================================
 // ENDPOINT: ALTA DE HISTORIA CLÍNICA
 // ============================================================================
 app.post('/api/historia-clinica/crear', requireAuth, async (req, res) => {
@@ -3108,7 +3154,7 @@ app.post('/api/historia-clinica/crear', requireAuth, async (req, res) => {
 
     // Verificar si paciente existe
     const paciente = await prisma.paciente.findUnique({
-      where: { id: parseInt(paciente_id) }
+      where: { id: BigInt(paciente_id) }
     });
 
     if (!paciente) {
@@ -3498,12 +3544,18 @@ app.get('/doctor/pacientes', requireAuth, requireRole(['doctor', 'admin', 'secre
 
         return {
           id: p.id.toString(),
+          persona_id: p.persona.id.toString(),
           dni: p.persona.dni || '-',
           nombre: `${p.persona.nombre} ${p.persona.apellido}`,
-          telefono: p.persona.telefono || '-',
-          email: p.persona.email || '-',
+          nombre_solo: p.persona.nombre || '',
+          apellido: p.persona.apellido || '',
+          telefono: p.persona.telefono || '',
+          email: p.persona.email || '',
+          fecha_nacimiento: p.persona.fecha_nacimiento ? new Date(p.persona.fecha_nacimiento).toISOString().split('T')[0] : '',
+          sexo: p.persona.sexo || '',
           edad: edad,
-          obra_social: p.obra_social || '-',
+          obra_social: p.obra_social || '',
+          numero_afiliado: p.numero_afiliado || '',
           estado: estado,
           tiene_historia: p.historias_clinicas && p.historias_clinicas.length > 0,
           historia_activa: p.historias_clinicas && p.historias_clinicas.length > 0 ? p.historias_clinicas[0].activa : false
@@ -3659,126 +3711,8 @@ app.get('/doctor/pacientes/:paciente_id', requireAuth, requireRole(['doctor', 'a
     let historias = paciente.historias_clinicas || [];
     let historia = historias.length > 0 ? historias[0] : null;
     
-    // Si no existe historia y viene de un turno, crear automáticamente
-    if (!historia && turno_id) {
-      try {
-        console.log(`📝 Creando história clínica automáticamente para paciente ${paciente_id} desde turno ${turno_id}`);
-        historia = await prisma.historiaClinica.create({
-          data: {
-            paciente_id: paciente_id,
-            creada_por_medico_id: BigInt(req.user.id),
-            activa: true
-          }
-        });
-        
-        // Crear consulta médica automáticamente asociada al turno
-        const nuevaConsulta = await prisma.consultaMedica.create({
-          data: {
-            historia_clinica_id: historia.id,
-            medico_id: BigInt(req.user.id),
-            turno_id: BigInt(turno_id),
-            estado_id: BigInt(5),
-            motivo_consulta: 'Nueva consulta',
-            fecha: new Date()
-          }
-        });
-        
-        console.log(`✅ Historia clínica creada automáticamente: ID ${historia.id}`);
-        console.log(`✅ Consulta médica creada automáticamente: ID ${nuevaConsulta.id}`);
-        
-        // Recargar historia con todas las relaciones
-        historia = await prisma.historiaClinica.findUnique({
-          where: { id: historia.id },
-          include: {
-            documentos: {
-              where: {
-                eliminado: false,
-                estudio_id: null
-              }
-            },
-            antecedentes: true,
-            consultas: {
-              include: {
-                medico: {
-                  select: {
-                    nombre: true,
-                    apellido: true
-                  }
-                },
-                tratamientos: true,
-                signos_vitales: true,
-                diagnosticos: true,
-                estudios: true
-              },
-              orderBy: { fecha: 'desc' }
-            },
-            medico_apertura: {
-              select: {
-                nombre: true,
-                apellido: true
-              }
-            }
-          }
-        });
-      } catch (createHistoriaError) {
-        console.error(`❌ Error al crear historia automáticamente:`, createHistoriaError);
-      }
-    }
-
-    // Si YA existe historia y viene de un turno → crear consulta nueva para esta visita
-    // (solo si no existe ya una consulta para este turno)
-    if (historia && turno_id) {
-      try {
-        const consultaExistente = await prisma.consultaMedica.findFirst({
-          where: {
-            historia_clinica_id: historia.id,
-            turno_id: BigInt(turno_id)
-          }
-        });
-
-        if (!consultaExistente) {
-          console.log(`📝 Historia existente - Creando nueva consulta para turno ${turno_id}`);
-          await prisma.consultaMedica.create({
-            data: {
-              historia_clinica_id: historia.id,
-              medico_id: BigInt(req.user.id),
-              turno_id: BigInt(turno_id),
-              estado_id: BigInt(5),
-              motivo_consulta: 'Nueva consulta',
-              fecha: new Date()
-            }
-          });
-          console.log(`✅ Nueva consulta creada para historia existente`);
-
-          // Recargar historia con la nueva consulta incluida
-          historia = await prisma.historiaClinica.findUnique({
-            where: { id: historia.id },
-            include: {
-              documentos: {
-                where: { eliminado: false, estudio_id: null }
-              },
-              antecedentes: true,
-              consultas: {
-                include: {
-                  medico: { select: { nombre: true, apellido: true } },
-                  anamnesis: true,
-                  tratamientos: true,
-                  signos_vitales: true,
-                  diagnosticos: true,
-                  estudios: true
-                },
-                orderBy: { fecha: 'desc' }
-              },
-              medico_apertura: { select: { nombre: true, apellido: true } }
-            }
-          });
-        } else {
-          console.log(`ℹ️ Ya existe consulta para turno ${turno_id}: #${consultaExistente.id}`);
-        }
-      } catch (err) {
-        console.error(`❌ Error creando nueva consulta para historia existente:`, err.message);
-      }
-    }
+    // Si no existe historia, la página carga con formulario vacío.
+    // La historia se creará cuando el doctor guarde explícitamente.
     
     const consultas = historia?.consultas || [];
     const consulta = consultas.length > 0 ? consultas[0] : null;

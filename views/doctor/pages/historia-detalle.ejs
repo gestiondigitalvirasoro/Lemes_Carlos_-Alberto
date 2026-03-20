@@ -1013,7 +1013,7 @@
     <script>
         // Datos de la historia
         const historiaData = <%- JSON.stringify(historia || {}) %>;
-        const historiaId = '<%= historia?.id || "" %>';
+        let historiaId = '<%= historia?.id || "" %>';
         const pacienteId = '<%= paciente?.id || "" %>';
         let modoEdicion = false;
         let consultaActualIdx = 0;
@@ -1351,14 +1351,11 @@
             } else {
                 medCards.forEach(card => {
                     const divs = card.querySelectorAll('div');
-                    const nombre = divs[1]?.textContent?.trim() || '';
-                    const dosis  = divs[2]?.textContent?.trim() || '';
-                    const freq   = divs[3]?.textContent?.trim() || '';
-                    const ind    = divs[4]?.textContent?.trim() || '';
+                    const nombre = divs[0]?.textContent?.trim() || '';
+                    const dosis  = divs[1]?.textContent?.trim() || '';
                     const d = document.createElement('div');
                     d.style.cssText = 'margin:7px 0 7px 14px;font-size:12px;line-height:1.6;';
-                    d.innerHTML = '<strong>' + nombre + '</strong> ' + dosis +
-                        '<br><small style="color:#555;">' + freq + (ind && !ind.includes('Activo') ? ' · ' + ind : '') + '</small>';
+                    d.innerHTML = '<strong>' + nombre + '</strong> ' + dosis;
                     medContainer.appendChild(d);
                 });
             }
@@ -1389,12 +1386,15 @@
             } else {
                 tratCards.forEach(card => {
                     const divs = card.querySelectorAll('div');
-                    const nombre = divs[1]?.textContent?.trim() || '';
-                    const dosis  = divs[2]?.textContent?.trim() || '';
-                    const freq   = divs[3]?.textContent?.trim() || '';
+                    const nombre = divs[0]?.textContent?.trim() || '';
+                    const dosis  = divs[1]?.textContent?.trim() || '';
+                    const freq   = divs[2]?.textContent?.trim() || '';
+                    const ind    = divs[3]?.textContent?.trim() || '';
                     const d = document.createElement('div');
                     d.style.cssText = 'margin:5px 0 5px 14px;font-size:12px;line-height:1.5;';
-                    d.innerHTML = '<strong>' + nombre + '</strong> ' + dosis + '<br><small style="color:#555;">' + freq + '</small>';
+                    d.innerHTML = '<strong>' + nombre + '</strong> ' + dosis +
+                        '<br><small style="color:#555;">' + freq +
+                        (ind && !ind.includes('Activo') ? '<br><small style="color:#777;font-style:italic;">' + ind + '</small>' : '') + '</small>';
                     tratContainer.appendChild(d);
                 });
             }
@@ -1689,9 +1689,33 @@
         }
 
         async function guardarCambios() {
+            // Si no existe historia todavía, crearla primero
             if (!historiaId) {
-                alert('Error: Historia ID no encontrado');
-                return;
+                try {
+                    const crearResp = await fetch('/api/historia-clinica/crear', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({ paciente_id: pacienteId })
+                    });
+                    const crearData = await crearResp.json();
+                    if (crearResp.ok && crearData.data?.id) {
+                        // Historia creada exitosamente
+                        historiaId = crearData.data.id;
+                    } else if (crearResp.status === 409 && crearData.historia_id) {
+                        // Ya existía una historia (caso raro), usar la existente
+                        historiaId = crearData.historia_id;
+                    } else {
+                        alert('Error al crear la historia clínica: ' + (crearData.error || 'Error desconocido'));
+                        return;
+                    }
+                } catch (err) {
+                    alert('Error de red al crear la historia clínica');
+                    return;
+                }
             }
 
             try {
@@ -1816,18 +1840,41 @@
                 
                 console.log('✅ Estudios validados:', estudiosActualizados.length);
 
+            // ── Validar signos vitales antes de guardar ──
+            const svPSist  = document.getElementById('presionSistolica')?.value;
+            const svPDias  = document.getElementById('presionDiastolica')?.value;
+            const svFC     = document.getElementById('frecuenciaCardiaca')?.value;
+            const svTemp   = document.getElementById('temperatura')?.value;
+            const svPeso   = document.getElementById('peso')?.value;
+            const svTalla  = document.getElementById('talla')?.value;
+
+            const erroresSignos = [];
+            if (svPSist  && (parseFloat(svPSist)  < 50  || parseFloat(svPSist)  > 300)) erroresSignos.push('Presión Sistólica: debe estar entre 50 y 300 mmHg (ingresaste: ' + svPSist + ')');
+            if (svPDias  && (parseFloat(svPDias)  < 30  || parseFloat(svPDias)  > 200)) erroresSignos.push('Presión Diastólica: debe estar entre 30 y 200 mmHg (ingresaste: ' + svPDias + ')');
+            if (svFC     && (parseFloat(svFC)     < 20  || parseFloat(svFC)     > 300)) erroresSignos.push('Frecuencia Cardíaca: debe estar entre 20 y 300 lpm (ingresaste: ' + svFC + ')');
+            if (svTemp   && (parseFloat(svTemp)   < 30  || parseFloat(svTemp)   > 45))  erroresSignos.push('Temperatura: debe estar entre 30 y 45 °C (ingresaste: ' + svTemp + ')');
+            if (svPeso   && (parseFloat(svPeso)   < 1   || parseFloat(svPeso)   > 300)) erroresSignos.push('Peso: debe estar entre 1 y 300 kg (ingresaste: ' + svPeso + ')');
+            if (svTalla  && (parseFloat(svTalla)  < 30  || parseFloat(svTalla)  > 250)) erroresSignos.push('Talla: debe estar entre 30 y 250 cm (ingresaste: ' + svTalla + ')');
+
+            if (erroresSignos.length > 0) {
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                if (loadingOverlay) loadingOverlay.classList.remove('active');
+                alert('⚠️ Valores inválidos en Signos Vitales:\n\n' + erroresSignos.join('\n'));
+                return;
+            }
+
             const datos = {
                 consulta_id: consulta_id,
                 motivo_consulta: document.getElementById('motivoConsulta')?.value || '',
                 anamnesis: document.getElementById('anamnesis')?.value || '',
                 antecedentes: document.getElementById('antecedentes')?.value || '',
                 resumen: document.getElementById('impresion')?.value || '',
-                presion_sistolica: parseInt(document.getElementById('presionSistolica')?.value) || null,
-                presion_diastolica: parseInt(document.getElementById('presionDiastolica')?.value) || null,
-                frecuencia_cardiaca: parseInt(document.getElementById('frecuenciaCardiaca')?.value) || null,
-                temperatura: parseFloat(document.getElementById('temperatura')?.value) || null,
-                peso: parseFloat(document.getElementById('peso')?.value) || null,
-                talla: parseFloat(document.getElementById('talla')?.value) || null,
+                presion_sistolica: svPSist  ? parseInt(svPSist)   : null,
+                presion_diastolica: svPDias ? parseInt(svPDias)   : null,
+                frecuencia_cardiaca: svFC   ? parseInt(svFC)      : null,
+                temperatura: svTemp         ? parseFloat(svTemp)  : null,
+                peso: svPeso                ? parseFloat(svPeso)  : null,
+                talla: svTalla              ? parseFloat(svTalla) : null,
                 diagnosticos: diagnosticosSeleccionados,
                 estudios: estudiosActualizados,
                 adjuntos: adjuntosSubidos

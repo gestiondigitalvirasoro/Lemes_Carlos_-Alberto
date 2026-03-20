@@ -1009,14 +1009,7 @@
 
         // Generar botones según el estado
         if (turno.estado === 'PENDIENTE') {
-          botonesAccion = `
-            <button class="btn btn-sm btn-success" onclick="iniciarConsultaTurno(${turno.id})" title="Iniciar consulta">
-              <i class="bi bi-play-circle"></i> Iniciar
-            </button>
-            <button class="btn btn-sm btn-outline-danger" onclick="cancelarConsultaTurno(${turno.id})" title="Cancelar turno">
-              <i class="bi bi-x-circle"></i>
-            </button>
-          `;
+          botonesAccion = `<span class="text-muted" style="font-size: 0.85rem;">—</span>`;
         } else if (turno.estado === 'EN_CONSULTA') {
           botonesAccion = `
             <button class="btn btn-sm btn-info" onclick="abrirHistoriaClinica(${turno.id}, ${turno.paciente.id})" title="Ver historia clínica">

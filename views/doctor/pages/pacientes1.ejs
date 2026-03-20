@@ -71,8 +71,8 @@
     .patient-info-item span { color: #666; font-size: 0.95rem; }
 
     @media (max-width: 768px) {
-      .sidebar { width: 100%; height: auto; position: static; }
-      .main-content { margin-left: 0; }
+      .hamburger-btn { display: block !important; }
+      .main-content { margin-left: 0 !important; padding-top: 60px !important; }
       .page-title h1 { font-size: 1.8rem; }
       .patient-info-grid { grid-template-columns: 1fr; }
     }
@@ -131,43 +131,8 @@
 <body>
   <div class="container-dashboard">
     <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-logo">
-        <i class="bi bi-capsule"></i>
-        LEMES
-      </div>
-      
-      <nav class="sidebar-nav">
-        <a href="/doctor/dashboard">
-          <i class="bi bi-speedometer2"></i>
-          Dashboard
-        </a>
-        <a href="/doctor/pacientes" class="active">
-          <i class="bi bi-people"></i>
-          Pacientes
-        </a>
-        <a href="/doctor/turnos">
-          <i class="bi bi-calendar-check"></i>
-          Turnos
-        </a>
-      </nav>
-
-      <div class="sidebar-footer">
-        <div class="user-info">
-          <p class="username">Dr. <%= user.nombre %> <%= user.apellido %></p>
-          <p><%= user.email %></p>
-          <p>
-            <span class="badge" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%);">
-              <%= user.rol.toUpperCase() %>
-            </span>
-          </p>
-        </div>
-        <a href="javascript:void(0)" onclick="logout()" class="btn btn-outline-light btn-sm w-100">
-          <i class="bi bi-box-arrow-right"></i>
-          Cerrar Sesión
-        </a>
-      </div>
-    </aside>
+    <% var page = 'pacientes'; %>
+    <%- include('../../partials/sidebar-shared') %>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -180,9 +145,9 @@
         <p>Gestiona el historial de tus pacientes</p>
       </div>
 
-      <!-- Botón Dar de Alta de Consulta -->
+      <!-- Botón Dar de Alta de Consulta (oculto) -->
       <div style="margin-bottom: 30px;">
-        <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#modalDarAltaConsulta" onclick="verificarConsultaActiva()" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); border: none; padding: 12px 30px; font-weight: 600;">
+        <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#modalDarAltaConsulta" onclick="verificarConsultaActiva()" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); border: none; padding: 12px 30px; font-weight: 600; display: none;">
           <i class="bi bi-plus-circle"></i>
           Dar de Alta de Consulta
         </button>
@@ -197,19 +162,19 @@
               <span class="input-group-text">
                 <i class="bi bi-search"></i>
               </span>
-              <input type="text" class="form-control" placeholder="Buscar..." id="searchInput" onkeyup="filtrarTabla()">
+              <input type="text" class="form-control" placeholder="Buscar..." id="searchInput">
             </div>
           </div>
           <div class="col-md-4">
             <label class="form-label">Estado</label>
-            <select class="form-select" id="estadoFilter" onchange="filtrarTabla()">
+            <select class="form-select" id="estadoFilter">
               <option value="">Todos</option>
               <option value="Activo">Activo</option>
               <option value="Inactivo">Inactivo</option>
             </select>
           </div>
           <div class="col-md-2 d-flex align-items-end">
-            <button class="btn btn-outline-primary w-100" onclick="filtrarTabla()">
+            <button class="btn btn-outline-primary w-100" id="btnFiltrar">
               <i class="bi bi-funnel"></i>
               Filtrar
             </button>
@@ -234,27 +199,27 @@
                 <th>Edad</th>
                 <th>Obra Social</th>
                 <th>Estado</th>
-                <th style="text-align: center; width: 60px;"></th>
+                <th>Historia Clínica</th>
               </tr>
             </thead>
             <tbody>
               <% if (pacientes && pacientes.length > 0) { %>
                 <% pacientes.forEach(function(p) { %>
-                  <tr>
+                  <tr data-estado="<%= p.estado %>">
                     <td><strong><%= p.dni %></strong></td>
-                    <td><%= p.nombre %> <%= p.apellido || '' %></td>
+                    <td><%= p.nombre %></td>
                     <td><%= p.email || '-' %></td>
                     <td><%= p.telefono || '-' %></td>
                     <td><%= p.edad %></td>
                     <td><%= p.obra_social || '-' %></td>
                     <td>
-                      <span class="estado-badge <%= 'estado-' + (p.estado || 'Activo') %>">
-                        <%= p.estado || 'Activo' %>
+                      <span class="estado-badge estado-<%= p.estado %>">
+                        <%= p.estado %>
                       </span>
                     </td>
                     <td style="text-align: center;">
-                      <a href="/doctor/pacientes/<%= p.id %>" title="Ver Historia Clínica" style="font-size: 1.3rem; color: #D97F7F; text-decoration: none; transition: all 0.3s;">
-                        <i class="bi bi-file-earmark-text" style="hover: color: #5CAEA3;"></i>
+                      <a href="/doctor/pacientes/<%= p.id %>" class="btn btn-sm" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; border: none; border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; font-weight: 600; text-decoration: none;">
+                        <i class="bi bi-file-earmark-medical"></i> Ver
                       </a>
                     </td>
                   </tr>
@@ -273,9 +238,6 @@
       </div>
     </main>
   </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="/js/doctor.js"></script>
 
   <!-- MODAL: DAR DE ALTA DE CONSULTA -->
   <div class="modal fade" id="modalDarAltaConsulta" tabindex="-1">
@@ -376,20 +338,22 @@
     function filtrarTabla() {
       const searchInput = document.getElementById('searchInput').value.toLowerCase();
       const estadoFilter = document.getElementById('estadoFilter').value;
-      const tabla = document.getElementById('pacientesTable');
-      const filas = tabla.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+      const filas = document.querySelectorAll('#pacientesTable tbody tr');
 
-      for (let fila of filas) {
-        const dni = fila.cells[0].textContent.toLowerCase();
-        const nombre = fila.cells[1].textContent.toLowerCase();
-        const estado = fila.cells[6].textContent.trim();
-
-        const cumpleNombre = nombre.includes(searchInput) || dni.includes(searchInput);
-        const cumpleEstado = !estadoFilter || estado.includes(estadoFilter);
-
-        fila.style.display = (cumpleNombre && cumpleEstado) ? '' : 'none';
-      }
+      filas.forEach(fila => {
+        const textoFila = fila.textContent.toLowerCase();
+        const estado = fila.dataset.estado || '';
+        const cumpleBusqueda = !searchInput || textoFila.includes(searchInput);
+        const cumpleEstado = !estadoFilter || estado === estadoFilter;
+        fila.style.display = (cumpleBusqueda && cumpleEstado) ? '' : 'none';
+      });
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('searchInput').addEventListener('keyup', filtrarTabla);
+      document.getElementById('estadoFilter').addEventListener('change', filtrarTabla);
+      document.getElementById('btnFiltrar').addEventListener('click', filtrarTabla);
+    });
 
     async function logout() {
       if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) {
