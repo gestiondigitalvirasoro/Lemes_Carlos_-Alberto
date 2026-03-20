@@ -1700,12 +1700,125 @@ app.get('/api/agenda-semanal', requireAuth, async (req, res) => {
 // ============================================================================
 app.get('/api/alertas-clinicas', requireAuth, async (req, res) => {
   try {
-    // Devolver alertas vacías por ahora (hay mismatch con BD real)
-    res.json({
-      success: true,
-      alertas: [],
-      count: 0
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const mañana = new Date(hoy);
+    mañana.setDate(mañana.getDate() + 1);
+
+    // Obtener turnos de hoy con datos de persona y paciente
+    const turnos = await prisma.turno.findMany({
+      where: { fecha: { gte: hoy, lt: mañana } },
+      include: {
+        persona: {
+          select: {
+            nombre: true,
+            apellido: true,
+            fecha_nacimiento: true,
+            telefono: true,
+            paciente: {
+              select: {
+                obra_social: true,
+                historias_clinicas: {
+                  select: {
+                    id: true,
+                    consultas: {
+                      select: {
+                        id: true,
+                        resumen: true,
+                        diagnosticos: { select: { id: true }, take: 1 },
+                        tratamientos: { select: { id: true }, take: 1 }
+                      },
+                      orderBy: { fecha: 'desc' },
+                      take: 5
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        estado: { select: { nombre: true } }
+      }
     });
+
+    const alertas = [];
+
+    for (const turno of turnos) {
+      const persona = turno.persona;
+      if (!persona) continue;
+      const nombre = `${persona.nombre} ${persona.apellido}`;
+      const paciente = persona.paciente;
+
+      // === ADMINISTRATIVAS ===
+      if (!persona.fecha_nacimiento) {
+        alertas.push({
+          prioridad: 'administrativa',
+          titulo: 'Fecha de nacimiento no cargada',
+          descripcion: 'No se puede calcular la edad. Completar antes o durante la consulta.',
+          paciente: nombre,
+          turno_hora: turno.hora,
+          icono: 'bi-person-badge',
+          color: '#6C757D'
+        });
+      }
+
+      if (!persona.telefono) {
+        alertas.push({
+          prioridad: 'administrativa',
+          titulo: 'Sin teléfono de contacto',
+          descripcion: 'No es posible contactar al paciente ante cancelaciones o urgencias.',
+          paciente: nombre,
+          turno_hora: turno.hora,
+          icono: 'bi-telephone-x',
+          color: '#6C757D'
+        });
+      }
+
+      if (!paciente || !paciente.obra_social) {
+        alertas.push({
+          prioridad: 'administrativa',
+          titulo: 'Sin obra social verificada',
+          descripcion: 'El paciente no tiene cobertura registrada. Confirmar en la consulta.',
+          paciente: nombre,
+          turno_hora: turno.hora,
+          icono: 'bi-shield-x',
+          color: '#6C757D'
+        });
+      }
+
+      // === INFORMATIVAS / IMPORTANTES ===
+      if (!paciente || !paciente.historias_clinicas || paciente.historias_clinicas.length === 0) {
+        alertas.push({
+          prioridad: 'informativa',
+          titulo: 'Primera consulta con este médico',
+          descripcion: 'El paciente no tiene historia clínica previa en el sistema.',
+          paciente: nombre,
+          turno_hora: turno.hora,
+          icono: 'bi-person-plus',
+          color: '#0D6EFD'
+        });
+      } else {
+        // Revisar si hay consultas sin diagnóstico ni tratamiento
+        const tieneConsultaIncompleta = paciente.historias_clinicas.some(hc =>
+          hc.consultas.some(c =>
+            c.diagnosticos.length === 0 && c.tratamientos.length === 0 && !c.resumen
+          )
+        );
+        if (tieneConsultaIncompleta) {
+          alertas.push({
+            prioridad: 'importante',
+            titulo: 'HC sin completar de consulta anterior',
+            descripcion: 'Una consulta previa no tiene diagnóstico, tratamiento ni resumen cargado.',
+            paciente: nombre,
+            turno_hora: turno.hora,
+            icono: 'bi-exclamation-circle',
+            color: '#FFC107'
+          });
+        }
+      }
+    }
+
+    res.json({ success: true, alertas, count: alertas.length });
   } catch (error) {
     console.error('❌ Error en alertas clínicas:', error);
     res.status(500).json({
@@ -1767,9 +1880,15 @@ app.get('/api/doctor-todos-turnos', requireAuth, async (req, res) => {
             id: true,
             nombre: true
           }
+        },
+        consulta: {
+          select: {
+            id: true,
+            motivo_consulta: true
+          }
         }
       },
-      orderBy: { fecha: 'desc' }
+      orderBy: [{ fecha: 'asc' }, { hora: 'asc' }]
     });
 
     console.log(`📅 Turnos encontrados: ${turnos.length}\n`);
@@ -1838,7 +1957,8 @@ app.get('/api/doctor-todos-turnos', requireAuth, async (req, res) => {
           apellido: turno.medico?.apellido || 'N/A',
           especialidad: turno.medico?.especialidad || 'General'
         },
-        observaciones: turno.observaciones || '-'
+        observaciones: turno.observaciones || '',
+        motivo: turno.consulta?.motivo_consulta || ''
       };
     });
 

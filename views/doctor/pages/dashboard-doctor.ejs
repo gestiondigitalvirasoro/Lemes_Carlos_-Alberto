@@ -35,16 +35,16 @@
     .page-title p { margin-top: 8px; color: #666; font-size: 1.1rem; }
     
     /* BLOQUE 1: PRÓXIMO PACIENTE */
-    .siguiente-paciente-card { background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; 
-      border-radius: 12px; padding: 30px; box-shadow: 0 8px 25px rgba(217, 127, 127, 0.3); margin: 30px 0; }
-    .siguiente-paciente-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
-    .siguiente-paciente-header h5 { margin: 0; font-size: 0.85rem; opacity: 0.85; text-transform: uppercase; 
+    .siguiente-paciente-card { background: #1a3a3a; color: white;
+      border-radius: 10px; padding: 18px 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); margin: 20px 0; }
+    .siguiente-paciente-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .siguiente-paciente-header h5 { margin: 0; font-size: 0.75rem; opacity: 0.75; text-transform: uppercase;
       letter-spacing: 1.5px; font-weight: 600; }
-    .siguiente-paciente-header .hora { font-size: 3rem; font-weight: 700; line-height: 1; }
-    .siguiente-paciente-body { display: flex; flex-direction: column; gap: 20px; }
-    .siguiente-paciente-body h2 { margin: 0; font-size: 1.9rem; font-weight: 700; }
-    .siguiente-paciente-info { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    .siguiente-paciente-info p { margin: 0; font-size: 0.95rem; }
+    .siguiente-paciente-header .hora { font-size: 2rem; font-weight: 700; line-height: 1; opacity: 0.95; }
+    .siguiente-paciente-body { display: flex; flex-direction: column; gap: 10px; }
+    .siguiente-paciente-body h2 { margin: 0; font-size: 1.4rem; font-weight: 700; }
+    .siguiente-paciente-info { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; }
+    .siguiente-paciente-info p { margin: 0; font-size: 0.88rem; }
     
     /* BLOQUE 3: ACCIONES RÁPIDAS */
     .acciones-rapidas { margin: 30px 0; }
@@ -58,20 +58,39 @@
     .accion-btn p { margin: 10px 0 0; font-weight: 600; color: #333; }
     
     /* BLOQUE 4: ALERTAS CLÍNICAS */
-    .alertas-clinicas { margin: 30px 0; background: white; border-radius: 12px; 
+    .alertas-clinicas { margin: 30px 0; background: white; border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 25px; }
-    .alertas-clinicas h5 { color: #1a3a3a; margin: 0 0 20px 0; font-weight: 700; 
+    .alertas-clinicas h5 { color: #1a3a3a; margin: 0 0 20px 0; font-weight: 700;
       display: flex; align-items: center; gap: 10px; font-size: 1.2rem; }
-    .alerta-item { display: flex; align-items: center; gap: 15px; padding: 12px; 
-      border-left: 4px solid; border-radius: 4px; margin-bottom: 12px; background: #f9f9f9; }
-    .alerta-item.alerta-rojo { border-color: #DC3545; }
-    .alerta-item.alerta-amarillo { border-color: #FFC107; }
-    .alerta-item.alerta-azul { border-color: #0D6EFD; }
-    .alerta-icono { font-size: 1.5rem; min-width: 40px; text-align: center; }
+    .alertas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) { .alertas-grid { grid-template-columns: 1fr; } }
+    .alertas-categoria { border-radius: 8px; padding: 16px; }
+    .alertas-categoria.cat-critica { background: #fff5f5; border: 1px solid #f5c6cb; }
+    .alertas-categoria.cat-importante { background: #fffdf0; border: 1px solid #ffeaa7; }
+    .alertas-categoria.cat-informativa { background: #f0f6ff; border: 1px solid #b8d4f8; }
+    .alertas-categoria.cat-administrativa { background: #f8f9fa; border: 1px solid #dee2e6; }
+    .alertas-categoria h6 { margin: 0 0 12px 0; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
+    .cat-critica h6 { color: #c0392b; }
+    .cat-importante h6 { color: #d68910; }
+    .cat-informativa h6 { color: #2471a3; }
+    .cat-administrativa h6 { color: #566573; }
+    .alerta-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px;
+      border-left: 3px solid; border-radius: 4px; margin-bottom: 8px; background: white; }
+    .alerta-item:last-child { margin-bottom: 0; }
+    .alerta-item.alerta-critica { border-color: #DC3545; }
+    .alerta-item.alerta-importante { border-color: #FFC107; }
+    .alerta-item.alerta-informativa { border-color: #0D6EFD; }
+    .alerta-item.alerta-administrativa { border-color: #6C757D; }
+    .alerta-icono { font-size: 1.1rem; min-width: 24px; padding-top: 2px; }
     .alerta-contenido { flex: 1; }
-    .alerta-contenido p { margin: 0; font-size: 0.9rem; }
+    .alerta-contenido p { margin: 0; font-size: 0.88rem; }
     .alerta-contenido .alerta-titulo { font-weight: 600; color: #1a3a3a; }
-    .alerta-contenido .alerta-valor { color: #666; font-size: 0.85rem; }
+    .alerta-contenido .alerta-valor { color: #666; font-size: 0.82rem; margin-top: 2px; }
+    .alerta-contenido .alerta-paciente { color: #D97F7F; font-size: 0.82rem; font-weight: 600; margin-top: 3px; }
+    /* Contador de turnos */
+    .turnos-counter { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+    .turnos-counter-item { font-size: 0.9rem; font-weight: 600; color: #555; }
+    .turnos-counter-item span { font-weight: 700; }
     
     /* TABLA DE TURNOS */
     .tabla-turnos-wrapper { background: white; border-radius: 12px; 
@@ -203,17 +222,20 @@
               <p><strong>Teléfono:</strong> <span id="siguiente-telefono">-</span></p>
             </div>
             <div>
-              <p><strong>Edad:</strong> <span id="siguiente-edad">-</span> años</p>
+              <p><strong>Edad:</strong> <span id="siguiente-edad">-</span></p>
             </div>
             <div>
               <p><strong>Obra Social:</strong> <span id="siguiente-obra">-</span></p>
             </div>
+            <div style="grid-column: 1 / -1;">
+              <p><strong>Motivo:</strong> <span id="siguiente-motivo" style="opacity:0.9;">-</span></p>
+            </div>
           </div>
-          <div>
-            <p><strong>Estado:</strong></p>
-            <span id="siguiente-estado" class="estado-badge">-</span>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <p style="margin:0;"><strong>Estado:</strong></p>
+            <span id="siguiente-estado" class="estado-badge" style="font-size:0.78rem; padding:4px 10px;">-</span>
           </div>
-          <div id="siguiente-botones" style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
+          <div id="siguiente-botones" style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;"></div>
         </div>
       </div>
 
@@ -238,8 +260,9 @@
       <div class="tabla-turnos-wrapper">
         <h5>
           <i class="bi bi-table"></i>
-          Turnos del Día (Referencia)
+          Turnos del Día
         </h5>
+        <div class="turnos-counter" id="turnos-counter"></div>
         <div class="table-responsive">
           <table class="table table-hover">
             <thead>
@@ -637,6 +660,25 @@
     let consultaActivaData = null;
     let turnoEnIntento = null;
 
+    // Helpers de formato
+    function formatEstado(estado) {
+      const map = {
+        'EN_CONSULTA': 'En Consulta',
+        'PENDIENTE': 'Pendiente',
+        'CONFIRMADO': 'Confirmado',
+        'FINALIZADA': 'Finalizada',
+        'CANCELADA': 'Cancelada',
+        'AUSENTE': 'Ausente'
+      };
+      return map[estado] || estado;
+    }
+
+    function formatEdad(edad) {
+      if (edad === '--' || edad === null || edad === undefined || edad === '') return '-';
+      if (typeof edad === 'number' && edad === 0) return '-';
+      return edad + ' años';
+    }
+
     // Funciones para el loader
     function showLoading(mensaje = 'Procesando...') {
       document.getElementById('loaderText').textContent = mensaje;
@@ -760,11 +802,12 @@
       document.getElementById('siguiente-fecha').textContent = fechaFormato;
       document.getElementById('siguiente-dni').textContent = paciente.dni;
       document.getElementById('siguiente-telefono').textContent = paciente.telefono || '-';
-      document.getElementById('siguiente-edad').textContent = paciente.edad;
+      document.getElementById('siguiente-edad').textContent = formatEdad(paciente.edad);
       document.getElementById('siguiente-obra').textContent = paciente.obraSocial || '-';
+      document.getElementById('siguiente-motivo').textContent = siguiente.consulta?.motivo || siguiente.observaciones || '-';
 
       const estadoBadge = document.getElementById('siguiente-estado');
-      estadoBadge.textContent = siguiente.estado;
+      estadoBadge.textContent = formatEstado(siguiente.estado);
       estadoBadge.className = `estado-badge estado-${siguiente.estado}`;
 
       // 🔥 BOTONES SEGÚN ESTADO
@@ -772,26 +815,24 @@
       botonesDiv.innerHTML = '';
 
       if (siguiente.estado === 'PENDIENTE' || siguiente.estado === 'CONFIRMADO') {
-        // PENDIENTE/CONFIRMADO: Iniciar, Cancelar
         botonesDiv.innerHTML = `
-          <button class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 600; margin-bottom: 8px;" onclick="iniciarConsultaTurno(${siguiente.id})">
+          <button class="btn btn-sm btn-primary" style="padding: 6px 16px; font-weight: 600;" onclick="iniciarConsultaTurno(${siguiente.id})">
             <i class="bi bi-play-circle"></i> Iniciar Consulta
           </button>
-          <button class="btn btn-outline-danger" style="width: 100%; padding: 12px; font-weight: 600;" onclick="cancelarConsultaTurno(${siguiente.id})">
-            <i class="bi bi-x-circle"></i> Cancelar Consulta
+          <button class="btn btn-sm btn-outline-danger" style="padding: 6px 14px; font-weight: 600;" onclick="cancelarConsultaTurno(${siguiente.id})">
+            <i class="bi bi-x-circle"></i> Cancelar
           </button>
         `;
       } else if (siguiente.estado === 'EN_CONSULTA') {
-        // EN_CONSULTA: Ver Historia, Finalizar, Cancelar
         botonesDiv.innerHTML = `
-          <button class="btn btn-info" style="width: 100%; padding: 12px; font-weight: 600; margin-bottom: 8px;" onclick="abrirHistoriaClinica(${siguiente.id}, ${siguiente.paciente.id})">
-            <i class="bi bi-file-earmark-text"></i> Ver Historia Clínica
+          <button class="btn btn-sm btn-info" style="padding: 6px 16px; font-weight: 600;" onclick="abrirHistoriaClinica(${siguiente.id}, ${siguiente.paciente.id})">
+            <i class="bi bi-file-earmark-text"></i> Ver Historia
           </button>
-          <button class="btn btn-success" style="width: 100%; padding: 12px; font-weight: 600; margin-bottom: 8px;" onclick="finalizarConsultaTurno(${siguiente.id})">
-            <i class="bi bi-check-circle"></i> Finalizar Consulta
+          <button class="btn btn-sm btn-success" style="padding: 6px 16px; font-weight: 600;" onclick="finalizarConsultaTurno(${siguiente.id})">
+            <i class="bi bi-check-circle"></i> Finalizar
           </button>
-          <button class="btn btn-outline-danger" style="width: 100%; padding: 12px; font-weight: 600;" onclick="cancelarConsultaTurno(${siguiente.id})">
-            <i class="bi bi-x-circle"></i> Cancelar Consulta
+          <button class="btn btn-sm btn-outline-danger" style="padding: 6px 14px; font-weight: 600;" onclick="cancelarConsultaTurno(${siguiente.id})">
+            <i class="bi bi-x-circle"></i> Cancelar
           </button>
         `;
       }
@@ -997,7 +1038,22 @@
     // ============================================================
     function mostrarTablaTurnos() {
       const tbody = document.getElementById('turnos-tabla-body');
-      
+
+      // Contador de turnos
+      const counter = document.getElementById('turnos-counter');
+      if (counter) {
+        const total = turnosHoy.length;
+        const finalizados = turnosHoy.filter(t => t.estado === 'FINALIZADA').length;
+        const enConsulta = turnosHoy.filter(t => t.estado === 'EN_CONSULTA').length;
+        const pendientes = turnosHoy.filter(t => t.estado === 'PENDIENTE' || t.estado === 'CONFIRMADO').length;
+        counter.innerHTML = `
+          <span class="turnos-counter-item"><span>${total}</span> turno${total !== 1 ? 's' : ''} hoy</span>
+          ${enConsulta > 0 ? `<span class="turnos-counter-item" style="color:#007BFF;"><span>${enConsulta}</span> en consulta</span>` : ''}
+          ${pendientes > 0 ? `<span class="turnos-counter-item" style="color:#FFC107;"><span>${pendientes}</span> pendiente${pendientes !== 1 ? 's' : ''}</span>` : ''}
+          ${finalizados > 0 ? `<span class="turnos-counter-item" style="color:#28A745;"><span>${finalizados}</span> finalizado${finalizados !== 1 ? 's' : ''}</span>` : ''}
+        `;
+      }
+
       if (turnosHoy.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No hay turnos hoy</td></tr>';
         return;
@@ -1008,7 +1064,7 @@
         let botonesAccion = '';
 
         // Generar botones según el estado
-        if (turno.estado === 'PENDIENTE') {
+        if (turno.estado === 'PENDIENTE' || turno.estado === 'CONFIRMADO') {
           botonesAccion = `<span class="text-muted" style="font-size: 0.85rem;">—</span>`;
         } else if (turno.estado === 'EN_CONSULTA') {
           botonesAccion = `
@@ -1032,9 +1088,9 @@
           <td><small class="text-muted">${turno.fecha}</small></td>
           <td><strong>${turno.hora}</strong></td>
           <td>${paciente.nombre} ${paciente.apellido}</td>
-          <td>${paciente.edad}</td>
+          <td>${formatEdad(paciente.edad)}</td>
           <td>${paciente.obraSocial || '-'}</td>
-          <td><span class="estado-badge estado-${turno.estado}">${turno.estado}</span></td>
+          <td><span class="estado-badge estado-${turno.estado}">${formatEstado(turno.estado)}</span></td>
           <td style="min-width: 280px;">
             <div style="display: flex; gap: 4px; flex-wrap: wrap;">
               ${botonesAccion}
@@ -1063,33 +1119,50 @@
     }
 
     function mostrarAlertas(alertas) {
+      const bloque = document.querySelector('.alertas-clinicas');
       const contenedor = document.getElementById('contenedor-alertas');
-      
+
       if (alertas.length === 0) {
-        contenedor.innerHTML = `
-          <div class="empty-state">
-            <i class="bi bi-check-circle"></i>
-            <p>Sin alertas críticas</p>
-          </div>
-        `;
+        // Ocultar bloque completo cuando no hay alertas
+        if (bloque) bloque.style.display = 'none';
         return;
       }
 
-      contenedor.innerHTML = alertas.map(alerta => {
-        const clases = alerta.color === '#DC3545' ? 'alerta-rojo' : 
-                       alerta.color === '#FFC107' ? 'alerta-amarillo' : 'alerta-azul';
-        return `
-          <div class="alerta-item ${clases}">
-            <div class="alerta-icono">
-              <i class="bi ${alerta.tipo === 'glucemia' ? 'bi-droplet-fill' : alerta.tipo === 'imc' ? 'bi-speedometer' : 'bi-calendar-check'}"></i>
-            </div>
-            <div class="alerta-contenido">
-              <p class="alerta-titulo">${alerta.titulo}</p>
-              <p class="alerta-valor"><strong>${alerta.paciente}</strong> - ${alerta.valor}</p>
-            </div>
+      if (bloque) bloque.style.display = '';
+
+      // Agrupar por prioridad
+      const grupos = {
+        critica:      alertas.filter(a => a.prioridad === 'critica'),
+        importante:   alertas.filter(a => a.prioridad === 'importante'),
+        informativa:  alertas.filter(a => a.prioridad === 'informativa'),
+        administrativa: alertas.filter(a => a.prioridad === 'administrativa')
+      };
+
+      const renderItem = (a, cls) => `
+        <div class="alerta-item ${cls}">
+          <div class="alerta-icono"><i class="bi ${a.icono || 'bi-exclamation-circle'}"></i></div>
+          <div class="alerta-contenido">
+            <p class="alerta-titulo">${a.titulo}</p>
+            <p class="alerta-valor">${a.descripcion}</p>
+            <p class="alerta-paciente">→ ${a.paciente}${a.turno_hora ? ' · turno ' + a.turno_hora : ''}</p>
           </div>
-        `;
-      }).join('');
+        </div>`;
+
+      const renderCategoria = (titulo, icono, items, catClass, itemClass) => {
+        if (items.length === 0) return '';
+        return `
+          <div class="alertas-categoria ${catClass}">
+            <h6>${icono} ${titulo} <small style="font-weight:400; margin-left:8px; opacity:0.7;">${items.length}</small></h6>
+            ${items.map(a => renderItem(a, itemClass)).join('')}
+          </div>`;
+      };
+
+      contenedor.innerHTML = `<div class="alertas-grid">
+        ${renderCategoria('Críticas', '⚠️', grupos.critica, 'cat-critica', 'alerta-critica')}
+        ${renderCategoria('Importantes', '⏱', grupos.importante, 'cat-importante', 'alerta-importante')}
+        ${renderCategoria('Informativas', 'ℹ️', grupos.informativa, 'cat-informativa', 'alerta-informativa')}
+        ${renderCategoria('Administrativas', '📋', grupos.administrativa, 'cat-administrativa', 'alerta-administrativa')}
+      </div>`;
     }
 
     function switchTab(tabName) {
