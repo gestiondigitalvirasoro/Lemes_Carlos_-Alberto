@@ -432,42 +432,66 @@
             color: #6c757d;
         }
 
+        /* ===== MOBILE TOPBAR ===== */
+        .mobile-topbar { display: none; }
+        .hamburger-btn { display: none; }
+
         @media (max-width: 768px) {
-            .historia-container { flex-direction: column; }
-            .sidebar { width: 280px; position: fixed; left: -280px; top: 56px; height: calc(100vh - 56px);
-              transition: left 0.3s ease; z-index: 1000; overflow-y: auto; }
-            .sidebar.open { left: 0; }
-            .main-content { margin-left: 0 !important; padding-top: 60px !important; }
-            .header { flex-direction: column; align-items: start; gap: 15px; }
-            .header-actions { width: 100%; }
-            .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-              background: rgba(0,0,0,0.5); z-index: 999; }
+            /* Ocultar sidebar por defecto — usar transform para evitar scroll horizontal */
+            .sidebar {
+                width: 280px !important;
+                position: fixed !important;
+                top: 56px !important;
+                left: 0 !important;
+                height: calc(100vh - 56px) !important;
+                transform: translateX(-100%) !important;
+                transition: transform 0.3s ease !important;
+                z-index: 1000 !important;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+            }
+            .sidebar.open { transform: translateX(0) !important; }
+
+            /* Contenido principal */
+            .main-content { margin-left: 0 !important; padding-top: 56px !important; }
+            .header { flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px !important; }
+            .header-actions { width: 100%; flex-wrap: wrap; }
+            .content { padding: 16px !important; }
+
+            /* Overlay */
+            .sidebar-overlay {
+                display: none; position: fixed; top: 56px; left: 0;
+                width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999;
+            }
             .sidebar-overlay.active { display: block; }
-        }
-        .mobile-topbar {
-          display: none;
-          position: fixed; top: 0; left: 0; right: 0; z-index: 2000;
-          background: linear-gradient(135deg, #1a1f2e 0%, #2d3748 100%);
-          padding: 10px 14px;
-          align-items: center;
-          justify-content: space-between;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        }
-        .hamburger-btn {
-          display: flex; align-items: center; justify-content: center;
-          background: rgba(255,255,255,0.15);
-          border: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; color: white;
-          font-size: 1.1rem;
-        }
-        .btn-volver-mobile {
-          background: rgba(255,255,255,0.15);
-          color: white; border: none; border-radius: 8px;
-          padding: 8px 14px; cursor: pointer; font-size: 0.85rem;
-          display: flex; align-items: center; gap: 6px;
-        }
-        @media (max-width: 768px) {
-          .mobile-topbar { display: flex; }
-          .main-content { padding-top: 56px !important; }
+
+            /* Barra superior mobile */
+            .mobile-topbar {
+                display: flex !important;
+                position: fixed; top: 0; left: 0; right: 0; z-index: 2000;
+                background: linear-gradient(135deg, #1a1f2e 0%, #2d3748 100%);
+                padding: 10px 14px; height: 56px;
+                align-items: center; justify-content: space-between;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            }
+            .hamburger-btn {
+                display: flex !important;
+                align-items: center; justify-content: center;
+                background: rgba(255,255,255,0.15);
+                border: none; border-radius: 8px; padding: 8px 12px;
+                cursor: pointer; color: white; font-size: 1.1rem;
+            }
+            .btn-volver-mobile {
+                display: flex; align-items: center; gap: 6px;
+                background: rgba(255,255,255,0.15); color: white;
+                border: none; border-radius: 8px; padding: 8px 14px;
+                cursor: pointer; font-size: 0.85rem; font-weight: 600;
+            }
+            /* Ocultar botones de header en mobile (están en la topbar) */
+            .btn-volver { display: none !important; }
+
+            /* Evitar scroll horizontal por el sidebar */
+            body { overflow-x: hidden; }
         }
     </style>
 </head>
