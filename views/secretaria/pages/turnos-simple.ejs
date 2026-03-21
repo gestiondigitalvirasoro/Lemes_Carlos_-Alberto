@@ -452,6 +452,40 @@
       }).join('');
     }
 
+    function mostrarModalSinHC(turnoId, turno) {
+      const nombre = `${turno.persona?.nombre || ''} ${turno.persona?.apellido || ''}`.trim();
+      const pacienteId = turno.persona?.id || '';
+      const container = document.getElementById('modalConfirmarContainer');
+      container.innerHTML = `
+        <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);display:flex;justify-content:center;align-items:center;z-index:9999;">
+          <div style="background:white;border-radius:12px;padding:30px;width:90%;max-width:480px;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+            <h4 style="color:#c0392b;margin:0 0 12px 0;"><i class="fas fa-exclamation-triangle"></i> Sin historia clínica</h4>
+            <p style="color:#555;margin:0 0 8px 0;">
+              <strong>${nombre}</strong> no tiene historia clínica registrada.
+            </p>
+            <p style="color:#777;font-size:0.9rem;margin:0 0 24px 0;">
+              Si el paciente realizó la consulta, primero completá la historia clínica y después finalizá el turno.<br>
+              Si el paciente <strong>no se presentó</strong>, cancelá el turno.
+            </p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button onclick="cerrarModalSinHC()" style="flex:1;padding:10px;background:#e2e8f0;color:#333;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+                Volver
+              </button>
+              <button onclick="cerrarModalSinHC();cambiarEstado('${turnoId}','CANCELADA')" style="flex:1;padding:10px;background:#DC3545;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+                <i class="fas fa-times"></i> Cancelar turno
+              </button>
+              ${pacienteId ? `<button onclick="cerrarModalSinHC();abrirHistoriaDesde('${turnoId}','${pacienteId}')" style="flex:1;padding:10px;background:#17A2B8;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+                <i class="fas fa-file-medical"></i> Ir a historia
+              </button>` : ''}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function cerrarModalSinHC() {
+      document.getElementById('modalConfirmarContainer').innerHTML = '';
+    }
+
     function abrirHistoriaDesde(turnoId, pacienteId) {
       if (!pacienteId || pacienteId === 'null' || pacienteId === '') {
         alert('No se encontró ID de paciente para este turno');
@@ -552,7 +586,23 @@
         return;
       }
 
-      // FINALIZADA: no requiere HC previa, se puede finalizar directamente
+      // Si quiere FINALIZAR, verificar que tenga HC
+      if (nuevoEstado === 'FINALIZADA') {
+        mostrarLoading('Verificando historia clínica...');
+        try {
+          const resp = await fetch(`/api/turnos/${turnoId}/tiene-historia-clinica`, { credentials: 'include' });
+          const resultado = await resp.json();
+          ocultarLoading();
+          if (!resultado.tiene_historia) {
+            // No tiene HC — mostrar modal con opciones
+            mostrarModalSinHC(turnoId, turnoActual);
+            return;
+          }
+        } catch (e) {
+          ocultarLoading();
+          // Si falla la verificación, continuar igual
+        }
+      }
 
       mostrarLoading(`Actualizando estado...`);
       try {
