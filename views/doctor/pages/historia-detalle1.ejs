@@ -434,7 +434,7 @@
 
         @media (max-width: 768px) {
             .historia-container { flex-direction: column; }
-            .sidebar { width: 280px; position: fixed; left: -280px; top: 0; height: 100vh; 
+            .sidebar { width: 280px; position: fixed; left: -280px; top: 56px; height: calc(100vh - 56px);
               transition: left 0.3s ease; z-index: 1000; overflow-y: auto; }
             .sidebar.open { left: 0; }
             .main-content { margin-left: 0 !important; padding-top: 60px !important; }
@@ -444,20 +444,44 @@
               background: rgba(0,0,0,0.5); z-index: 999; }
             .sidebar-overlay.active { display: block; }
         }
-        .hamburger-btn {
-          display: none; position: fixed; top: 12px; left: 12px; z-index: 2000;
-          background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%);
-          border: none; border-radius: 8px; padding: 10px 12px; cursor: pointer; color: white;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3); font-size: 1.1rem;
+        .mobile-topbar {
+          display: none;
+          position: fixed; top: 0; left: 0; right: 0; z-index: 2000;
+          background: linear-gradient(135deg, #1a1f2e 0%, #2d3748 100%);
+          padding: 10px 14px;
+          align-items: center;
+          justify-content: space-between;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
-        @media (max-width: 768px) { .hamburger-btn { display: block; } }
+        .hamburger-btn {
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(255,255,255,0.15);
+          border: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; color: white;
+          font-size: 1.1rem;
+        }
+        .btn-volver-mobile {
+          background: rgba(255,255,255,0.15);
+          color: white; border: none; border-radius: 8px;
+          padding: 8px 14px; cursor: pointer; font-size: 0.85rem;
+          display: flex; align-items: center; gap: 6px;
+        }
+        @media (max-width: 768px) {
+          .mobile-topbar { display: flex; }
+          .main-content { padding-top: 56px !important; }
+        }
     </style>
 </head>
 <body>
-    <!-- Hamburger -->
-    <button class="hamburger-btn" onclick="toggleSidebarHistoria()">
-      <i class="bi bi-list"></i>
-    </button>
+    <!-- Barra superior mobile -->
+    <div class="mobile-topbar">
+      <button class="hamburger-btn" onclick="toggleSidebarHistoria()">
+        <i class="bi bi-list"></i>
+      </button>
+      <span style="color:white;font-weight:600;font-size:0.9rem;flex:1;text-align:center;">Historia Clínica</span>
+      <button class="btn-volver-mobile" onclick="volverAtras()">
+        <i class="bi bi-arrow-left"></i> Pacientes
+      </button>
+    </div>
     <div class="sidebar-overlay" id="historiaOverlay" onclick="toggleSidebarHistoria()"></div>
     <!-- LOADING OVERLAY -->
     <div class="loading-overlay" id="loadingOverlay">
@@ -470,10 +494,10 @@
     <div class="historia-container">
         <!-- SIDEBAR -->
         <aside class="sidebar" id="historiasSidebar">
-            <!-- BOTÓN VOLVER -->
+            <!-- BOTÓN VOLVER A PACIENTES -->
             <div style="margin-bottom: 20px;">
-                <button class="btn btn-sm" style="background: transparent; color: #b0b7c4; border: none; padding: 0;" onclick="volverAtras()">
-                    <i class="bi bi-arrow-left"></i> Volver
+                <button onclick="volverAtras()" style="width:100%;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:0.9rem;font-weight:600;">
+                    <i class="bi bi-arrow-left-circle"></i> Volver a Pacientes
                 </button>
             </div>
 
