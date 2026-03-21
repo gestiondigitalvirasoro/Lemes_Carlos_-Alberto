@@ -74,8 +74,8 @@
     .table tbody tr { transition: background-color 0.2s ease; }
     .table tbody tr:hover { background-color: #f9f9f9; }
     
-    .estado-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; 
-      font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .estado-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem;
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
     .estado-PENDIENTE { background: #FFC107; color: #000; }
     .estado-CONFIRMADO { background: #28A745; color: white; }
     .estado-EN_CONSULTA { background: #17A2B8; color: white; }
@@ -235,11 +235,12 @@
 
     <!-- Tabla de Turnos -->
     <div class="turnos-section">
-      <div class="section-title">
-        <i class="fas fa-list"></i> Listado de Turnos
+      <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <span><i class="fas fa-list"></i> Listado de Turnos</span>
+        <button onclick="cargarTurnos()" style="background:#4a90d9;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.85rem;cursor:pointer;display:flex;align-items:center;gap:6px;">
+          <i class="fas fa-sync-alt"></i> Actualizar
+        </button>
       </div>
-
-      <div id="turnos-pills" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;"></div>
 
       <div id="cargando" class="loading-spinner" style="display: none;">
         <div class="spinner-border" role="status">
@@ -357,6 +358,14 @@
       }
     }
 
+    function esFechaHoyOFutura(fechaStr) {
+      if (!fechaStr) return true;
+      const p = fechaStr.split('/');
+      const turnoFecha = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+      const hoy = new Date(); hoy.setHours(0,0,0,0);
+      return turnoFecha >= hoy;
+    }
+
     const ESTADO_LABEL = {
       'PENDIENTE':   'Pendiente',
       'CONFIRMADO':  'Confirmado',
@@ -416,13 +425,35 @@
             <button class="btn btn-sm btn-success" style="margin:2px;" onclick="cambiarEstado('${turno.id}', 'CONFIRMADO')" title="Confirmar llegada">
               <i class="fas fa-check"></i> Confirmar
             </button>
+            <button class="btn btn-sm btn-outline-info" style="margin:2px;" onclick="verDetalleTurno('${turno.id}')" title="Visualizar detalle">
+              <i class="fas fa-eye"></i> Visualizar
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" style="margin:2px;" onclick="window.location.href='/doctor/agendar-turno?editar=${turno.id}'" title="Modificar turno">
+              <i class="fas fa-edit"></i> Modificar
+            </button>
             <button class="btn btn-sm btn-outline-danger" style="margin:2px;" onclick="cambiarEstado('${turno.id}', 'CANCELADA')" title="Cancelar">
               <i class="fas fa-times"></i>
             </button>`;
         } else if (estadoNombre === 'CONFIRMADO') {
-          acciones = `
+          const esFuturo = esFechaHoyOFutura(turno.fecha);
+          acciones = esFuturo ? `
             <button class="btn btn-sm btn-primary" style="margin:2px;" onclick="cambiarEstado('${turno.id}', 'EN_CONSULTA')" title="Iniciar consulta">
               <i class="fas fa-play"></i> Iniciar
+            </button>
+            <button class="btn btn-sm btn-outline-info" style="margin:2px;" onclick="verDetalleTurno('${turno.id}')" title="Visualizar detalle">
+              <i class="fas fa-eye"></i> Visualizar
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" style="margin:2px;" onclick="window.location.href='/doctor/agendar-turno?editar=${turno.id}'" title="Modificar turno">
+              <i class="fas fa-edit"></i> Modificar
+            </button>
+            <button class="btn btn-sm btn-outline-danger" style="margin:2px;" onclick="cambiarEstado('${turno.id}', 'CANCELADA')" title="Cancelar">
+              <i class="fas fa-times"></i>
+            </button>` : `
+            <button class="btn btn-sm btn-warning" style="margin:2px;" onclick="window.location.href='/doctor/agendar-turno?editar=${turno.id}'" title="Reprogramar turno">
+              <i class="fas fa-calendar-alt"></i> Reprogramar
+            </button>
+            <button class="btn btn-sm btn-outline-info" style="margin:2px;" onclick="verDetalleTurno('${turno.id}')" title="Visualizar detalle">
+              <i class="fas fa-eye"></i> Visualizar
             </button>
             <button class="btn btn-sm btn-outline-danger" style="margin:2px;" onclick="cambiarEstado('${turno.id}', 'CANCELADA')" title="Cancelar">
               <i class="fas fa-times"></i>
@@ -434,6 +465,12 @@
             </button>
             <button class="btn btn-sm btn-success" style="margin:2px;" onclick="cambiarEstado('${turno.id}', 'FINALIZADA')" title="Finalizar">
               <i class="fas fa-check-circle"></i> Finalizar
+            </button>
+            <button class="btn btn-sm btn-outline-danger" style="margin:2px;" onclick="cambiarEstado('${turno.id}', 'CANCELADA')" title="Cancelar">
+              <i class="fas fa-times"></i> Cancelar
+            </button>
+            <button class="btn btn-sm btn-outline-info" style="margin:2px;" onclick="verDetalleTurno('${turno.id}')" title="Visualizar detalle">
+              <i class="fas fa-eye"></i> Visualizar
             </button>`;
         }
 
@@ -464,19 +501,19 @@
               <strong>${nombre}</strong> no tiene historia clínica registrada.
             </p>
             <p style="color:#777;font-size:0.9rem;margin:0 0 24px 0;">
-              Si el paciente realizó la consulta, primero completá la historia clínica y después finalizá el turno.<br>
-              Si el paciente <strong>no se presentó</strong>, cancelá el turno.
+              No se puede finalizar el turno sin historia clínica.<br>
+              ${pacienteId ? '¿Querés crear la historia clínica ahora o cancelar el turno?' : 'El turno será cancelado.'}
             </p>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;">
-              <button onclick="cerrarModalSinHC()" style="flex:1;padding:10px;background:#e2e8f0;color:#333;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
-                Volver
-              </button>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+              ${pacienteId ? `<button onclick="cerrarModalSinHC();abrirHistoriaDesde('${turnoId}','${pacienteId}')" style="flex:2;padding:10px;background:#17A2B8;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+                <i class="fas fa-file-medical"></i> Ir a Historia Clínica
+              </button>` : ''}
               <button onclick="cerrarModalSinHC();cambiarEstado('${turnoId}','CANCELADA')" style="flex:1;padding:10px;background:#DC3545;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
                 <i class="fas fa-times"></i> Cancelar turno
               </button>
-              ${pacienteId ? `<button onclick="cerrarModalSinHC();abrirHistoriaDesde('${turnoId}','${pacienteId}')" style="flex:1;padding:10px;background:#17A2B8;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
-                <i class="fas fa-file-medical"></i> Ir a historia
-              </button>` : ''}
+            </div>
+            <div style="text-align:center;">
+              <a href="#" onclick="cerrarModalSinHC();return false;" style="color:#999;font-size:0.85rem;text-decoration:none;">Volver sin cambios</a>
             </div>
           </div>
         </div>`;
@@ -492,6 +529,52 @@
         return;
       }
       window.open(`/doctor/pacientes/${pacienteId}?turno_id=${turnoId}`, '_blank');
+    }
+
+    function mostrarModalCancelarConConsulta(turnoId, turno) {
+      const nombre = `${turno.persona?.nombre || ''} ${turno.persona?.apellido || ''}`.trim();
+      const container = document.getElementById('modalConfirmarContainer');
+      container.innerHTML = `
+        <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);display:flex;justify-content:center;align-items:center;z-index:9999;">
+          <div style="background:white;border-radius:12px;padding:30px;width:90%;max-width:480px;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+            <h4 style="color:#e67e22;margin:0 0 12px 0;"><i class="fas fa-exclamation-triangle"></i> Consulta registrada</h4>
+            <p style="color:#555;margin:0 0 8px 0;">
+              <strong>${nombre}</strong> ya tiene una consulta registrada para este turno.
+            </p>
+            <p style="color:#777;font-size:0.9rem;margin:0 0 24px 0;">
+              Si cancelás, el turno quedará anulado aunque la consulta fue realizada. Lo correcto es <strong>Finalizar</strong>.
+            </p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+              <button onclick="document.getElementById('modalConfirmarContainer').innerHTML='';cambiarEstado('${turnoId}','FINALIZADA')" style="flex:2;padding:10px;background:#28A745;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+                <i class="fas fa-check-circle"></i> Finalizar turno
+              </button>
+              <button onclick="document.getElementById('modalConfirmarContainer').innerHTML='';_cancelarForzado('${turnoId}')" style="flex:1;padding:10px;background:#DC3545;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+                <i class="fas fa-times"></i> Cancelar igual
+              </button>
+            </div>
+            <div style="text-align:center;">
+              <a href="#" onclick="document.getElementById('modalConfirmarContainer').innerHTML='';return false;" style="color:#999;font-size:0.85rem;text-decoration:none;">Volver sin cambios</a>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    async function _cancelarForzado(turnoId) {
+      mostrarLoading('Cancelando turno...');
+      try {
+        const response = await fetch(`/api/turnos/${turnoId}/estado`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ estado: 'CANCELADA' })
+        });
+        if (!response.ok) throw new Error(await response.text());
+        ocultarLoading();
+        await cargarTurnos();
+      } catch (error) {
+        ocultarLoading();
+        alert('❌ Error al cancelar: ' + error.message);
+      }
     }
 
     function filtrarTurnos() {
@@ -579,26 +662,36 @@
         return;
       }
 
-      // Si el nuevo estado es CONFIRMADO, abrir formulario en modal
+      // Si el nuevo estado es CONFIRMADO, verificar que la fecha no sea pasada
       if (nuevoEstado === 'CONFIRMADO') {
+        if (!esFechaHoyOFutura(turnoActual.fecha)) {
+          mostrarModalFechaPasada(turnoId);
+          return;
+        }
         console.log('🔄 Abriendo formulario de confirmación para turno:', turnoId);
         abrirModalConfirmarTurno(turnoId);
         return;
       }
 
-      // Si quiere FINALIZAR, verificar que tenga HC
-      if (nuevoEstado === 'FINALIZADA') {
-        mostrarLoading('Verificando historia clínica...');
+      // Si el turno está EN_CONSULTA, verificar consulta registrada
+      if (turnoActual.estado?.nombre === 'EN_CONSULTA') {
+        mostrarLoading('Verificando consulta...');
+        let tieneConsulta = false;
         try {
           const resp = await fetch(`/api/turnos/${turnoId}/tiene-historia-clinica`, { credentials: 'include' });
           const resultado = await resp.json();
-          ocultarLoading();
-          if (!resultado.tiene_historia) {
-            mostrarModalSinHC(turnoId, turnoActual);
-            return;
-          }
-        } catch (e) {
-          ocultarLoading();
+          tieneConsulta = resultado.tiene_historia;
+        } catch (e) {}
+        ocultarLoading();
+
+        if (nuevoEstado === 'FINALIZADA' && !tieneConsulta) {
+          mostrarModalSinHC(turnoId, turnoActual);
+          return;
+        }
+
+        if (nuevoEstado === 'CANCELADA' && tieneConsulta) {
+          mostrarModalCancelarConConsulta(turnoId, turnoActual);
+          return;
         }
       }
 
@@ -698,6 +791,22 @@
       console.log('✅ Event listeners de filtros inicializados');
     }
 
+    function verDetalleTurno(turnoId) {
+      const turno = (turnosGlobales || []).find(t => t.id == turnoId);
+      if (!turno) return;
+      const p = turno.persona || {};
+      verDetalle(
+        turnoId,
+        p.nombre || '-', p.apellido || '-', p.dni || '-',
+        p.email || '', p.telefono || '',
+        p.paciente?.obra_social || '', p.paciente?.numero_afiliado || '',
+        p.paciente?.observaciones || '',
+        turno.fecha || '', turno.hora || '',
+        turno.estado?.nombre || '',
+        turno.observaciones || ''
+      );
+    }
+
     function verDetalle(turnoId, nombre, apellido, dni, email, telefono, obraSocial, numeroAfiliado, observaciones, fecha, hora, estado, turnoObservaciones) {
       console.log('📋 Detalles:', { email, obraSocial, observaciones });
       
@@ -768,6 +877,29 @@
     // ============================================================================
     // MODAL DE CONFIRMACIÓN DE TURNO CON DATOS DE SALUD
     // ============================================================================
+    function mostrarModalFechaPasada(turnoId) {
+      const container = document.getElementById('modalConfirmarContainer');
+      container.innerHTML = `
+        <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;justify-content:center;align-items:center;z-index:9999;">
+          <div style="background:#fff;border-radius:12px;padding:30px;width:90%;max-width:440px;box-shadow:0 10px 40px rgba(0,0,0,0.3);text-align:center;">
+            <div style="font-size:3rem;margin-bottom:12px;">📅</div>
+            <h3 style="color:#dc3545;margin-bottom:10px;">Fecha vencida</h3>
+            <p style="color:#555;margin-bottom:20px;font-size:14px;">
+              Este turno tiene una <strong>fecha anterior a hoy</strong>.<br>
+              Para confirmarlo primero debés cambiar la fecha a una fecha actual o futura.
+            </p>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <button onclick="document.getElementById('modalConfirmarContainer').innerHTML='';window.location.href='/doctor/agendar-turno?editar=${turnoId}'"
+                style="padding:11px;background:#4a90d9;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;">
+                ✏️ Modificar fecha del turno
+              </button>
+              <a href="#" onclick="document.getElementById('modalConfirmarContainer').innerHTML='';return false;"
+                style="color:#999;font-size:0.85rem;text-decoration:none;padding:6px;">Cancelar</a>
+            </div>
+          </div>
+        </div>`;
+    }
+
     async function abrirModalConfirmarTurno(turnoId) {
       mostrarLoading('Cargando datos del paciente...');
       console.log('🏥 Abriendo modal de confirmación para turno:', turnoId);

@@ -70,7 +70,7 @@ export const agendarTurno = async (req, res) => {
     // ========================================================================
     console.log('🔍 Buscando persona con DNI:', dni);
 
-    let persona = await prisma.persona.findUnique({
+    let persona = await prisma.persona.findFirst({
       where: { dni: parseInt(dni) },
       select: {
         id: true,
@@ -81,13 +81,11 @@ export const agendarTurno = async (req, res) => {
     });
 
     if (persona) {
-      console.log('✅ Persona encontrada, actualizando datos...');
-      // Actualizar datos de Persona
+      console.log('✅ Persona encontrada, actualizando solo datos de contacto...');
       persona = await prisma.persona.update({
         where: { id: persona.id },
         data: {
-          nombre: nombre || persona.nombre,
-          apellido: apellido || persona.apellido,
+          // NO se actualizan nombre ni apellido — son datos de identidad
           telefono: telefono ? String(telefono) : undefined,
           email: email ? String(email) : undefined,
           fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : undefined,
@@ -98,20 +96,32 @@ export const agendarTurno = async (req, res) => {
       });
     } else {
       console.log('📝 Persona no encontrada, creando nueva...');
-      // Crear nueva Persona
-      persona = await prisma.persona.create({
-        data: {
-          nombre: nombre || 'Sin nombre',
-          apellido: apellido || 'Sin apellido',
-          dni: parseInt(dni),
-          telefono: telefono ? String(telefono) : null,
-          email: email ? String(email) : null,
-          fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
-          sexo: sexo ? String(sexo) : null,
-          direccion: direccion ? String(direccion) : null
-        },
-        select: { id: true, paciente: { select: { id: true } } }
-      });
+      try {
+        persona = await prisma.persona.create({
+          data: {
+            nombre: nombre || 'Sin nombre',
+            apellido: apellido || 'Sin apellido',
+            dni: parseInt(dni),
+            telefono: telefono ? String(telefono) : null,
+            email: email ? String(email) : null,
+            fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
+            sexo: sexo ? String(sexo) : null,
+            direccion: direccion ? String(direccion) : null
+          },
+          select: { id: true, paciente: { select: { id: true } } }
+        });
+      } catch (createError) {
+        if (createError.code === 'P2002') {
+          // Race condition: alguien creó la persona entre el findFirst y el create
+          persona = await prisma.persona.findFirst({
+            where: { dni: parseInt(dni) },
+            select: { id: true, paciente: { select: { id: true } } }
+          });
+          if (!persona) throw createError;
+        } else {
+          throw createError;
+        }
+      }
     }
 
     console.log('✅ Persona lista:', persona.id);

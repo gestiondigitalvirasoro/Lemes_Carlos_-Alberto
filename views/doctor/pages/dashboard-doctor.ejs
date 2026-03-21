@@ -693,8 +693,6 @@
       cargarTurnos();
       cargarAlertas();
       cargarPacientes();
-      // ❌ ELIMINADO: setInterval por consumo de recursos
-      // Las recarga es manual mediante botones o acciones del usuario
     });
 
     // ============================================================
@@ -786,7 +784,16 @@
       if (!siguiente) {
         document.getElementById('siguiente-nombre').textContent = 'Sin turnos próximos';
         document.getElementById('siguiente-hora').textContent = '--:--';
-        document.getElementById('siguiente-botones').innerHTML = '<p class="text-muted">Todos los turnos han sido completados</p>';
+        document.getElementById('siguiente-fecha').textContent = '--/--/----';
+        document.getElementById('siguiente-dni').textContent = '-';
+        document.getElementById('siguiente-telefono').textContent = '-';
+        document.getElementById('siguiente-edad').textContent = '-';
+        document.getElementById('siguiente-obra').textContent = '-';
+        document.getElementById('siguiente-motivo').textContent = '-';
+        const estadoBadge = document.getElementById('siguiente-estado');
+        estadoBadge.textContent = '';
+        estadoBadge.className = 'estado-badge';
+        document.getElementById('siguiente-botones').innerHTML = '<p style="opacity:0.7;font-size:0.9rem;margin:0;">Todos los turnos han sido completados</p>';
         return;
       }
 

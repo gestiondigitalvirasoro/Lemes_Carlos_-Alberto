@@ -33,10 +33,9 @@ const estadoNombreMap = {
 const estadosValidos = {
   PENDIENTE: ['CONFIRMADO', 'EN_CONSULTA', 'CANCELADA'],
   CONFIRMADO: ['EN_CONSULTA', 'CANCELADA'],
-  EN_CONSULTA: ['ATENDIDA', 'FINALIZADA'], // finalizar consulta
-  ATENDIDA: [], // NO permite cambios si ya fue atendido
-  FINALIZADA: [], // Estado final
-  CANCELADA: [] // NO permite cambios si fue cancelado
+  EN_CONSULTA: ['FINALIZADA', 'CANCELADA'],
+  FINALIZADA: [],
+  CANCELADA: []
 };
 
 // ============================================================================
@@ -132,23 +131,35 @@ export const agendarTurno = async (req, res) => {
       // NO crear paciente automáticamente - se hará al confirmar llegada
     } else {
       console.log('📝 Persona no encontrada, creando nueva...');
-      
-      // Crear nueva Persona
-      persona = await prisma.persona.create({
-        data: {
-          nombre: persona_nombre,
-          apellido: persona_apellido,
-          dni: persona_dni,
-          fecha_nacimiento: persona_fecha_nacimiento || null,
-          sexo: persona_sexo || null,
-          telefono: persona_telefono || null,
-          email: persona_email || null,
-          direccion: persona_direccion || null
-        },
-        select: { id: true }
-      });
 
-      console.log('✅ Persona creada:', persona.id);
+      try {
+        persona = await prisma.persona.create({
+          data: {
+            nombre: persona_nombre,
+            apellido: persona_apellido,
+            dni: persona_dni,
+            fecha_nacimiento: persona_fecha_nacimiento || null,
+            sexo: persona_sexo || null,
+            telefono: persona_telefono || null,
+            email: persona_email || null,
+            direccion: persona_direccion || null
+          },
+          select: { id: true }
+        });
+        console.log('✅ Persona creada:', persona.id);
+      } catch (createError) {
+        // Si ya existe (race condition o pgbouncer), buscar y usar la existente
+        if (createError.code === 'P2002') {
+          console.log('⚠️ DNI duplicado detectado, buscando persona existente...');
+          persona = await prisma.persona.findFirst({
+            where: { dni: persona_dni },
+            select: { id: true, paciente: { select: { id: true } } }
+          });
+          if (!persona) throw createError;
+        } else {
+          throw createError;
+        }
+      }
 
       // NO crear paciente automáticamente - se hará al confirmar llegada
     }

@@ -165,7 +165,7 @@
             <div class="form-group">
                 <label for="dni">DNI de la Persona *</label>
                 <div style="display: flex; gap: 10px;">
-                    <input type="text" id="dni" placeholder="12345678" maxlength="10">
+                    <input type="text" id="dni" placeholder="12345678" maxlength="10" onblur="if(this.value.length>=7) buscarPersona()"  onkeydown="if(event.key==='Enter'){event.preventDefault();buscarPersona();}"  >
                     <button class="btn-buscar" onclick="buscarPersona()">
                         <i class="bi bi-search"></i> Buscar
                     </button>
@@ -323,19 +323,14 @@
                     document.getElementById('sexo').value = data.persona.sexo || '';
                     document.getElementById('direccion').value = data.persona.direccion || '';
 
-                    // ============================================================================
-                    // DEFINIR READONLY SEGÚN TIPO
-                    // ============================================================================
-                    // TODOS LOS CAMPOS SON EDITABLES - El usuario puede modificarlos
-                    marcarCamposReadonly([
-                        'nombre', 'apellido', 'telefono', 'email', 
-                        'fechaNacimiento', 'sexo', 'direccion'
-                    ], false, '');
-                    
+                    // Nombre y apellido son readonly — no se pueden cambiar desde aquí
+                    marcarCamposReadonly(['nombre', 'apellido'], true, '#f0f0f0');
+                    marcarCamposReadonly(['telefono', 'email', 'fechaNacimiento', 'sexo', 'direccion'], false, '');
+
                     if (tipo === 'paciente_existente') {
-                        mostrarAlerta('✅ Paciente encontrado. Puedes editar los datos si es necesario.', 'success');
+                        mostrarAlerta(`✅ Persona ya registrada: <strong>${data.persona.nombre} ${data.persona.apellido}</strong>. Podés actualizar teléfono, email o dirección.`, 'success');
                     } else if (tipo === 'persona_sin_paciente') {
-                        mostrarAlerta('⚠️ Persona encontrada pero sin registro de paciente. Completa el formulario.', 'info');
+                        mostrarAlerta(`⚠️ Persona encontrada: <strong>${data.persona.nombre} ${data.persona.apellido}</strong>. Sin registro de paciente — se creará al confirmar llegada.`, 'info');
                     }
                 } else {
                     // ❌ PERSONA NO ENCONTRADA
@@ -413,6 +408,14 @@
 
             if (!nombre || !apellido || !dni || !fecha || !hora) {
                 mostrarAlerta('Todos los campos obligatorios (*) deben ser completados', 'error');
+                return;
+            }
+
+            // Validar que la fecha no sea anterior a hoy
+            const hoyStr = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })();
+            if (fecha < hoyStr) {
+                mostrarAlerta('⚠️ No se pueden agendar turnos en fechas pasadas. Por favor seleccioná una fecha actual o futura.', 'error');
+                document.getElementById('fecha').focus();
                 return;
             }
 
@@ -503,8 +506,16 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    const errorMsg = data.errors ? data.errors.map(e => e.msg).join(', ') : data.message;
-                    mostrarAlerta('❌ Error: ' + errorMsg, 'error');
+                    let errorMsg = data.errors ? data.errors.map(e => e.msg).join(', ') : (data.message || 'Error desconocido');
+                    // Traducir errores técnicos a mensajes amigables
+                    if (errorMsg.includes('MaxClientsInSessionMode') || errorMsg.includes('max clients reached')) {
+                        errorMsg = 'El servidor está con muchas conexiones. Esperá unos segundos e intentá de nuevo.';
+                    } else if (errorMsg.includes('Unique constraint') || errorMsg.includes('already exists')) {
+                        errorMsg = 'Ya existe un registro con esos datos (DNI o turno duplicado).';
+                    } else if (errorMsg.includes('Foreign key') || errorMsg.includes('foreign key')) {
+                        errorMsg = 'Error de datos: verificá que el paciente y el médico existan.';
+                    }
+                    mostrarAlerta('❌ ' + errorMsg, 'error');
                     btnGuardar.disabled = false;
                     btnGuardar.innerHTML = btnOriginalText;
                     btnGuardar.style.opacity = '1';
@@ -522,7 +533,11 @@
                     window.location.href = '/doctor/turnos';
                 }, 2000);
             } catch (error) {
-                mostrarAlerta('❌ Error al guardar turno: ' + error.message, 'error');
+                let msg = error.message || 'Error desconocido';
+                if (msg.includes('MaxClientsInSessionMode') || msg.includes('max clients reached')) {
+                    msg = 'El servidor está con muchas conexiones. Esperá unos segundos e intentá de nuevo.';
+                }
+                mostrarAlerta('❌ ' + msg, 'error');
                 btnGuardar.disabled = false;
                 btnGuardar.innerHTML = btnOriginalText;
                 btnGuardar.style.opacity = '1';
@@ -759,6 +774,9 @@
         console.log('⏳ Esperando DOMContentLoaded...');
         document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ DOMContentLoaded disparado, ejecutando cargarTurnoParaEditar');
+            // Limitar fecha mínima a hoy en el campo de turno
+            const fechaInput = document.getElementById('fecha');
+            if (fechaInput) fechaInput.min = new Date().toISOString().split('T')[0];
             cargarTurnoParaEditar();
         });
     </script>

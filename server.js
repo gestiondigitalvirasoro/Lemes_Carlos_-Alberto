@@ -2259,83 +2259,26 @@ app.post('/api/turnos/:turnoId/confirmar', requireAuth, async (req, res) => {
 });
 
 // ============================================================================
-// VERIFICAR SI EXISTE HISTORIA CLÍNICA PARA UN TURNO
+// VERIFICAR SI ESTE TURNO TIENE UNA CONSULTA REGISTRADA
 // ============================================================================
 app.get('/api/turnos/:turnoId/tiene-historia-clinica', requireAuth, async (req, res) => {
   try {
     const { turnoId } = req.params;
 
-    console.log('📋 Verificando si existe historia clínica para turno:', turnoId);
-
-    // Obtener turno para obtener el paciente_id
-    const turno = await prisma.turno.findUnique({
-      where: { id: BigInt(turnoId) },
-      select: {
-        id: true,
-        persona: {
-          select: {
-            paciente: {
-              select: {
-                id: true
-              }
-            }
-          }
-        }
-      }
+    // Verificar si existe una consulta médica asociada a este turno específico
+    const consulta = await prisma.consultaMedica.findFirst({
+      where: { turno_id: BigInt(turnoId) },
+      select: { id: true }
     });
 
-    if (!turno) {
-      return res.status(404).json({
-        success: false,
-        message: 'Turno no encontrado'
-      });
-    }
-
-    if (!turno.persona?.paciente) {
-      return res.status(400).json({
-        success: false,
-        message: 'El turno no tiene un paciente asociado'
-      });
-    }
-
-    const paciente_id = turno.persona.paciente.id;
-
-    // Buscar si existe historia clínica
-    const historiaClinica = await prisma.historiaClinica.findUnique({
-      where: { paciente_id: paciente_id },
-      select: {
-        id: true,
-        activa: true,
-        fecha_apertura: true
-      }
-    });
-
-    if (historiaClinica) {
-      console.log('✅ Historia clínica encontrada para paciente:', paciente_id);
-      return res.status(200).json({
-        success: true,
-        tiene_historia: true,
-        historia_clinica: {
-          id: historiaClinica.id.toString(),
-          activa: historiaClinica.activa,
-          fecha_apertura: historiaClinica.fecha_apertura
-        }
-      });
+    if (consulta) {
+      return res.status(200).json({ success: true, tiene_historia: true });
     } else {
-      console.log('❌ No existe historia clínica para paciente:', paciente_id);
-      return res.status(200).json({
-        success: true,
-        tiene_historia: false,
-        message: 'No existe historia clínica para este paciente'
-      });
+      return res.status(200).json({ success: true, tiene_historia: false });
     }
   } catch (error) {
-    console.error('❌ Error al verificar historia clínica:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error interno',
-      message: error.message
-    });
+    console.error('❌ Error al verificar consulta del turno:', error);
+    res.status(500).json({ success: false, error: 'Error interno', message: error.message });
   }
 });
 

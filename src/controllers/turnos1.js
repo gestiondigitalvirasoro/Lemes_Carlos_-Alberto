@@ -32,9 +32,9 @@ const estadoNombreMap = {
 const estadosValidos = {
   PENDIENTE: ['CONFIRMADO', 'EN_CONSULTA', 'CANCELADA'],
   CONFIRMADO: ['EN_CONSULTA', 'CANCELADA'],
-  EN_CONSULTA: ['ATENDIDA'], // NO permite cancelar una consulta en progreso
-  ATENDIDA: [], // NO permite cambios si ya fue atendido
-  CANCELADA: [] // NO permite cambios si fue cancelado
+  EN_CONSULTA: ['FINALIZADA', 'CANCELADA'],
+  FINALIZADA: [],
+  CANCELADA: []
 };
 
 // ============================================================================
