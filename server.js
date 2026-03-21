@@ -1409,13 +1409,13 @@ app.get('/api/dashboard-turnos', requireAuth, async (req, res) => {
 
     console.log('📅 Buscando turnos entre:', hoy.toISOString(), 'y', mañana.toISOString());
 
-    // Obtener turnos de hoy CON toda la información relacionada
+    // Obtener turnos de hoy + cualquier EN_CONSULTA abierto de días anteriores
     const turnos = await prisma.turno.findMany({
       where: {
-        fecha: {
-          gte: hoy,
-          lt: mañana
-        }
+        OR: [
+          { fecha: { gte: hoy, lt: mañana } },
+          { estado: { nombre: 'EN_CONSULTA' } }
+        ]
       },
       include: {
         persona: {

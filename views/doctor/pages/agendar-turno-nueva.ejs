@@ -393,10 +393,9 @@
 
         function formatearFecha(fecha) {
             if (!fecha) return '';
-            // Si es un formato ISO (YYYY-MM-DD HH:mm:ss), convertir a YYYY-MM-DD
+            // Soporta: "1982-02-19", "1982-02-19T00:00:00.000Z", "1982-02-19 00:00:00"
             if (typeof fecha === 'string') {
-                const partes = fecha.split(' ')[0]; // Sacar solo la fecha
-                return partes;
+                return fecha.split('T')[0].split(' ')[0];
             }
             return fecha;
         }

@@ -552,38 +552,7 @@
         return;
       }
 
-      // Si el nuevo estado es FINALIZADA, verificar que exista historia clínica
-      if (nuevoEstado === 'FINALIZADA') {
-        console.log('📋 Verificando historia clínica para turno:', turnoId);
-        mostrarLoading('Verificando historia clínica...');
-        
-        try {
-          const response = await fetch(`/api/turnos/${turnoId}/tiene-historia-clinica`, {
-            method: 'GET',
-            credentials: 'include'
-          });
-
-          const resultado = await response.json();
-          console.log('📥 Resultado de verificación:', resultado);
-
-          if (!resultado.tiene_historia) {
-            ocultarLoading();
-            alert('❌ No es posible finalizar el turno\n\nPrimero debe crear una Historia Clínica para este paciente.\nLa historia se crea durante la consulta.');
-            // Revertir el dropdown al estado anterior
-            await cargarTurnos();
-            return;
-          }
-
-          ocultarLoading();
-          console.log('✅ Historia clínica encontrada, procediendo con FINALIZADA');
-        } catch (error) {
-          ocultarLoading();
-          console.error('Error al verificar historia clínica:', error);
-          alert('❌ Error al verificar la historia clínica: ' + error.message);
-          await cargarTurnos();
-          return;
-        }
-      }
+      // FINALIZADA: no requiere HC previa, se puede finalizar directamente
 
       mostrarLoading(`Actualizando estado...`);
       try {
