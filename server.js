@@ -4589,6 +4589,42 @@ app.delete('/api/tratamientos/:id', requireAuth, async (req, res) => {
 // ============================================================================
 
 // ============================================================================
+// HELPER: ENVIAR EMAIL VÍA BREVO API (HTTP, funciona en Railway)
+// ============================================================================
+async function enviarEmailBrevo({ to, subject, html, attachments = [] }) {
+  const apiKey = process.env.BREVO_API_KEY;
+  const gmailUser = process.env.GMAIL_USER || 'rosananvallejos@gmail.com';
+
+  if (!apiKey) throw new Error('BREVO_API_KEY no configurado en variables de entorno');
+
+  const body = {
+    sender: { name: 'Clínica LEMES', email: gmailUser },
+    to: [{ email: to }],
+    subject,
+    htmlContent: html
+  };
+
+  if (attachments.length > 0) {
+    body.attachment = attachments.map(a => ({
+      name: a.filename,
+      content: Buffer.isBuffer(a.content) ? a.content.toString('base64') : a.content
+    }));
+  }
+
+  const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`Brevo API error ${resp.status}: ${err}`);
+  }
+  return await resp.json();
+}
+
+// ============================================================================
 // ENDPOINT: NOTIFICAR TURNO POR EMAIL
 // ============================================================================
 app.post('/api/notificar-turno', requireAuth, async (req, res) => {
@@ -4598,25 +4634,6 @@ app.post('/api/notificar-turno', requireAuth, async (req, res) => {
     if (!email) {
       return res.status(400).json({ success: false, message: 'Email requerido' });
     }
-
-    const gmailUser = process.env.GMAIL_USER;
-    const gmailPass = process.env.GMAIL_APP_PASSWORD;
-
-    if (!gmailUser || !gmailPass) {
-      return res.status(500).json({ success: false, message: 'Configuración de email no disponible. Agrega GMAIL_APP_PASSWORD en .env' });
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      family: 4,
-      auth: { user: gmailUser, pass: gmailPass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 20000
-    });
 
     const htmlEmail = `
       <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; background: #f9f9f9; border-radius: 10px; overflow: hidden;">
@@ -4640,8 +4657,7 @@ app.post('/api/notificar-turno', requireAuth, async (req, res) => {
       </div>
     `;
 
-    await transporter.sendMail({
-      from: `"Clínica LEMES" <${gmailUser}>`,
+    await enviarEmailBrevo({
       to: email,
       subject: `✅ Turno confirmado - ${fechaTurno} ${horaTurno}`,
       html: htmlEmail
@@ -4664,10 +4680,6 @@ app.post('/api/enviar-receta', requireAuth, async (req, res) => {
     const { email, nombrePaciente, fecha, medsHtml, diagHtml, tratHtml, pacienteTexto } = req.body;
 
     if (!email) return res.status(400).json({ success: false, message: 'Email requerido' });
-
-    const gmailUser = process.env.GMAIL_USER;
-    const gmailPass = process.env.GMAIL_APP_PASSWORD;
-    if (!gmailUser || !gmailPass) return res.status(500).json({ success: false, message: 'Configuración de email no disponible' });
 
     // ── Construir HTML idéntico al de imprimirReceta() ──
     const watermark = `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);opacity:0.06;pointer-events:none;z-index:0;">
@@ -4805,8 +4817,7 @@ app.post('/api/enviar-receta', requireAuth, async (req, res) => {
 </table>
 </body></html>`;
 
-    await transporter.sendMail({
-      from: `"Clínica LEMES" <${gmailUser}>`,
+    await enviarEmailBrevo({
       to: email,
       subject: `Tu receta médica – Dr. Carlos Alberto Lemes`,
       html: emailHtml,
