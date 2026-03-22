@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import path from 'path';
@@ -4605,6 +4606,66 @@ app.use((err, req, res, next) => {
     timestamp: new Date().toISOString(),
     ...(NODE_ENV === 'development' && { stack: err.stack })
   });
+});
+
+// ============================================================================
+// ENDPOINT: NOTIFICAR TURNO POR EMAIL
+// ============================================================================
+app.post('/api/notificar-turno', requireAuth, async (req, res) => {
+  try {
+    const { email, nombrePaciente, fechaTurno, horaTurno, medico } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email requerido' });
+    }
+
+    const gmailUser = process.env.GMAIL_USER;
+    const gmailPass = process.env.GMAIL_APP_PASSWORD;
+
+    if (!gmailUser || !gmailPass) {
+      return res.status(500).json({ success: false, message: 'Configuración de email no disponible. Agrega GMAIL_APP_PASSWORD en .env' });
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: gmailUser, pass: gmailPass }
+    });
+
+    const htmlEmail = `
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; background: #f9f9f9; border-radius: 10px; overflow: hidden;">
+        <div style="background: #1a3a3a; color: white; padding: 24px; text-align: center;">
+          <h2 style="margin: 0; font-size: 22px;">🏥 Clínica LEMES</h2>
+          <p style="margin: 8px 0 0 0; opacity: 0.8; font-size: 14px;">Confirmación de turno médico</p>
+        </div>
+        <div style="padding: 28px;">
+          <p style="font-size: 16px; color: #333;">Hola <strong>${nombrePaciente}</strong>,</p>
+          <p style="color: #555;">Tu turno ha sido <strong style="color: #10b981;">CONFIRMADO</strong>.</p>
+          <div style="background: white; border-left: 4px solid #5CAEA3; border-radius: 6px; padding: 16px; margin: 20px 0;">
+            <p style="margin: 6px 0; color: #333;">📅 <strong>Fecha:</strong> ${fechaTurno}</p>
+            <p style="margin: 6px 0; color: #333;">🕐 <strong>Hora:</strong> ${horaTurno}</p>
+            <p style="margin: 6px 0; color: #333;">👨‍⚕️ <strong>Médico:</strong> ${medico}</p>
+          </div>
+          <p style="color: #777; font-size: 13px;">Ante cualquier consulta o necesidad de reprogramar, comuníquese con el consultorio.</p>
+        </div>
+        <div style="background: #eee; padding: 12px; text-align: center; font-size: 12px; color: #999;">
+          Sistema Médico LEMES
+        </div>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: `"Clínica LEMES" <${gmailUser}>`,
+      to: email,
+      subject: `✅ Turno confirmado - ${fechaTurno} ${horaTurno}`,
+      html: htmlEmail
+    });
+
+    console.log('📧 Email de turno enviado a:', email);
+    res.json({ success: true, message: 'Email enviado correctamente' });
+  } catch (error) {
+    console.error('❌ Error al enviar email:', error.message);
+    res.status(500).json({ success: false, message: 'Error al enviar email: ' + error.message });
+  }
 });
 
 // ============================================================================
