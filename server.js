@@ -4587,27 +4587,6 @@ app.delete('/api/tratamientos/:id', requireAuth, async (req, res) => {
 // MANEJO DE ERRORES
 // ============================================================================
 
-// Ruta 404
-app.use((req, res) => {
-  res.status(404).json({
-    error: 'Not found',
-    message: `La ruta ${req.method} ${req.path} no existe`,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Middleware de error global
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  
-  res.status(err.status || 500).json({
-    error: err.name || 'Internal Server Error',
-    message: err.message || 'Ocurrió un error en el servidor',
-    timestamp: new Date().toISOString(),
-    ...(NODE_ENV === 'development' && { stack: err.stack })
-  });
-});
-
 // ============================================================================
 // ENDPOINT: NOTIFICAR TURNO POR EMAIL
 // ============================================================================
@@ -4666,6 +4645,108 @@ app.post('/api/notificar-turno', requireAuth, async (req, res) => {
     console.error('❌ Error al enviar email:', error.message);
     res.status(500).json({ success: false, message: 'Error al enviar email: ' + error.message });
   }
+});
+
+// ============================================================================
+// ENDPOINT: ENVIAR RECETA POR EMAIL
+// ============================================================================
+app.post('/api/enviar-receta', requireAuth, async (req, res) => {
+  try {
+    const { email, nombrePaciente, dni, edad, obraSocial, medicamentos, diagnosticos, tratamiento, fecha } = req.body;
+
+    if (!email) return res.status(400).json({ success: false, message: 'Email requerido' });
+
+    const gmailUser = process.env.GMAIL_USER;
+    const gmailPass = process.env.GMAIL_APP_PASSWORD;
+    if (!gmailUser || !gmailPass) return res.status(500).json({ success: false, message: 'Configuración de email no disponible' });
+
+    const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: gmailUser, pass: gmailPass } });
+
+    const medsHtml = medicamentos?.length
+      ? medicamentos.map(m => `<div style="margin:6px 0 6px 14px;font-size:13px;"><strong>${m.nombre}</strong> ${m.dosis || ''}</div>`).join('')
+      : '<p style="color:#999;font-size:12px;font-style:italic;margin:4px 0 4px 14px;">Sin medicamentos registrados</p>';
+
+    const diagHtml = diagnosticos?.length
+      ? diagnosticos.map(d => `<div style="font-size:12px;line-height:1.9;"><strong style="color:#1D9E75;">${d.codigo}</strong> ${d.descripcion}</div>`).join('')
+      : '<span style="font-size:11px;color:#999;font-style:italic;">Sin diagnósticos</span>';
+
+    const tratHtml = tratamiento?.length
+      ? tratamiento.map(t => `<div style="margin:5px 0 5px 14px;font-size:12px;"><strong>${t.nombre}</strong> ${t.dosis || ''}</div>`).join('')
+      : '<span style="font-size:11px;color:#999;font-style:italic;">Sin tratamiento registrado</span>';
+
+    const htmlEmail = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9f9f9;border-radius:10px;overflow:hidden;">
+        <div style="background:#1a3a3a;color:white;padding:20px;text-align:center;">
+          <h2 style="margin:0;font-size:20px;">🏥 Clínica LEMES</h2>
+          <p style="margin:6px 0 0;opacity:0.8;font-size:13px;">Receta Médica</p>
+        </div>
+        <div style="background:white;padding:28px;border:1px solid #e5e5e5;margin:0 20px;">
+          <div style="text-align:center;border-bottom:2px solid #222;padding-bottom:10px;margin-bottom:14px;">
+            <div style="font-size:17px;font-weight:bold;font-family:'Georgia',serif;">Dr. Carlos Alberto Lemes</div>
+            <div style="font-size:11px;line-height:1.7;color:#444;">MÉDICO – M.P. 6306 &nbsp;M.N. 158.838<br>Medicina General y Familiar – Endocrinología</div>
+          </div>
+          <div style="font-size:12px;color:#333;margin-bottom:14px;">${nombrePaciente} · ${dni} · ${edad} años${obraSocial ? ' · O.S: ' + obraSocial : ''}</div>
+          <div style="font-size:16px;font-weight:bold;margin:8px 0;">Rp./</div>
+          ${medsHtml}
+          <div style="margin-top:14px;padding-top:8px;border-top:1px dashed #bbb;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#666;margin-bottom:5px;">Diagnósticos</div>
+            ${diagHtml}
+          </div>
+          <div style="margin-top:12px;padding-top:8px;border-top:1px dashed #bbb;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#666;margin-bottom:5px;">Tratamiento</div>
+            ${tratHtml}
+          </div>
+          <div style="margin-top:28px;text-align:right;font-size:11px;color:#444;">
+            <div>Santo Tomé, ${fecha}</div>
+            <div style="border-top:1px solid #222;width:150px;margin:8px 0 4px auto;"></div>
+            <div>Dr. Carlos Alberto Lemes</div>
+            <div style="font-size:10px;">M.P. 6306 · M.N. 158.838</div>
+          </div>
+          <div style="margin-top:16px;display:flex;justify-content:space-between;font-size:10px;color:#555;border-top:1px solid #ccc;padding-top:6px;">
+            <span>Solo WhatsApp: (3756) 619763</span>
+            <span>Ángel S. Blanco 121 · Santo Tomé – Ctes.</span>
+          </div>
+        </div>
+        <div style="background:#eee;padding:10px;text-align:center;font-size:11px;color:#999;margin-top:0;">
+          Sistema Médico LEMES
+        </div>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: `"Clínica LEMES" <${gmailUser}>`,
+      to: email,
+      subject: `📋 Receta médica - Dr. Carlos Alberto Lemes - ${fecha}`,
+      html: htmlEmail
+    });
+
+    console.log('📧 Receta enviada por email a:', email);
+    res.json({ success: true, message: 'Receta enviada correctamente' });
+  } catch (error) {
+    console.error('❌ Error al enviar receta:', error.message);
+    res.status(500).json({ success: false, message: 'Error al enviar receta: ' + error.message });
+  }
+});
+
+// Ruta 404
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not found',
+    message: `La ruta ${req.method} ${req.path} no existe`,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Middleware de error global
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  
+  res.status(err.status || 500).json({
+    error: err.name || 'Internal Server Error',
+    message: err.message || 'Ocurrió un error en el servidor',
+    timestamp: new Date().toISOString(),
+    ...(NODE_ENV === 'development' && { stack: err.stack })
+  });
 });
 
 // ============================================================================

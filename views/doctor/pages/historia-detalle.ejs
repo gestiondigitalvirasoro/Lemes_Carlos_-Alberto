@@ -544,7 +544,7 @@
             <div style="margin-top: 20px;">
                 <h5 style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #b0b7c4; margin-bottom: 12px;">Secciones</h5>
                 <ul style="list-style: none; padding: 0; margin: 0;">
-                    <li style="margin-bottom: 8px;"><a href="#citas" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-calendar-check"></i> Turnos</a></li>
+                    <li style="margin-bottom: 8px;"><a href="#citas" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-calendar-check"></i> Consultas</a></li>
                     <li style="margin-bottom: 8px;"><a href="#signos-vitales" class="section-link active" style="color: #fff; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-heart-pulse"></i> Signos Vitales</a></li>
                     <li style="margin-bottom: 8px;"><a href="#anamnesis" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-chat-dots"></i> Anamnesis</a></li>
                     <li style="margin-bottom: 8px;"><a href="#antecedentes" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-book"></i> Antecedentes</a></li>
@@ -1438,6 +1438,109 @@
 
         function cerrarModalReceta() {
             document.getElementById('modalReceta').style.display = 'none';
+        }
+
+        function _recolectarDatosReceta() {
+            const medCards = document.querySelectorAll('.med-card-item');
+            const medicamentos = [];
+            medCards.forEach(card => {
+                const divs = card.querySelectorAll('div');
+                medicamentos.push({ nombre: divs[0]?.textContent?.trim() || '', dosis: divs[1]?.textContent?.trim() || '' });
+            });
+            const diagCards = document.querySelectorAll('#diagnosticosContainer .diagnostic-card');
+            const diagnosticos = [];
+            diagCards.forEach(card => {
+                diagnosticos.push({ codigo: card.dataset.codigo || '', descripcion: card.querySelector('p')?.textContent?.trim() || '' });
+            });
+            const tratamiento = [...medicamentos]; // mismo que meds en esta receta
+            return { medicamentos, diagnosticos, tratamiento };
+        }
+
+        function enviarRecetaWhatsApp() {
+            const tel = document.getElementById('recetaTelefono').value.replace(/\D/g, '');
+            if (!tel) { alert('Ingresá un número de teléfono'); return; }
+            const nombre = '<%- paciente.nombre %> <%- paciente.apellido %>';
+            const dni = '<%- paciente.dni %>';
+            const edad = '<%- paciente.edad %>';
+            const os = '<%- (paciente.obra_social && paciente.obra_social !== "N/A") ? paciente.obra_social : "" %>';
+            const { medicamentos, diagnosticos, tratamiento } = _recolectarDatosReceta();
+            const fecha = new Date().toLocaleDateString('es-AR', {day:'2-digit', month:'long', year:'numeric'});
+
+            const medsLineas = medicamentos.length
+                ? medicamentos.map(m => `  • ${m.nombre}${m.dosis ? ' — ' + m.dosis : ''}`).join('\n')
+                : '  Sin medicamentos registrados';
+            const diagLineas = diagnosticos.length
+                ? diagnosticos.map(d => `  • ${d.codigo ? d.codigo + ' ' : ''}${d.descripcion}`).join('\n')
+                : '  Sin diagnósticos';
+            const tratLineas = tratamiento.length
+                ? tratamiento.map(t => `  • ${t.nombre}${t.dosis ? ' — ' + t.dosis : ''}`).join('\n')
+                : '  Sin tratamiento registrado';
+
+            const msg =
+`🏥 *Clínica LEMES — RECETA MÉDICA*
+
+*Dr. Carlos Alberto Lemes*
+M.P. 6306 · M.N. 158.838
+Medicina General y Familiar – Endocrinología
+
+────────────────────
+*Paciente:* ${nombre}
+*DNI:* ${dni} · *Edad:* ${edad} años${os ? '\n*O.S.:* ' + os : ''}
+
+*Rp./*
+${medsLineas}
+
+*DIAGNÓSTICOS*
+${diagLineas}
+
+*TRATAMIENTO*
+${tratLineas}
+
+────────────────────
+Santo Tomé, ${fecha}
+*Dr. Carlos Alberto Lemes*
+M.P. 6306 · M.N. 158.838
+
+📍 Ángel S. Blanco 121, Santo Tomé – Ctes.
+📱 Solo WhatsApp: (3756) 619763`;
+
+            window.open(`https://wa.me/549${tel}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        async function enviarRecetaEmail() {
+            const email = document.getElementById('recetaEmail').value.trim();
+            if (!email) { alert('Ingresá un email'); return; }
+            const statusEl = document.getElementById('recetaEnvioStatus');
+            statusEl.style.color = '#666';
+            statusEl.textContent = 'Enviando...';
+            const { medicamentos, diagnosticos, tratamiento } = _recolectarDatosReceta();
+            const fecha = new Date().toLocaleDateString('es-AR', {day:'2-digit', month:'long', year:'numeric'});
+            try {
+                const resp = await fetch('/api/enviar-receta', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        email,
+                        nombrePaciente: '<%- paciente.nombre %> <%- paciente.apellido %>',
+                        dni: '<%- paciente.dni %>',
+                        edad: '<%- paciente.edad %>',
+                        obraSocial: '<%- (paciente.obra_social && paciente.obra_social !== "N/A") ? paciente.obra_social : "" %>',
+                        medicamentos, diagnosticos, tratamiento, fecha
+                    })
+                });
+                const result = await resp.json();
+                if (result.success) {
+                    statusEl.style.color = '#10b981';
+                    statusEl.textContent = '✅ Receta enviada correctamente';
+                } else {
+                    statusEl.style.color = '#ef4444';
+                    statusEl.textContent = '❌ ' + result.message;
+                }
+            } catch(e) {
+                statusEl.style.color = '#ef4444';
+                statusEl.textContent = '❌ Error al enviar receta';
+            }
         }
 
         function imprimirReceta() {
@@ -2744,9 +2847,24 @@
             </div>
           </div>
         </div>
-        <div style="padding:14px 20px;border-top:1px solid #e9ecef;display:flex;gap:10px;justify-content:flex-end;background:#f8f9fa;">
-          <button onclick="cerrarModalReceta()" style="background:none;border:1px solid #ddd;border-radius:6px;padding:9px 20px;font-size:13px;cursor:pointer;color:#666;">Cancelar</button>
-          <button onclick="imprimirReceta()" style="background:#1D9E75;color:white;border:none;border-radius:6px;padding:9px 24px;font-size:13px;cursor:pointer;font-weight:500;"><i class="bi bi-printer"></i> Imprimir receta</button>
+        <div style="padding:14px 20px;border-top:1px solid #e9ecef;background:#f8f9fa;">
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <input type="text" id="recetaTelefono" value="<%- paciente.telefono !== 'N/A' ? paciente.telefono : '' %>" placeholder="Teléfono WhatsApp"
+              style="flex:1;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:13px;">
+            <button onclick="enviarRecetaWhatsApp()" style="padding:8px 14px;background:#25D366;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap;">
+              💬 WhatsApp
+            </button>
+            <input type="email" id="recetaEmail" value="<%- paciente.email !== 'N/A' ? paciente.email : '' %>" placeholder="Email"
+              style="flex:1;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:13px;">
+            <button onclick="enviarRecetaEmail()" style="padding:8px 14px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap;">
+              📧 Email
+            </button>
+          </div>
+          <div id="recetaEnvioStatus" style="font-size:12px;color:#666;margin-bottom:8px;"></div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button onclick="cerrarModalReceta()" style="background:none;border:1px solid #ddd;border-radius:6px;padding:9px 20px;font-size:13px;cursor:pointer;color:#666;">Cancelar</button>
+            <button onclick="imprimirReceta()" style="background:#1D9E75;color:white;border:none;border-radius:6px;padding:9px 24px;font-size:13px;cursor:pointer;font-weight:500;"><i class="bi bi-printer"></i> Imprimir receta</button>
+          </div>
         </div>
       </div>
     </div>
