@@ -663,7 +663,7 @@
                                 <select id="consultaSelector" onchange="confirmarCambioConsulta(this.value)" style="flex:1; min-width:200px; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px; cursor:pointer; background:white;">
                                     <% historia.consultas?.forEach((cons, idx) => { %>
                                         <option value="<%= idx %>" <%= idx === 0 ? 'selected' : '' %>>
-                                            <%= cons.fecha %> — <%= cons.motivo_consulta || 'Consulta' %> (<%= cons.medico || 'Sin médico' %>)
+                                            <%= cons.fecha %> — <%= cons.motivo_consulta || 'Consulta' %>
                                         </option>
                                     <% }); %>
                                 </select>
