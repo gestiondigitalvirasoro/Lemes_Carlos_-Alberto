@@ -494,16 +494,18 @@
                 </div>
             </div>
 
-            <!-- CONDICIONES ACTUALES -->
-            <div style="margin: 20px 0;">
-                <% const condiciones = ['Diabetes T2', 'Insulinorresistencia', 'HbA1c ↑']; %>
-                <% condiciones.forEach(cond => { %>
-                    <% let color = cond.includes('Diabetes') ? '#17a2b8' : cond.includes('Insulino') ? '#ffc107' : '#dc3545'; %>
-                    <span style="display: inline-block; background: <%= color %>; color: white; padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin: 4px 0; margin-right: 5px;">
-                        <%= cond %>
+            <!-- DIAGNÓSTICOS REALES DEL PACIENTE -->
+            <% const diagsSidebar = historia?.consultas?.[0]?.diagnosticos || []; %>
+            <% if (diagsSidebar.length > 0) { %>
+            <div style="margin: 12px 0 20px;">
+                <% diagsSidebar.forEach((diag, di) => { %>
+                    <% const colors = ['#17a2b8','#5CAEA3','#6f42c1','#fd7e14','#e83e8c']; %>
+                    <span style="display: inline-block; background: <%= colors[di % colors.length] %>; color: white; padding: 4px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; margin: 3px 3px 3px 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<%= diag.descripcion %>">
+                        <%= diag.codigo %> · <%= diag.descripcion?.substring(0, 20) %><%= diag.descripcion?.length > 20 ? '…' : '' %>
                     </span>
                 <% }); %>
             </div>
+            <% } %>
 
             <!-- SIGNOS VITALES GRANDES -->
             <% if (historia && historia.signos_vitales) { %>
@@ -542,13 +544,13 @@
             <div style="margin-top: 20px;">
                 <h5 style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #b0b7c4; margin-bottom: 12px;">Secciones</h5>
                 <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li style="margin-bottom: 8px;"><a href="#citas" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-calendar-check"></i> Turnos</a></li>
                     <li style="margin-bottom: 8px;"><a href="#signos-vitales" class="section-link active" style="color: #fff; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-heart-pulse"></i> Signos Vitales</a></li>
                     <li style="margin-bottom: 8px;"><a href="#anamnesis" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-chat-dots"></i> Anamnesis</a></li>
                     <li style="margin-bottom: 8px;"><a href="#antecedentes" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-book"></i> Antecedentes</a></li>
-                    <li style="margin-bottom: 8px;"><a href="#diagnosticos" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-search"></i> Diagnósticos <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;">3</span></a></li>
+                    <li style="margin-bottom: 8px;"><a href="#diagnosticos" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-search"></i> Diagnósticos <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;" id="diagnosticosCountSidebar"><%= diagsSidebar.length %></span></a></li>
                     <li style="margin-bottom: 8px;"><a href="#tratamiento" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-capsule"></i> Tratamiento</a></li>
                     <li style="margin-bottom: 8px;"><a href="#impresion" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-stethoscope"></i> Impresión</a></li>
-                    <li style="margin-bottom: 8px;"><a href="#citas" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-calendar"></i> Citas</a></li>
                     <li style="margin-bottom: 8px;"><a href="#estudios" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-flask"></i> Estudios <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;" id="estudiosCountSidebar"><%= (historia?.consultas?.[0]?.estudios?.length || 0) %></span></a></li>
                     <li><a href="#adjuntos" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-file-image"></i> Adjuntos <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;" id="adjuntosCountSidebar">0</span></a></li>
                 </ul>
@@ -615,7 +617,7 @@
                                 <select id="consultaSelector" onchange="confirmarCambioConsulta(this.value)" style="flex:1; min-width:200px; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px; cursor:pointer; background:white;">
                                     <% historia.consultas?.forEach((cons, idx) => { %>
                                         <option value="<%= idx %>" <%= idx === 0 ? 'selected' : '' %>>
-                                            <%= cons.fecha %> — <%= cons.motivo_consulta || 'Consulta' %> (<%= cons.medico || 'Sin médico' %>)
+                                            <%= cons.fecha %> — <%= cons.motivo_consulta || 'Consulta' %>
                                         </option>
                                     <% }); %>
                                 </select>
