@@ -963,7 +963,7 @@
     }
 
     function agregarConsultaMigracion() {
-      consultasMigracion.push({ fecha: '', motivo: '', diagnostico: '' });
+      consultasMigracion.push({ fecha: '', motivo: '' });
       renderConsultasMigracion();
     }
 
@@ -990,8 +990,6 @@
           '<input type="date" class="form-control form-control-sm" value="' + c.fecha + '" onchange="consultasMigracion[' + i + '].fecha=this.value"></div>' +
           '<div class="col-md-6"><label style="font-size:0.75rem;color:#666;">Motivo *</label>' +
           '<input type="text" class="form-control form-control-sm" placeholder="Motivo de consulta" value="' + c.motivo + '" oninput="consultasMigracion[' + i + '].motivo=this.value"></div>' +
-          '<div class="col-12"><label style="font-size:0.75rem;color:#666;">Diagnóstico</label>' +
-          '<input type="text" class="form-control form-control-sm" placeholder="Diagnóstico" value="' + c.diagnostico + '" oninput="consultasMigracion[' + i + '].diagnostico=this.value"></div>' +
           '</div></div>';
       });
       cont.innerHTML = html;
