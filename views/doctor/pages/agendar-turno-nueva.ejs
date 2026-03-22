@@ -531,15 +531,61 @@
                 }
 
                 // ✅ MOSTRAR ÉXITO
-                const mensaje = esEdicion 
-                    ? '✅ ¡Turno actualizado exitosamente!' 
-                    : '✅ ¡Turno guardado exitosamente! ID: ' + data.turno.id;
-                mostrarAlerta(mensaje, 'success');
-                
-                // Redirigir a turnos después de 2 segundos
-                setTimeout(() => {
-                    window.location.href = '/doctor/turnos';
-                }, 2000);
+                mostrarAlerta(esEdicion ? '✅ ¡Turno actualizado exitosamente!' : '✅ ¡Turno guardado exitosamente!', 'success');
+
+                // Mostrar modal de compartir
+                const _nombre = (document.getElementById('nombre').value || '') + ' ' + (document.getElementById('apellido').value || '');
+                const _telefono = document.getElementById('telefono').value || '';
+                const _email = document.getElementById('email').value || '';
+                const _fecha = fecha;
+                const _hora = hora;
+                const _medico = '<%- user?.nombre ? "Dr. " + user.apellido : "el médico" %>';
+                window._compartirData = { nombre: _nombre, fecha: _fecha, hora: _hora, medico: _medico };
+
+                const compartirHTML = `
+                  <div id="modalCompartirAgendar" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);display:flex;justify-content:center;align-items:center;z-index:9999;">
+                    <div style="background:white;border-radius:14px;padding:28px;width:90%;max-width:460px;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+                      <div style="text-align:center;margin-bottom:18px;">
+                        <div style="font-size:44px;line-height:1;">✅</div>
+                        <h3 style="color:#1a3a3a;margin:10px 0 4px;">${esEdicion ? '¡Turno Actualizado!' : '¡Turno Agendado!'}</h3>
+                        <p style="color:#888;font-size:13px;margin:0;">¿Querés notificar al paciente?</p>
+                      </div>
+                      <div style="background:#f0fdf4;border-left:4px solid #10b981;border-radius:6px;padding:13px;margin-bottom:18px;font-size:13px;color:#333;">
+                        <p style="margin:3px 0;"><strong>${_nombre}</strong></p>
+                        <p style="margin:3px 0;">📅 ${_fecha} &nbsp; 🕐 ${_hora}</p>
+                        <p style="margin:3px 0;">👨‍⚕️ ${_medico}</p>
+                      </div>
+                      <div style="margin-bottom:14px;">
+                        <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:5px;">📱 WhatsApp del paciente</label>
+                        <div style="display:flex;gap:8px;">
+                          <input type="text" id="agendarTelefono" value="${_telefono}" placeholder="Ej: 3756505366"
+                            style="flex:1;padding:9px 11px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;">
+                          <button onclick="abrirWhatsAppAgendar()"
+                            style="padding:9px 14px;background:#25D366;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap;">
+                            💬 WhatsApp
+                          </button>
+                        </div>
+                      </div>
+                      <div style="margin-bottom:20px;">
+                        <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:5px;">📧 Email del paciente</label>
+                        <div style="display:flex;gap:8px;">
+                          <input type="email" id="agendarEmail" value="${_email}" placeholder="paciente@email.com"
+                            style="flex:1;padding:9px 11px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;">
+                          <button onclick="enviarEmailAgendar()"
+                            style="padding:9px 14px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap;">
+                            📧 Email
+                          </button>
+                        </div>
+                        <div id="emailAgendarStatus" style="font-size:12px;margin-top:5px;color:#666;"></div>
+                      </div>
+                      <button onclick="document.getElementById('modalCompartirAgendar').remove();window.location.href='/doctor/turnos';"
+                        style="width:100%;padding:11px;background:#e2e8f0;color:#333;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+                        Cerrar e ir a Turnos
+                      </button>
+                    </div>
+                  </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', compartirHTML);
             } catch (error) {
                 let msg = error.message || 'Error desconocido';
                 if (msg.includes('MaxClientsInSessionMode') || msg.includes('max clients reached')) {

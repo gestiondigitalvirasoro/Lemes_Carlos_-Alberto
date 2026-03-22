@@ -1480,12 +1480,13 @@
 `🏥 *Clínica LEMES — RECETA MÉDICA*
 
 *Dr. Carlos Alberto Lemes*
-M.P. 6306 · M.N. 158.838
+MÉDICO – M.P. 6306  M.N. 158.838
 Medicina General y Familiar – Endocrinología
+Ex Residente Hospital San Juan Bautista
+_"El que no vive para servir, no sirve para vivir"_
 
 ────────────────────
-*Paciente:* ${nombre}
-*DNI:* ${dni} · *Edad:* ${edad} años${os ? '\n*O.S.:* ' + os : ''}
+${nombre} · DNI: ${dni} · ${edad} años${os ? ' · O.S: ' + os : ''}
 
 *Rp./*
 ${medsLineas}
@@ -1498,6 +1499,8 @@ ${tratLineas}
 
 ────────────────────
 Santo Tomé, ${fecha}
+
+_________________________
 *Dr. Carlos Alberto Lemes*
 M.P. 6306 · M.N. 158.838
 
@@ -1513,8 +1516,32 @@ M.P. 6306 · M.N. 158.838
             const statusEl = document.getElementById('recetaEnvioStatus');
             statusEl.style.color = '#666';
             statusEl.textContent = 'Enviando...';
-            const { medicamentos, diagnosticos, tratamiento } = _recolectarDatosReceta();
-            const fecha = new Date().toLocaleDateString('es-AR', {day:'2-digit', month:'long', year:'numeric'});
+
+            // Generar el mismo HTML que se imprime
+            const pacienteHtml = document.getElementById('rp-paciente')?.innerHTML || '';
+            const meds         = document.getElementById('rp-meds')?.innerHTML || '';
+            const diag         = document.getElementById('rp-diag-contenido')?.innerHTML || '';
+            const trat         = document.getElementById('rp-trat-contenido')?.innerHTML || '';
+            const fechaEl      = document.getElementById('rp-fecha')?.innerHTML || '';
+
+            const header = `<div style="text-align:center;border-bottom:2px solid #222;padding-bottom:10px;margin-bottom:12px;">
+              <div style="font-size:17px;font-weight:bold;font-family:'Brush Script MT',cursive;margin-bottom:3px;">Dr. Carlos Alberto Lemes</div>
+              <div style="font-size:9.5px;line-height:1.7;">MÉDICO – M.P. 6306 &nbsp;M.N. 158.838<br>Medicina General y Familiar – Endocrinología<br>Ex Residente Hospital San Juan Bautista</div>
+              <div style="font-size:9.5px;font-style:italic;color:#444;margin-top:3px;">"El que no vive para servir, no sirve para vivir"</div>
+            </div>`;
+            const footer = `<div style="margin-top:auto;padding-top:6px;border-top:1px solid #ccc;display:flex;justify-content:space-between;font-size:8.5px;color:#555;">
+              <span>Solo WhatsApp: (3756) 619763</span><span>Ángel S. Blanco 121 · Santo Tomé – Ctes.</span>
+            </div>`;
+            const firma = `<div style="text-align:right;font-size:10px;color:#444;margin-top:20px;">
+              <div>${fechaEl}</div>
+              <div style="border-top:1px solid #222;width:150px;margin:8px 0 4px auto;"></div>
+              <div>Dr. Carlos Alberto Lemes</div>
+              <div style="font-size:8.5px;">M.P. 6306 · M.N. 158.838</div>
+            </div>`;
+
+            // Extraer texto limpio de cada sección
+            function _textoLimpio(html) { const d = document.createElement('div'); d.innerHTML = html; return d.innerText.trim(); }
+
             try {
                 const resp = await fetch('/api/enviar-receta', {
                     method: 'POST',
@@ -1523,10 +1550,11 @@ M.P. 6306 · M.N. 158.838
                     body: JSON.stringify({
                         email,
                         nombrePaciente: '<%- paciente.nombre %> <%- paciente.apellido %>',
-                        dni: '<%- paciente.dni %>',
-                        edad: '<%- paciente.edad %>',
-                        obraSocial: '<%- (paciente.obra_social && paciente.obra_social !== "N/A") ? paciente.obra_social : "" %>',
-                        medicamentos, diagnosticos, tratamiento, fecha
+                        fecha: fechaEl,
+                        medsHtml: meds,
+                        diagHtml: diag,
+                        tratHtml: trat,
+                        pacienteTexto: _textoLimpio(pacienteHtml)
                     })
                 });
                 const result = await resp.json();
