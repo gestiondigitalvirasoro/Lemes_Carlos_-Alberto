@@ -4608,12 +4608,14 @@ app.post('/api/notificar-turno', requireAuth, async (req, res) => {
 
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
+      port: 587,
+      secure: false,
+      requireTLS: true,
+      family: 4,
       auth: { user: gmailUser, pass: gmailPass },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000
     });
 
     const htmlEmail = `
@@ -4767,12 +4769,14 @@ app.post('/api/enviar-receta', requireAuth, async (req, res) => {
     // ── Email simple con PDF adjunto ──
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
+      port: 587,
+      secure: false,
+      requireTLS: true,
+      family: 4,
       auth: { user: gmailUser, pass: gmailPass },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000
     });
 
     const emailHtml = `<!DOCTYPE html>
