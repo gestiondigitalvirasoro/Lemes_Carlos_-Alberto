@@ -4608,11 +4608,11 @@ app.post('/api/notificar-turno', requireAuth, async (req, res) => {
 
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      requireTLS: true,
+      port: 465,
+      secure: true,
       family: 4,
       auth: { user: gmailUser, pass: gmailPass },
+      tls: { rejectUnauthorized: false },
       connectionTimeout: 15000,
       greetingTimeout: 15000,
       socketTimeout: 20000
@@ -4769,11 +4769,11 @@ app.post('/api/enviar-receta', requireAuth, async (req, res) => {
     // ── Email simple con PDF adjunto ──
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      requireTLS: true,
+      port: 465,
+      secure: true,
       family: 4,
       auth: { user: gmailUser, pass: gmailPass },
+      tls: { rejectUnauthorized: false },
       connectionTimeout: 15000,
       greetingTimeout: 15000,
       socketTimeout: 20000
