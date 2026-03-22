@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import nodemailer from 'nodemailer';
+import puppeteer from 'puppeteer';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import path from 'path';
@@ -4648,9 +4649,10 @@ app.post('/api/notificar-turno', requireAuth, async (req, res) => {
 });
 
 // ============================================================================
-// ENDPOINT: ENVIAR RECETA POR EMAIL
+// ENDPOINT: ENVIAR RECETA POR EMAIL (como PDF adjunto)
 // ============================================================================
 app.post('/api/enviar-receta', requireAuth, async (req, res) => {
+  let browser;
   try {
     const { email, nombrePaciente, fecha, medsHtml, diagHtml, tratHtml, pacienteTexto } = req.body;
 
@@ -4660,74 +4662,107 @@ app.post('/api/enviar-receta', requireAuth, async (req, res) => {
     const gmailPass = process.env.GMAIL_APP_PASSWORD;
     if (!gmailUser || !gmailPass) return res.status(500).json({ success: false, message: 'Configuración de email no disponible' });
 
+    // ── Construir HTML de la receta (mismo diseño que el modal) ──
+    const recetaHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&display=swap');
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: 'Times New Roman', serif; font-size: 12px; color: #222; background: white; }
+    .hoja { width: 210mm; min-height: 148mm; padding: 18mm 16mm 12mm; position: relative; background: white; }
+    .watermark { position:absolute; top:45%; left:50%; transform:translate(-50%,-50%); opacity:0.06; pointer-events:none; z-index:0; }
+    .contenido { position: relative; z-index: 1; }
+    .header { text-align:center; border-bottom:2px solid #222; padding-bottom:10px; margin-bottom:12px; }
+    .doctor-nombre { font-size:20px; font-weight:bold; font-family:'Brush Script MT','IM Fell English',cursive; margin-bottom:3px; }
+    .doctor-info { font-size:9.5px; line-height:1.8; }
+    .doctor-motto { font-size:9.5px; font-style:italic; color:#444; margin-top:3px; }
+    .paciente-linea { font-size:10.5px; margin-bottom:10px; color:#333; }
+    .rp { font-size:16px; font-weight:bold; margin:6px 0 6px; }
+    .meds { font-size:11px; }
+    .seccion-titulo { font-size:8.5px; text-transform:uppercase; letter-spacing:0.08em; color:#666; margin-bottom:4px; margin-top:10px; padding-top:7px; border-top:1px dashed #bbb; }
+    .seccion-contenido { font-size:11px; }
+    .firma { margin-top:28px; text-align:right; font-size:10px; color:#444; }
+    .firma-linea { border-top:1px solid #222; width:150px; margin:8px 0 4px auto; }
+    .footer-receta { margin-top:18px; display:flex; justify-content:space-between; font-size:8.5px; color:#555; border-top:1px solid #ccc; padding-top:5px; }
+  </style>
+</head>
+<body>
+<div class="hoja">
+  <div class="watermark">
+    <svg width="340" height="290" viewBox="0 0 420 360" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 130 L35 130 C40 128 44 120 48 132 C52 144 54 118 58 124 C62 130 65 133 70 130 C74 127 76 116 80 128 C84 140 86 120 90 125 C92 129 95 131 100 130 L112 130 C115 127 117 104 120 82 C123 60 126 172 129 186 C131 192 134 133 140 130 L155 130 C158 127 161 118 165 136 C169 154 171 116 175 123 C177 129 180 132 184 130 L198 130 C201 127 204 116 208 138 C212 160 214 110 218 120 C220 128 223 132 228 130 L244 130 C247 127 249 104 252 82 C255 60 258 175 261 190 C263 196 267 134 273 130 L290 130 C293 127 296 118 300 136 C304 154 306 116 310 124 C312 130 315 132 320 130 L350 130 L380 130" fill="none" stroke="#000" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M120 186 Q116 222 110 250 Q102 278 82 298 Q65 315 50 308" fill="none" stroke="#000" stroke-width="7" stroke-linecap="round"/>
+      <circle cx="44" cy="312" r="28" fill="#000"/>
+      <line x1="44" y1="290" x2="44" y2="334" stroke="white" stroke-width="4"/>
+      <line x1="20" y1="312" x2="68" y2="312" stroke="white" stroke-width="4"/>
+      <text x="10" y="358" font-family="'Brush Script MT',cursive" font-size="18" fill="#000">L y L  Consultorio privado</text>
+    </svg>
+  </div>
+  <div class="contenido">
+    <div class="header">
+      <div class="doctor-nombre">Dr. Carlos Alberto Lemes</div>
+      <div class="doctor-info">MÉDICO – M.P. 6306 &nbsp;M.N. 158.838<br>Medicina General y Familiar – Endocrinología<br>Ex Residente Hospital San Juan Bautista</div>
+      <div class="doctor-motto">"El que no vive para servir, no sirve para vivir"</div>
+    </div>
+    <div class="paciente-linea">${pacienteTexto || nombrePaciente}</div>
+    <div class="rp">Rp./</div>
+    <div class="meds">${medsHtml || '<em style="color:#999;">Sin medicamentos registrados</em>'}</div>
+    <div class="seccion-titulo">Diagnósticos</div>
+    <div class="seccion-contenido">${diagHtml || '<em style="color:#999;">—</em>'}</div>
+    <div class="seccion-titulo">Tratamiento</div>
+    <div class="seccion-contenido">${tratHtml || '<em style="color:#999;">—</em>'}</div>
+    <div class="firma">
+      <div>${fecha || ''}</div>
+      <div class="firma-linea"></div>
+      <div>Dr. Carlos Alberto Lemes</div>
+      <div style="font-size:9px;">M.P. 6306 · M.N. 158.838</div>
+    </div>
+    <div class="footer-receta">
+      <span>Solo WhatsApp: (3756) 619763</span>
+      <span>Ángel S. Blanco 121 · Santo Tomé – Ctes.</span>
+    </div>
+  </div>
+</div>
+</body></html>`;
+
+    // ── Generar PDF con puppeteer ──
+    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+    await page.setContent(recetaHtml, { waitUntil: 'networkidle0' });
+    const pdfBuffer = await page.pdf({
+      format: 'A5',
+      printBackground: true,
+      margin: { top: '0', right: '0', bottom: '0', left: '0' }
+    });
+    await browser.close();
+    browser = null;
+
+    // ── Email simple con PDF adjunto ──
     const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: gmailUser, pass: gmailPass } });
 
-    // Construir email profesional compatible con Gmail (tabla-based)
     const emailHtml = `<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:20px 0;">
   <tr><td align="center">
-    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-
-      <!-- HEADER -->
-      <tr><td style="background:#1a3a3a;padding:28px;text-align:center;border-radius:8px 8px 0 0;">
-        <div style="font-size:26px;font-weight:bold;color:white;letter-spacing:2px;">🏥 Clínica LEMES</div>
-        <div style="font-size:13px;color:#5CAEA3;margin-top:6px;">Sistema Médico</div>
+    <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+      <tr><td style="background:#1a3a3a;padding:26px;text-align:center;border-radius:8px 8px 0 0;">
+        <div style="font-size:22px;font-weight:bold;color:white;letter-spacing:1px;">Clínica LEMES</div>
+        <div style="font-size:12px;color:#7ec8c0;margin-top:5px;">Sistema Médico Digital</div>
       </td></tr>
-
-      <!-- CUERPO -->
-      <tr><td style="background:white;padding:32px;">
-        <p style="font-size:17px;color:#1a3a3a;margin:0 0 8px;">Hola <strong>${nombrePaciente}</strong>,</p>
-        <p style="font-size:14px;color:#555;margin:0 0 28px;">El <strong>Dr. Carlos Alberto Lemes</strong> te generó una receta médica.</p>
-
-        <!-- RECETA -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #ddd;border-radius:6px;overflow:hidden;">
-          <!-- Encabezado médico -->
-          <tr><td style="background:#f9f9f9;padding:18px;text-align:center;border-bottom:2px solid #222;">
-            <div style="font-size:17px;font-weight:bold;color:#222;">Dr. Carlos Alberto Lemes</div>
-            <div style="font-size:10px;color:#444;line-height:1.8;margin-top:4px;">
-              MÉDICO – M.P. 6306 &nbsp; M.N. 158.838<br>
-              Medicina General y Familiar – Endocrinología<br>
-              Ex Residente Hospital San Juan Bautista
-            </div>
-            <div style="font-size:10px;font-style:italic;color:#666;margin-top:5px;">"El que no vive para servir, no sirve para vivir"</div>
-          </td></tr>
-
-          <!-- Dos columnas con tabla -->
-          <tr>
-            <td width="50%" valign="top" style="padding:16px 14px;border-right:1px dashed #ccc;">
-              <div style="font-size:10px;color:#333;margin-bottom:12px;">${pacienteTexto || nombrePaciente}</div>
-              <div style="font-size:15px;font-weight:bold;margin-bottom:8px;">Rp./</div>
-              <div style="font-size:11px;color:#333;">${medsHtml || '<em style="color:#999;">Sin medicamentos registrados</em>'}</div>
-              <div style="margin-top:12px;padding-top:8px;border-top:1px dashed #ddd;">
-                <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:#888;margin-bottom:6px;">Diagnósticos</div>
-                <div style="font-size:11px;color:#333;">${diagHtml || '<em style="color:#999;">Sin diagnósticos</em>'}</div>
-              </div>
-            </td>
-            <td width="50%" valign="top" style="padding:16px 14px;">
-              <div style="font-size:10px;color:#333;margin-bottom:12px;">${pacienteTexto || nombrePaciente}</div>
-              <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:#888;margin-bottom:6px;">Tratamiento</div>
-              <div style="font-size:11px;color:#333;">${tratHtml || '<em style="color:#999;">Sin tratamiento registrado</em>'}</div>
-            </td>
-          </tr>
-
-          <!-- Pie receta -->
-          <tr><td colspan="2" style="padding:12px 16px;border-top:1px solid #eee;background:#fafafa;">
-            <table width="100%"><tr>
-              <td style="font-size:9px;color:#777;">Solo WhatsApp: (3756) 619763</td>
-              <td align="right" style="font-size:9px;color:#777;">Ángel S. Blanco 121 · Santo Tomé – Ctes.</td>
-            </tr></table>
-          </td></tr>
-        </table>
+      <tr><td style="background:white;padding:32px 36px;">
+        <p style="font-size:16px;color:#1a3a3a;margin:0 0 10px;">Hola <strong>${nombrePaciente}</strong>,</p>
+        <p style="font-size:14px;color:#444;line-height:1.6;margin:0 0 20px;">El <strong>Dr. Carlos Alberto Lemes</strong> te generó una receta médica.</p>
+        <p style="font-size:14px;color:#444;line-height:1.6;margin:0 0 28px;">Podés encontrarla adjunta en este e-mail.</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
+        <p style="font-size:11px;color:#888;margin:0;">Ante cualquier consulta comuníquese con el consultorio.<br>Solo WhatsApp: (3756) 619763 · Ángel S. Blanco 121, Santo Tomé, Ctes.</p>
       </td></tr>
-
-      <!-- FOOTER -->
-      <tr><td style="background:#eee;padding:14px;text-align:center;font-size:11px;color:#999;border-radius:0 0 8px 8px;">
-        Sistema Médico LEMES &nbsp;·&nbsp; Ante cualquier consulta comuníquese con el consultorio
+      <tr><td style="background:#eee;padding:12px;text-align:center;font-size:11px;color:#aaa;border-radius:0 0 8px 8px;">
+        Sistema Médico LEMES
       </td></tr>
-
     </table>
   </td></tr>
 </table>
@@ -4736,13 +4771,19 @@ app.post('/api/enviar-receta', requireAuth, async (req, res) => {
     await transporter.sendMail({
       from: `"Clínica LEMES" <${gmailUser}>`,
       to: email,
-      subject: `📋 Receta médica - Dr. Carlos Alberto Lemes`,
-      html: emailHtml
+      subject: `Tu receta médica – Dr. Carlos Alberto Lemes`,
+      html: emailHtml,
+      attachments: [{
+        filename: `receta_${nombrePaciente.replace(/\s+/g,'_')}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }]
     });
 
     console.log('📧 Receta enviada por email a:', email);
     res.json({ success: true, message: 'Receta enviada correctamente' });
   } catch (error) {
+    if (browser) { try { await browser.close(); } catch(_){} }
     console.error('❌ Error al enviar receta:', error.message);
     res.status(500).json({ success: false, message: 'Error al enviar receta: ' + error.message });
   }
