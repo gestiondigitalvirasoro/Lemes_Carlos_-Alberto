@@ -599,6 +599,45 @@
         }
 
         // ============================================================================
+        // NOTIFICACIONES DEL MODAL DE TURNO AGENDADO
+        // ============================================================================
+        function abrirWhatsAppAgendar() {
+            const tel = document.getElementById('agendarTelefono').value.replace(/\D/g, '');
+            if (!tel) { alert('Ingresá un número de teléfono'); return; }
+            const d = window._compartirData || {};
+            const msg = encodeURIComponent(`Hola ${d.nombre}! Tu turno con ${d.medico} quedó CONFIRMADO para el ${d.fecha} a las ${d.hora}. Ante cualquier consulta comuníquese con el consultorio. Clínica LEMES.`);
+            window.open(`https://wa.me/549${tel}?text=${msg}`, '_blank');
+        }
+
+        async function enviarEmailAgendar() {
+            const email = document.getElementById('agendarEmail').value.trim();
+            if (!email) { alert('Ingresá un email'); return; }
+            const d = window._compartirData || {};
+            const statusEl = document.getElementById('emailAgendarStatus');
+            statusEl.style.color = '#666';
+            statusEl.textContent = 'Enviando...';
+            try {
+                const resp = await fetch('/api/notificar-turno', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, nombrePaciente: d.nombre, fechaTurno: d.fecha, horaTurno: d.hora, medico: d.medico })
+                });
+                const result = await resp.json();
+                if (result.success) {
+                    statusEl.style.color = '#10b981';
+                    statusEl.textContent = '✅ Email enviado correctamente';
+                } else {
+                    statusEl.style.color = '#ef4444';
+                    statusEl.textContent = '❌ ' + (result.message || 'Error al enviar');
+                }
+            } catch (e) {
+                statusEl.style.color = '#ef4444';
+                statusEl.textContent = '❌ Error al enviar email';
+            }
+        }
+
+        // ============================================================================
         // UTILIDADES
         // ============================================================================
         function mostrarAlerta(mensaje, tipo) {
