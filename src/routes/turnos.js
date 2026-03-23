@@ -276,6 +276,13 @@ router.post(
   checkPermission('turnos', 'update'),
   param('id').isNumeric().withMessage('ID debe ser un número válido'),
   [
+    body('nombre').optional().isString().trim(),
+    body('apellido').optional().isString().trim(),
+    body('telefono').optional().isString().trim(),
+    body('email').optional().isEmail().withMessage('Email inválido'),
+    body('fecha_nacimiento').optional().isISO8601().withMessage('Fecha inválida'),
+    body('sexo').optional().isIn(['M', 'F', 'O']),
+    body('direccion').optional().isString().trim(),
     body('obra_social').optional().isString().trim(),
     body('numero_afiliado').optional().isString().trim()
   ],

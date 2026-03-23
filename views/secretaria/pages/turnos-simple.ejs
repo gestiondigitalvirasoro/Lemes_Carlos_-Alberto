@@ -377,7 +377,6 @@
 
     const ESTADO_LABEL = {
       'PENDIENTE':   'Pendiente',
-      'CONFIRMADO':  'Confirmado',
       'EN_CONSULTA': 'En Consulta',
       'FINALIZADA':  'Finalizada',
       'ATENDIDA':    'Finalizada',
@@ -393,7 +392,7 @@
       if (pills && turnos) {
         const total = turnos.length;
         const enConsulta = turnos.filter(t => t.estado?.nombre === 'EN_CONSULTA').length;
-        const pendientes = turnos.filter(t => ['PENDIENTE','CONFIRMADO'].includes(t.estado?.nombre)).length;
+        const pendientes = turnos.filter(t => t.estado?.nombre === 'PENDIENTE').length;
         const finalizados = turnos.filter(t => ['FINALIZADA','ATENDIDA'].includes(t.estado?.nombre)).length;
         const cancelados = turnos.filter(t => t.estado?.nombre === 'CANCELADA').length;
         pills.innerHTML = `
@@ -411,8 +410,8 @@
         return;
       }
 
-      // Ordenar: EN_CONSULTA primero, luego PENDIENTE/CONFIRMADO, luego resto por hora
-      const prioridad = { 'EN_CONSULTA': 0, 'PENDIENTE': 1, 'CONFIRMADO': 1, 'FINALIZADA': 2, 'ATENDIDA': 2, 'CANCELADA': 3 };
+      // Ordenar: EN_CONSULTA primero, luego PENDIENTE, luego resto por hora
+      const prioridad = { 'EN_CONSULTA': 0, 'PENDIENTE': 1, 'FINALIZADA': 2, 'ATENDIDA': 2, 'CANCELADA': 3 };
       const turnosOrdenados = [...turnos].sort((a, b) => {
         const pa = prioridad[a.estado?.nombre] ?? 9;
         const pb = prioridad[b.estado?.nombre] ?? 9;
@@ -431,23 +430,8 @@
         let acciones = '<span class="text-muted">—</span>';
         if (estadoNombre === 'PENDIENTE') {
           acciones = `
-            <button class="btn btn-sm btn-success" style="margin:2px;" onclick="cambiarEstado('${turno.id}', 'CONFIRMADO')" title="Confirmar llegada">
-              <i class="fas fa-check"></i> Confirmar
-            </button>
-            <button class="btn btn-sm btn-outline-info" style="margin:2px;" onclick="verDetalleTurno('${turno.id}')" title="Visualizar detalle">
-              <i class="fas fa-eye"></i> Visualizar
-            </button>
-            <button class="btn btn-sm btn-outline-secondary" style="margin:2px;" onclick="window.location.href='/doctor/agendar-turno?editar=${turno.id}'" title="Modificar turno">
-              <i class="fas fa-edit"></i> Modificar
-            </button>
-            <button class="btn btn-sm btn-outline-danger" style="margin:2px;" onclick="cambiarEstado('${turno.id}', 'CANCELADA')" title="Cancelar">
-              <i class="fas fa-times"></i>
-            </button>`;
-        } else if (estadoNombre === 'CONFIRMADO') {
-          const esFuturo = esFechaHoyOFutura(turno.fecha);
-          acciones = esFuturo ? `
-            <button class="btn btn-sm btn-primary" style="margin:2px;" onclick="cambiarEstado('${turno.id}', 'EN_CONSULTA')" title="Iniciar consulta">
-              <i class="fas fa-play"></i> Iniciar
+            <button class="btn btn-sm btn-primary" style="margin:2px;" onclick="iniciarConsultaConAlta('${turno.id}')" title="Iniciar consulta">
+              <i class="fas fa-play"></i> Iniciar Consulta
             </button>
             <button class="btn btn-sm btn-outline-success" style="margin:2px;" onclick="abrirModalNotificar('${turno.id}')" title="Enviar WhatsApp o Email">
               📤 Notificar
@@ -457,15 +441,6 @@
             </button>
             <button class="btn btn-sm btn-outline-secondary" style="margin:2px;" onclick="window.location.href='/doctor/agendar-turno?editar=${turno.id}'" title="Modificar turno">
               <i class="fas fa-edit"></i> Modificar
-            </button>
-            <button class="btn btn-sm btn-outline-danger" style="margin:2px;" onclick="cambiarEstado('${turno.id}', 'CANCELADA')" title="Cancelar">
-              <i class="fas fa-times"></i>
-            </button>` : `
-            <button class="btn btn-sm btn-warning" style="margin:2px;" onclick="window.location.href='/doctor/agendar-turno?editar=${turno.id}'" title="Reprogramar turno">
-              <i class="fas fa-calendar-alt"></i> Reprogramar
-            </button>
-            <button class="btn btn-sm btn-outline-info" style="margin:2px;" onclick="verDetalleTurno('${turno.id}')" title="Visualizar detalle">
-              <i class="fas fa-eye"></i> Visualizar
             </button>
             <button class="btn btn-sm btn-outline-danger" style="margin:2px;" onclick="cambiarEstado('${turno.id}', 'CANCELADA')" title="Cancelar">
               <i class="fas fa-times"></i>
@@ -676,17 +651,6 @@
           alert('❌ Error al eliminar turno: ' + error.message);
           await cargarTurnos();
         }
-        return;
-      }
-
-      // Si el nuevo estado es CONFIRMADO, verificar que la fecha no sea pasada
-      if (nuevoEstado === 'CONFIRMADO') {
-        if (!esFechaHoyOFutura(turnoActual.fecha)) {
-          mostrarModalFechaPasada(turnoId);
-          return;
-        }
-        console.log('🔄 Abriendo formulario de confirmación para turno:', turnoId);
-        abrirModalConfirmarTurno(turnoId);
         return;
       }
 
@@ -915,6 +879,148 @@
             </div>
           </div>
         </div>`;
+    }
+
+    // ============================================================
+    // INICIAR CONSULTA CON VERIFICACIÓN DE ALTA
+    // ============================================================
+    async function iniciarConsultaConAlta(turnoId) {
+      mostrarLoading('Verificando datos del paciente...');
+      try {
+        const response = await fetch(`/api/turnos/${turnoId}/estado`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ estado: 'EN_CONSULTA' })
+        });
+
+        const resultado = await response.json();
+        ocultarLoading();
+
+        if (response.status === 422 && resultado.pacienteIncompleto) {
+          // Paciente sin alta → abrir modal para completar datos
+          abrirModalAlta(turnoId, resultado.datosActuales || {});
+          return;
+        }
+
+        if (response.ok && resultado.success) {
+          await cargarTurnos();
+          return;
+        }
+
+        if (response.status === 409) {
+          alert('⚠️ Ya hay otra consulta en curso. Finalizala antes de iniciar una nueva.');
+          return;
+        }
+
+        throw new Error(resultado.message || 'Error al iniciar consulta');
+      } catch (error) {
+        ocultarLoading();
+        alert('❌ ' + error.message);
+      }
+    }
+
+    // Modal para dar de alta al paciente antes de iniciar consulta
+    function abrirModalAlta(turnoId, datos) {
+      const container = document.getElementById('modalConfirmarContainer');
+      container.innerHTML = `
+        <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);display:flex;justify-content:center;align-items:center;z-index:9999;">
+          <div style="background:white;border-radius:12px;padding:28px;width:90%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+            <h3 style="color:#1a3a3a;margin:0 0 6px 0;"><i class="fas fa-user-plus"></i> Dar de alta al paciente</h3>
+            <p style="color:#888;font-size:13px;margin:0 0 20px 0;">Completá los datos para poder iniciar la consulta.</p>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+              <div>
+                <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Nombre <span style="color:#e74c3c">*</span></label>
+                <input id="altaNombre" type="text" value="${datos.nombre || ''}" placeholder="Nombre"
+                  style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Apellido <span style="color:#e74c3c">*</span></label>
+                <input id="altaApellido" type="text" value="${datos.apellido || ''}" placeholder="Apellido"
+                  style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+              <div>
+                <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Teléfono</label>
+                <input id="altaTelefono" type="text" placeholder="Ej: 3756505366"
+                  style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Email</label>
+                <input id="altaEmail" type="email" placeholder="paciente@email.com"
+                  style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+              <div>
+                <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Obra Social</label>
+                <input id="altaObraSocial" type="text" placeholder="OSDE, PAMI..."
+                  style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">N° Afiliado</label>
+                <input id="altaNumeroAfiliado" type="text" placeholder="123456"
+                  style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <button onclick="document.getElementById('modalConfirmarContainer').innerHTML=''"
+                style="padding:11px;background:#e2e8f0;color:#333;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+                Cancelar
+              </button>
+              <button id="btnGuardarAlta" onclick="guardarAltaEIniciar('${turnoId}')"
+                style="padding:11px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+                ✅ Guardar e Iniciar Consulta
+              </button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    async function guardarAltaEIniciar(turnoId) {
+      const nombre = document.getElementById('altaNombre').value.trim();
+      const apellido = document.getElementById('altaApellido').value.trim();
+      if (!nombre || !apellido) {
+        alert('Nombre y Apellido son obligatorios');
+        return;
+      }
+      const btn = document.getElementById('btnGuardarAlta');
+      btn.disabled = true; btn.innerHTML = '⏳ Guardando...';
+
+      mostrarLoading('Dando de alta e iniciando consulta...');
+      try {
+        const response = await fetch(`/api/turnos/${turnoId}/confirmar-llegada`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            nombre,
+            apellido,
+            telefono: document.getElementById('altaTelefono').value.trim() || null,
+            email: document.getElementById('altaEmail').value.trim() || null,
+            obra_social: document.getElementById('altaObraSocial').value.trim() || null,
+            numero_afiliado: document.getElementById('altaNumeroAfiliado').value.trim() || null
+          })
+        });
+        const resultado = await response.json();
+        ocultarLoading();
+
+        if (response.ok && resultado.success) {
+          document.getElementById('modalConfirmarContainer').innerHTML = '';
+          await cargarTurnos();
+        } else {
+          throw new Error(resultado.message || 'Error al dar de alta');
+        }
+      } catch (error) {
+        ocultarLoading();
+        btn.disabled = false; btn.innerHTML = '✅ Guardar e Iniciar Consulta';
+        alert('❌ ' + error.message);
+      }
     }
 
     async function abrirModalConfirmarTurno(turnoId) {

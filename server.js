@@ -4856,6 +4856,16 @@ async function startServer() {
     await prisma.$queryRaw`SELECT 1`;
     console.log('✅ Conexión a base de datos exitosa');
 
+    // Migración: convertir turnos CONFIRMADO → PENDIENTE (estado CONFIRMADO eliminado)
+    try {
+      const migrados = await prisma.$executeRaw`
+        UPDATE turnos SET estado_id = 10 WHERE estado_id = 11
+      `;
+      if (migrados > 0) console.log(`🔄 Migración: ${migrados} turno(s) CONFIRMADO → PENDIENTE`);
+    } catch (e) {
+      console.warn('⚠️ Migración CONFIRMADO→PENDIENTE omitida:', e.message);
+    }
+
     // Iniciar servidor
     app.listen(PORT, () => {
       console.log(`

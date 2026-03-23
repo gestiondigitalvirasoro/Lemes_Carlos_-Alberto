@@ -673,7 +673,6 @@
       const map = {
         'EN_CONSULTA': 'En Consulta',
         'PENDIENTE': 'Pendiente',
-        'CONFIRMADO': 'Confirmado',
         'FINALIZADA': 'Finalizada',
         'CANCELADA': 'Cancelada',
         'AUSENTE': 'Ausente'
@@ -783,10 +782,10 @@
         return;
       }
 
-      // 🔥 PRIORIZAR EN_CONSULTA sobre CONFIRMADO
+      // 🔥 PRIORIZAR EN_CONSULTA, luego PENDIENTE
       let siguiente = turnosHoy.find(t => t.estado === 'EN_CONSULTA');
       if (!siguiente) {
-        siguiente = turnosHoy.find(t => t.estado === 'CONFIRMADO');
+        siguiente = turnosHoy.find(t => t.estado === 'PENDIENTE');
       }
       
       if (!siguiente) {
@@ -829,7 +828,7 @@
       const botonesDiv = document.getElementById('siguiente-botones');
       botonesDiv.innerHTML = '';
 
-      if (siguiente.estado === 'PENDIENTE' || siguiente.estado === 'CONFIRMADO') {
+      if (siguiente.estado === 'PENDIENTE') {
         botonesDiv.innerHTML = `
           <button class="btn btn-sm btn-primary" style="padding: 6px 16px; font-weight: 600;" onclick="iniciarConsultaTurno(${siguiente.id})">
             <i class="bi bi-play-circle"></i> Iniciar Consulta
@@ -895,14 +894,18 @@
           if (response.status === 409) {
             console.warn('⚠️ CONFLICT: Ya hay una consulta activa');
             hideLoading();
-            // Guardar datos para gestión de conflicto
             consultaActivaData = data.consultaActiva || {};
             turnoEnIntento = turnoId;
-            // Mostrar modal en lugar de alert
             mostrarModalConsultaActiva(data);
             return;
           }
-          
+
+          if (response.status === 422 && data.pacienteIncompleto) {
+            hideLoading();
+            abrirModalAltaDashboard(turnoId, data.datosActuales || {});
+            return;
+          }
+
           hideLoading();
           throw new Error(data.message || 'Error al cambiar el estado');
         }
@@ -926,6 +929,110 @@
         hideLoading();
         console.error('❌ Error:', error);
         alert('Error: ' + error.message);
+      }
+    }
+
+    function abrirModalAltaDashboard(turnoId, datos) {
+      let container = document.getElementById('modalAltaContainer');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'modalAltaContainer';
+        document.body.appendChild(container);
+      }
+      container.innerHTML = `
+        <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);display:flex;justify-content:center;align-items:center;z-index:9999;">
+          <div style="background:white;border-radius:12px;padding:28px;width:90%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+            <h3 style="color:#1a3a3a;margin:0 0 6px 0;"><i class="bi bi-person-plus"></i> Dar de alta al paciente</h3>
+            <p style="color:#888;font-size:13px;margin:0 0 20px 0;">Completá los datos para iniciar la consulta.</p>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+              <div>
+                <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Nombre <span style="color:#e74c3c">*</span></label>
+                <input id="dAltaNombre" type="text" value="${datos.nombre || ''}" placeholder="Nombre"
+                  style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Apellido <span style="color:#e74c3c">*</span></label>
+                <input id="dAltaApellido" type="text" value="${datos.apellido || ''}" placeholder="Apellido"
+                  style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+              <div>
+                <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Teléfono</label>
+                <input id="dAltaTelefono" type="text" placeholder="3756505366"
+                  style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Email</label>
+                <input id="dAltaEmail" type="email" placeholder="paciente@email.com"
+                  style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+              <div>
+                <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Obra Social</label>
+                <input id="dAltaObraSocial" type="text" placeholder="OSDE, PAMI..."
+                  style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">N° Afiliado</label>
+                <input id="dAltaNumeroAfiliado" type="text" placeholder="123456"
+                  style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <button onclick="document.getElementById('modalAltaContainer').innerHTML=''"
+                style="padding:11px;background:#e2e8f0;color:#333;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+                Cancelar
+              </button>
+              <button id="btnGuardarAltaD" onclick="guardarAltaDashboard('${turnoId}')"
+                style="padding:11px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+                ✅ Guardar e Iniciar
+              </button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    async function guardarAltaDashboard(turnoId) {
+      const nombre = document.getElementById('dAltaNombre').value.trim();
+      const apellido = document.getElementById('dAltaApellido').value.trim();
+      if (!nombre || !apellido) { alert('Nombre y Apellido son obligatorios'); return; }
+      const btn = document.getElementById('btnGuardarAltaD');
+      btn.disabled = true; btn.innerHTML = '⏳ Guardando...';
+      showLoading('Dando de alta e iniciando consulta...');
+      try {
+        const response = await fetch(`/api/turnos/${turnoId}/confirmar-llegada`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            nombre,
+            apellido,
+            telefono: document.getElementById('dAltaTelefono').value.trim() || null,
+            email: document.getElementById('dAltaEmail').value.trim() || null,
+            obra_social: document.getElementById('dAltaObraSocial').value.trim() || null,
+            numero_afiliado: document.getElementById('dAltaNumeroAfiliado').value.trim() || null
+          })
+        });
+        const data = await response.json();
+        hideLoading();
+        if (response.ok && data.success) {
+          document.getElementById('modalAltaContainer').innerHTML = '';
+          const pacienteId = data.data?.paciente_id;
+          if (pacienteId) {
+            window.location.href = `/doctor/pacientes/${pacienteId}?turno_id=${turnoId}`;
+          } else {
+            window.location.reload();
+          }
+        } else {
+          throw new Error(data.message || 'Error al dar de alta');
+        }
+      } catch (error) {
+        hideLoading();
+        btn.disabled = false; btn.innerHTML = '✅ Guardar e Iniciar';
+        alert('❌ ' + error.message);
       }
     }
 
@@ -1048,7 +1155,7 @@
         const total = turnosHoy.length;
         const finalizados = turnosHoy.filter(t => t.estado === 'FINALIZADA').length;
         const enConsulta = turnosHoy.filter(t => t.estado === 'EN_CONSULTA').length;
-        const pendientes = turnosHoy.filter(t => t.estado === 'PENDIENTE' || t.estado === 'CONFIRMADO').length;
+        const pendientes = turnosHoy.filter(t => t.estado === 'PENDIENTE').length;
         counter.innerHTML = `
           <span class="turnos-counter-item"><span>${total}</span> turno${total !== 1 ? 's' : ''} hoy</span>
           ${enConsulta > 0 ? `<span class="turnos-counter-item" style="color:#007BFF;"><span>${enConsulta}</span> en consulta</span>` : ''}
@@ -1067,7 +1174,7 @@
         let botonesAccion = '';
 
         // Generar botones según el estado
-        if (turno.estado === 'PENDIENTE' || turno.estado === 'CONFIRMADO') {
+        if (turno.estado === 'PENDIENTE') {
           botonesAccion = `<span class="text-muted" style="font-size: 0.85rem;">—</span>`;
         } else if (turno.estado === 'EN_CONSULTA') {
           botonesAccion = `

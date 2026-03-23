@@ -8,7 +8,6 @@ const prisma = new PrismaClient();
 // ============================================================================
 const estadoIdMap = {
   PENDIENTE: BigInt(10),
-  CONFIRMADO: BigInt(11),
   EN_CONSULTA: BigInt(12),
   ATENDIDA: BigInt(13),   // legacy
   FINALIZADA: BigInt(13), // mismo ID que ATENDIDA (renombrado en BD)
@@ -17,7 +16,6 @@ const estadoIdMap = {
 
 const estadoNombreMap = {
   10: 'PENDIENTE',
-  11: 'CONFIRMADO',
   12: 'EN_CONSULTA',
   13: 'FINALIZADA',
   14: 'CANCELADA'
@@ -26,13 +24,12 @@ const estadoNombreMap = {
 // ============================================================================
 // MÁQUINA DE ESTADOS VÁLIDOS - FLUJO SIMPLIFICADO
 // ============================================================================
-// PENDIENTE → EN_CONSULTA (iniciar consulta), CANCELADA (solo si no fue atendido)
-// EN_CONSULTA → ATENDIDA (consulta finalizada)
-// ATENDIDA: SIN TRANSICIONES (no se puede cancelar)
-// CANCELADA: SIN TRANSICIONES (estado final)
+// PENDIENTE → EN_CONSULTA (iniciar consulta), CANCELADA
+// EN_CONSULTA → FINALIZADA, CANCELADA
+// FINALIZADA / CANCELADA: estados finales
 const estadosValidos = {
-  PENDIENTE: ['CONFIRMADO', 'EN_CONSULTA', 'CANCELADA'],
-  CONFIRMADO: ['EN_CONSULTA', 'CANCELADA'],
+  PENDIENTE: ['EN_CONSULTA', 'CANCELADA'],
+  CONFIRMADO: ['EN_CONSULTA', 'CANCELADA'], // compatibilidad con registros viejos
   EN_CONSULTA: ['FINALIZADA', 'CANCELADA'],
   FINALIZADA: [],
   CANCELADA: []
@@ -596,6 +593,24 @@ export const cambiarEstadoTurno = async (req, res) => {
         });
       }
       console.log(`✅ Validación OK: Ninguna otra consulta EN_CONSULTA activa`);
+
+      // 🏥 VALIDAR QUE EL PACIENTE ESTÉ DADO DE ALTA (nombre + apellido completos)
+      const nombreCompleto = (turno.persona.nombre || '').trim();
+      const apellidoCompleto = (turno.persona.apellido || '').trim();
+      if (!nombreCompleto || !apellidoCompleto) {
+        console.log(`❌ Paciente sin alta - nombre: "${nombreCompleto}" apellido: "${apellidoCompleto}"`);
+        return res.status(422).json({
+          error: 'Paciente sin alta',
+          pacienteIncompleto: true,
+          message: 'El paciente no tiene sus datos completos. Completá los datos para iniciar la consulta.',
+          personaId: turno.persona.id.toString(),
+          datosActuales: {
+            nombre: nombreCompleto,
+            apellido: apellidoCompleto,
+            dni: turno.persona.dni
+          }
+        });
+      }
 
       // 📝 Crear PACIENTE si no existe (la historia se crea cuando el doctor guarda)
       console.log(`📝 Verificando/Creando PACIENTE...`);
@@ -1456,20 +1471,15 @@ export const actualizarTurno = async (req, res) => {
 };
 
 // ============================================================================
-// CONTROLLER: CONFIRMAR LLEGADA (Crea Paciente + Cambia estado a CONFIRMADO)
+// CONTROLLER: DAR DE ALTA Y PASAR A EN_CONSULTA
 // ============================================================================
-// Este endpoint se ejecuta SOLO cuando el usuario guarda el formulario de 
-// confirmar llegada. Así se asegura que si cancela, nada cambia.
-// Flujo:
-// 1. Usuario hace click en "Confirmar Llegada"
-// 2. Se abre modal con formulario de datos de paciente
-// 3. Si cancela: endpoint NO se ejecuta (estado sigue PENDIENTE)
-// 4. Si guarda: Este endpoint crea Paciente + cambia a CONFIRMADO
+// Completa los datos del paciente (persona + paciente) y pasa el turno a EN_CONSULTA.
+// Si el paciente ya tiene datos completos, solo actualiza obra social y pasa a EN_CONSULTA.
 // ============================================================================
 export const confirmarLlegada = async (req, res) => {
   try {
     const { id } = req.params;
-    const { obra_social, numero_afiliado } = req.body;
+    const { nombre, apellido, telefono, email, fecha_nacimiento, sexo, direccion, obra_social, numero_afiliado } = req.body;
 
     console.log(`🏥 Confirmar llegada - Turno ID: ${id}`);
     console.log(`   Obra social: ${obra_social}`);
@@ -1495,13 +1505,31 @@ export const confirmarLlegada = async (req, res) => {
     console.log(`   Estado actual: ${turno.estado.nombre} (ID: ${turno.estado.id})`);
     console.log(`   Info del turno:`, JSON.stringify({id: turno.id.toString(), persona_id: turno.persona_id.toString(), medico_id: turno.medico_id.toString()}, null, 2));
 
-    // Solo permitir desde PENDIENTE
-    if (turno.estado.nombre !== 'PENDIENTE') {
+    // Solo permitir desde PENDIENTE o CONFIRMADO (compatibilidad)
+    if (!['PENDIENTE', 'CONFIRMADO'].includes(turno.estado.nombre)) {
       console.log(`❌ El turno debe estar en PENDIENTE (actual: ${turno.estado.nombre})`);
       return res.status(400).json({
         error: 'Bad request',
-        message: `No se puede confirmar llegada. El turno debe estar PENDIENTE (actual: ${turno.estado.nombre})`
+        message: `No se puede dar de alta. El turno debe estar PENDIENTE (actual: ${turno.estado.nombre})`
       });
+    }
+
+    // ✅ Actualizar datos de Persona si se enviaron
+    const personaUpdate = {};
+    if (nombre) personaUpdate.nombre = nombre.trim();
+    if (apellido) personaUpdate.apellido = apellido.trim();
+    if (telefono) personaUpdate.telefono = telefono.trim();
+    if (email) personaUpdate.email = email.trim();
+    if (fecha_nacimiento) personaUpdate.fecha_nacimiento = new Date(fecha_nacimiento);
+    if (sexo) personaUpdate.sexo = sexo;
+    if (direccion) personaUpdate.direccion = direccion.trim();
+
+    if (Object.keys(personaUpdate).length > 0) {
+      await prisma.persona.update({
+        where: { id: turno.persona.id },
+        data: personaUpdate
+      });
+      console.log(`✅ Persona actualizada con datos de alta:`, Object.keys(personaUpdate));
     }
 
     // Buscar o crear Paciente
@@ -1532,13 +1560,13 @@ export const confirmarLlegada = async (req, res) => {
       console.log(`✅ Paciente actualizado: ${paciente.id}`);
     }
 
-    // ✅ CAMBIAR ESTADO A CONFIRMADO (usar BigInt para asegurar consistencia)
-    const CONFIRMADO_ID = BigInt(11);
-    console.log(`📝 Actualizando turno ${id} a CONFIRMADO (estado_id: ${CONFIRMADO_ID})`);
-    
+    // ✅ CAMBIAR ESTADO A EN_CONSULTA
+    const EN_CONSULTA_ID = BigInt(12);
+    console.log(`📝 Actualizando turno ${id} a EN_CONSULTA (estado_id: ${EN_CONSULTA_ID})`);
+
     const turnoActualizado = await prisma.turno.update({
       where: { id: BigInt(id) },
-      data: { estado_id: CONFIRMADO_ID },
+      data: { estado_id: EN_CONSULTA_ID },
       include: {
         persona: { select: { nombre: true, apellido: true } },
         estado: { select: { id: true, nombre: true } }
@@ -1549,7 +1577,7 @@ export const confirmarLlegada = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Llegada confirmada - Paciente registrado',
+      message: 'Paciente dado de alta - Consulta iniciada',
       data: {
         turno_id: turnoActualizado.id.toString(),
         paciente_id: paciente.id.toString(),
