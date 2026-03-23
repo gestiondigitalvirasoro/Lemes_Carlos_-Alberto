@@ -4593,7 +4593,7 @@ app.delete('/api/tratamientos/:id', requireAuth, async (req, res) => {
 // ============================================================================
 async function enviarEmailBrevo({ to, subject, html, attachments = [] }) {
   const apiKey = process.env.BREVO_API_KEY;
-  const gmailUser = process.env.GMAIL_USER || 'rosananvallejos@gmail.com';
+  const gmailUser = process.env.GMAIL_USER || 'lemesconsultorios@gmail.com';
 
   if (!apiKey) throw new Error('BREVO_API_KEY no configurado en variables de entorno');
 
@@ -4779,18 +4779,6 @@ app.post('/api/enviar-receta', requireAuth, async (req, res) => {
     browser = null;
 
     // ── Email simple con PDF adjunto ──
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      family: 4,
-      auth: { user: gmailUser, pass: gmailPass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 20000
-    });
-
     const emailHtml = `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"></head>
