@@ -917,22 +917,10 @@
           throw new Error('No se pudo obtener el ID del paciente');
         }
 
-        // 📂 Abrir historia clínica automáticamente en nueva pestaña
-        console.log('📂 Abriendo historia clínica automáticamente...');
-        const historiaUrl = `/doctor/pacientes/${pacienteId}?turno_id=${turnoId}`;
-        const ventanaHistoria = window.open(historiaUrl, '_blank');
-        
-        if (!ventanaHistoria) {
-          console.warn('⚠️ La ventana emergente fue bloqueada por el navegador');
-        }
-        
+        // 📂 Redirigir a historia clínica automáticamente
         hideLoading();
-        
-        // Recargar los turnos en la pestaña actual después de un pequeño delay
-        setTimeout(() => {
-          console.log('🔄 Recargando turnos en la pestaña actual...');
-          cargarTurnos();
-        }, 500);
+        const historiaUrl = `/doctor/pacientes/${pacienteId}?turno_id=${turnoId}`;
+        window.location.href = historiaUrl;
         
       } catch (error) {
         hideLoading();

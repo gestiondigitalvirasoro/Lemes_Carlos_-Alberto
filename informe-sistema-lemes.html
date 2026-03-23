@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual de Usuario – Sistema Médico LEMES</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background:#f0f4f8; color:#222; }
+
+  /* PORTADA */
+  .portada {
+    background: linear-gradient(135deg, #1a3a3a 0%, #0d5c4a 60%, #1D9E75 100%);
+    color: white; text-align: center; padding: 80px 40px 60px;
+    page-break-after: always;
+  }
+  .portada .logo { font-size: 72px; margin-bottom: 16px; }
+  .portada h1 { font-size: 42px; font-weight: 700; letter-spacing: 3px; margin-bottom: 8px; }
+  .portada h2 { font-size: 20px; font-weight: 300; opacity: 0.85; margin-bottom: 40px; }
+  .portada .badge { display:inline-block; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); border-radius:20px; padding:8px 24px; font-size:14px; margin:6px; }
+  .portada .version { margin-top: 50px; font-size: 13px; opacity: 0.6; }
+
+  /* LAYOUT */
+  .container { max-width: 960px; margin: 0 auto; padding: 40px 20px; }
+
+  /* SECCIÓN */
+  .seccion {
+    background: white; border-radius: 12px; padding: 32px; margin-bottom: 28px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    page-break-inside: avoid;
+  }
+  .seccion-header {
+    display: flex; align-items: center; gap: 14px;
+    border-bottom: 2px solid #f0f4f8; padding-bottom: 16px; margin-bottom: 24px;
+  }
+  .seccion-icono {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+  }
+  .verde { background: #d1fae5; }
+  .azul { background: #dbeafe; }
+  .naranja { background: #fef3c7; }
+  .rojo { background: #fee2e2; }
+  .violeta { background: #ede9fe; }
+  .teal { background: #ccfbf1; }
+  .gris { background: #f3f4f6; }
+
+  .seccion h2 { font-size: 22px; color: #1a3a3a; font-weight: 700; }
+  .seccion .subtitulo { font-size: 13px; color: #888; margin-top: 2px; }
+
+  /* PASOS */
+  .pasos { display: flex; flex-direction: column; gap: 14px; }
+  .paso {
+    display: flex; gap: 16px; align-items: flex-start;
+    background: #f8fafc; border-radius: 8px; padding: 14px 16px;
+    border-left: 4px solid #1D9E75;
+  }
+  .paso-num {
+    width: 28px; height: 28px; background: #1D9E75; color: white;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+  }
+  .paso-contenido h4 { font-size: 14px; font-weight: 600; color: #1a3a3a; margin-bottom: 3px; }
+  .paso-contenido p { font-size: 13px; color: #555; line-height: 1.5; }
+
+  /* ROLES */
+  .roles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .rol-card {
+    border-radius: 10px; padding: 20px; text-align: center;
+    border: 2px solid transparent;
+  }
+  .rol-card.doctor { background: #f0fdf4; border-color: #86efac; }
+  .rol-card.secretaria { background: #eff6ff; border-color: #93c5fd; }
+  .rol-card.admin { background: #fdf4ff; border-color: #d8b4fe; }
+  .rol-card .rol-icono { font-size: 36px; margin-bottom: 10px; }
+  .rol-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .rol-card ul { list-style: none; text-align: left; font-size: 12px; color: #555; }
+  .rol-card ul li { padding: 3px 0; }
+  .rol-card ul li::before { content: "✓ "; color: #1D9E75; font-weight: bold; }
+
+  /* FLUJO */
+  .flujo { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+  .flujo-paso {
+    background: #1a3a3a; color: white; border-radius: 8px;
+    padding: 10px 16px; font-size: 13px; font-weight: 600; text-align: center;
+  }
+  .flujo-flecha { font-size: 20px; color: #1D9E75; font-weight: bold; }
+
+  /* ESTADO BADGES */
+  .estados { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+  .estado {
+    border-radius: 20px; padding: 6px 16px; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .e-pendiente { background: #fef3c7; color: #92400e; }
+  .e-confirmado { background: #d1fae5; color: #065f46; }
+  .e-enConsulta { background: #dbeafe; color: #1e40af; }
+  .e-atendido { background: #ede9fe; color: #5b21b6; }
+  .e-cancelado { background: #fee2e2; color: #991b1b; }
+
+  /* PANTALLAS MOCKUP */
+  .mockup {
+    background: #1a3a3a; border-radius: 12px; overflow: hidden;
+    margin: 16px 0; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  }
+  .mockup-bar {
+    background: #0f2020; padding: 8px 14px; display: flex;
+    align-items: center; gap: 6px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #ff5f56; }
+  .dot.y { background: #febc2e; }
+  .dot.g { background: #28c840; }
+  .mockup-url { color: #888; font-size: 11px; margin-left: 8px; font-family: monospace; }
+  .mockup-body {
+    background: #f0f4f8; padding: 0;
+    display: flex; min-height: 160px;
+  }
+  .mock-sidebar {
+    background: #1a3a3a; width: 160px; padding: 16px 12px; flex-shrink: 0;
+  }
+  .mock-sidebar .mock-logo { color: white; font-size: 13px; font-weight: 700; text-align: center; margin-bottom: 16px; }
+  .mock-nav-item {
+    color: rgba(255,255,255,0.7); font-size: 11px; padding: 7px 10px;
+    border-radius: 6px; margin-bottom: 4px;
+  }
+  .mock-nav-item.active { background: rgba(255,255,255,0.15); color: white; }
+  .mock-content { flex: 1; padding: 16px; }
+  .mock-title { font-size: 18px; font-weight: 700; color: #1a3a3a; margin-bottom: 12px; }
+  .mock-cards { display: flex; gap: 10px; margin-bottom: 12px; }
+  .mock-card {
+    background: white; border-radius: 8px; padding: 12px; flex: 1;
+    border-left: 3px solid #1D9E75; font-size: 11px;
+  }
+  .mock-card .num { font-size: 22px; font-weight: 700; color: #1a3a3a; }
+  .mock-card .lbl { color: #888; margin-top: 2px; }
+  .mock-table { background: white; border-radius: 8px; overflow: hidden; font-size: 11px; }
+  .mock-table-header { background: #f8fafc; padding: 8px 12px; font-weight: 600; color: #555; display: flex; gap: 20px; }
+  .mock-table-row { padding: 8px 12px; border-top: 1px solid #f0f0f0; display: flex; gap: 20px; align-items: center; }
+  .mock-btn { background: #1D9E75; color: white; border-radius: 4px; padding: 3px 8px; font-size: 10px; }
+  .mock-btn.azul { background: #3b82f6; }
+  .mock-btn.naranja { background: #f59e0b; }
+
+  /* ACCIONES */
+  .acciones-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; }
+  .accion-item {
+    background: #f8fafc; border-radius: 8px; padding: 14px;
+    border: 1px solid #e5e7eb; display: flex; gap: 12px; align-items: flex-start;
+  }
+  .accion-icono { font-size: 24px; flex-shrink: 0; }
+  .accion-item h4 { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .accion-item p { font-size: 12px; color: #666; line-height: 1.4; }
+
+  /* TIPS */
+  .tip {
+    background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;
+    padding: 12px 16px; font-size: 13px; color: #166534; margin-top: 12px;
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+  .advertencia {
+    background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;
+    padding: 12px 16px; font-size: 13px; color: #92400e; margin-top: 12px;
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+
+  /* TABLA DATOS */
+  table.datos { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+  table.datos th { background: #f8fafc; padding: 10px 12px; text-align: left; font-weight: 600; color: #555; border-bottom: 2px solid #e5e7eb; }
+  table.datos td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; color: #444; }
+  table.datos tr:last-child td { border-bottom: none; }
+
+  /* INDEX */
+  .indice { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px; }
+  .indice-item {
+    background: #f8fafc; border-radius: 8px; padding: 12px 16px;
+    border-left: 3px solid #1D9E75; font-size: 13px; font-weight: 600; color: #1a3a3a;
+  }
+  .indice-item span { color: #888; font-weight: 400; display: block; font-size: 11px; margin-top: 2px; }
+
+  /* PRINT */
+  @media print {
+    body { background: white; }
+    .seccion { box-shadow: none; border: 1px solid #e5e7eb; }
+    .portada { page-break-after: always; }
+  }
+
+  @media (max-width: 600px) {
+    .roles-grid { grid-template-columns: 1fr; }
+    .acciones-grid { grid-template-columns: 1fr; }
+    .indice { grid-template-columns: 1fr; }
+    .mock-sidebar { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- PORTADA -->
+<div class="portada">
+  <div class="logo">🏥</div>
+  <h1>LEMES</h1>
+  <h2>Sistema de Gestión Médica Digital</h2>
+  <div>
+    <span class="badge">👨‍⚕️ Dr. Carlos Alberto Lemes</span>
+    <span class="badge">📍 Santo Tomé, Corrientes</span>
+    <span class="badge">🌐 Sistema en la Nube</span>
+  </div>
+  <div style="margin-top:40px;font-size:15px;opacity:0.9;">Manual de Usuario — Guía Completa del Sistema</div>
+  <div class="version">Versión 2026 · lemescarlos-alberto-production.up.railway.app</div>
+</div>
+
+<div class="container">
+
+  <!-- ÍNDICE -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-icono gris">📋</div>
+      <div>
+        <h2>Contenido</h2>
+        <div class="subtitulo">Secciones del manual</div>
+      </div>
+    </div>
+    <div class="indice">
+      <div class="indice-item">1. Acceso al Sistema <span>Login, roles y permisos</span></div>
+      <div class="indice-item">2. Dashboard <span>Resumen general de la clínica</span></div>
+      <div class="indice-item">3. Gestión de Pacientes <span>Registro y ficha del paciente</span></div>
+      <div class="indice-item">4. Turnos <span>Agendar, confirmar y notificar</span></div>
+      <div class="indice-item">5. Historia Clínica <span>Consultas, diagnósticos, medicamentos</span></div>
+      <div class="indice-item">6. Receta Médica <span>Generar, imprimir y enviar</span></div>
+      <div class="indice-item">7. Notificaciones <span>WhatsApp y Email</span></div>
+      <div class="indice-item">8. Roles y Permisos <span>Doctor, Secretaria, Admin</span></div>
+      <div class="indice-item">9. Diagnósticos CIE-10 <span>Cómo cargar y buscar diagnósticos</span></div>
+      <div class="indice-item">10. Documentos Adjuntos <span>Subir estudios e imágenes</span></div>
+      <div class="indice-item">11. Agenda del Doctor <span>Turnos del día, iniciar consulta y finalizar</span></div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN 1: ACCESO -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-icono verde">🔐</div>
+      <div>
+        <h2>1. Acceso al Sistema</h2>
+        <div class="subtitulo">lemescarlos-alberto-production.up.railway.app/login</div>
+      </div>
+    </div>
+
+    <div class="mockup">
+      <div class="mockup-bar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <span class="mockup-url">lemescarlos-alberto-production.up.railway.app/login</span>
+      </div>
+      <div style="background:linear-gradient(135deg,#1a3a3a,#0d5c4a);padding:40px;display:flex;justify-content:center;">
+        <div style="background:white;border-radius:12px;padding:28px;width:260px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">🏥</div>
+          <div style="font-size:16px;font-weight:700;color:#1a3a3a;margin-bottom:4px;">LEMES</div>
+          <div style="font-size:11px;color:#888;margin-bottom:20px;">Sistema Médico</div>
+          <div style="background:#f8fafc;border-radius:6px;padding:10px;margin-bottom:8px;text-align:left;font-size:11px;color:#555;">
+            📧 usuario@lemes.com
+          </div>
+          <div style="background:#f8fafc;border-radius:6px;padding:10px;margin-bottom:16px;text-align:left;font-size:11px;color:#555;">
+            🔒 ••••••••
+          </div>
+          <div style="background:#1D9E75;color:white;border-radius:6px;padding:10px;font-size:12px;font-weight:600;">
+            Iniciar sesión
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pasos">
+      <div class="paso">
+        <div class="paso-num">1</div>
+        <div class="paso-contenido">
+          <h4>Ingresar usuario y contraseña</h4>
+          <p>Usá el email y contraseña asignados por el administrador del sistema.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">2</div>
+        <div class="paso-contenido">
+          <h4>El sistema detecta tu rol automáticamente</h4>
+          <p>Doctor → accede a todas las funciones médicas. Secretaria → gestión de turnos y pacientes. Admin → configuración total.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">3</div>
+        <div class="paso-contenido">
+          <h4>Serás redirigido al Dashboard</h4>
+          <p>Cada rol ve un panel adaptado a sus tareas.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN 3: DASHBOARD -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-icono azul">📊</div>
+      <div>
+        <h2>2. Dashboard</h2>
+        <div class="subtitulo">Resumen visual de la actividad de la clínica</div>
+      </div>
+    </div>
+
+    <div class="mockup">
+      <div class="mockup-bar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <span class="mockup-url">/doctor/dashboard</span>
+      </div>
+      <div class="mockup-body">
+        <div class="mock-sidebar">
+          <div class="mock-logo">🏥 LEMES</div>
+          <div class="mock-nav-item active">📊 Dashboard</div>
+          <div class="mock-nav-item">👥 Pacientes</div>
+          <div class="mock-nav-item">📅 Turnos</div>
+        </div>
+        <div class="mock-content">
+          <div class="mock-title">📊 Dashboard</div>
+          <div class="mock-cards">
+            <div class="mock-card"><div class="num">24</div><div class="lbl">Turnos hoy</div></div>
+            <div class="mock-card" style="border-color:#3b82f6"><div class="num">8</div><div class="lbl">Confirmados</div></div>
+            <div class="mock-card" style="border-color:#f59e0b"><div class="num">156</div><div class="lbl">Pacientes</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="acciones-grid">
+      <div class="accion-item">
+        <div class="accion-icono">📅</div>
+        <div><h4>Turnos del día</h4><p>Cantidad de turnos programados para hoy, confirmados y pendientes.</p></div>
+      </div>
+      <div class="accion-item">
+        <div class="accion-icono">👥</div>
+        <div><h4>Total de pacientes</h4><p>Número de pacientes registrados en el sistema.</p></div>
+      </div>
+      <div class="accion-item">
+        <div class="accion-icono">📈</div>
+        <div><h4>Estadísticas</h4><p>Gráficos de actividad semanal y mensual de la clínica.</p></div>
+      </div>
+      <div class="accion-item">
+        <div class="accion-icono">🔔</div>
+        <div><h4>Acceso rápido</h4><p>Links directos a agendar turno, buscar paciente y ver historia.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN 4: PACIENTES -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-icono teal">👤</div>
+      <div>
+        <h2>3. Gestión de Pacientes</h2>
+        <div class="subtitulo">Registro, búsqueda y ficha completa del paciente</div>
+      </div>
+    </div>
+
+    <div class="mockup">
+      <div class="mockup-bar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <span class="mockup-url">/doctor/pacientes</span>
+      </div>
+      <div class="mockup-body">
+        <div class="mock-sidebar">
+          <div class="mock-logo">🏥 LEMES</div>
+          <div class="mock-nav-item">📊 Dashboard</div>
+          <div class="mock-nav-item active">👥 Pacientes</div>
+          <div class="mock-nav-item">📅 Turnos</div>
+        </div>
+        <div class="mock-content">
+          <div class="mock-title">👥 Pacientes</div>
+          <div style="background:#1D9E75;color:white;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;display:inline-block;margin-bottom:10px;">+ Nuevo Paciente</div>
+          <div class="mock-table">
+            <div class="mock-table-header"><span style="flex:2">Nombre</span><span style="flex:1">DNI</span><span style="flex:1">Teléfono</span><span>Acción</span></div>
+            <div class="mock-table-row"><span style="flex:2">García, Juan</span><span style="flex:1">32145678</span><span style="flex:1">3756...</span><span class="mock-btn">Ver</span></div>
+            <div class="mock-table-row"><span style="flex:2">López, María</span><span style="flex:1">28963214</span><span style="flex:1">3756...</span><span class="mock-btn">Ver</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:15px;color:#1a3a3a;margin:20px 0 10px;">Datos que se registran del paciente:</h3>
+    <table class="datos">
+      <tr><th>Campo</th><th>Descripción</th></tr>
+      <tr><td>Nombre y Apellido</td><td>Nombre completo del paciente</td></tr>
+      <tr><td>DNI</td><td>Documento Nacional de Identidad</td></tr>
+      <tr><td>Fecha de nacimiento</td><td>Para calcular edad automáticamente</td></tr>
+      <tr><td>Sexo</td><td>Masculino / Femenino / Otro</td></tr>
+      <tr><td>Teléfono</td><td>Para notificaciones por WhatsApp</td></tr>
+      <tr><td>Email</td><td>Para envío de recetas y confirmaciones</td></tr>
+      <tr><td>Obra Social</td><td>Cobertura médica del paciente</td></tr>
+      <tr><td>Dirección</td><td>Domicilio del paciente</td></tr>
+    </table>
+
+    <div class="tip">💡 Desde la ficha del paciente podés acceder directamente a su historia clínica completa, turnos y estudios adjuntos.</div>
+  </div>
+
+  <!-- SECCIÓN 5: TURNOS -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-icono naranja">📅</div>
+      <div>
+        <h2>4. Gestión de Turnos</h2>
+        <div class="subtitulo">Ciclo completo del turno médico</div>
+      </div>
+    </div>
+
+    <h3 style="font-size:14px;color:#555;margin-bottom:12px;">Estados del turno:</h3>
+    <div class="estados">
+      <span class="estado e-pendiente">⏳ Pendiente</span>
+      <span class="estado e-confirmado">✅ Confirmado</span>
+      <span class="estado e-enConsulta">🩺 En Consulta</span>
+      <span class="estado e-atendido">✔️ Atendido</span>
+      <span class="estado e-cancelado">❌ Cancelado</span>
+    </div>
+
+    <h3 style="font-size:14px;color:#555;margin:20px 0 12px;">Flujo del turno:</h3>
+    <div class="flujo">
+      <div class="flujo-paso">📝 Agendar</div>
+      <div class="flujo-flecha">→</div>
+      <div class="flujo-paso">✅ Confirmar</div>
+      <div class="flujo-flecha">→</div>
+      <div class="flujo-paso">📤 Notificar</div>
+      <div class="flujo-flecha">→</div>
+      <div class="flujo-paso">🩺 Iniciar consulta</div>
+      <div class="flujo-flecha">→</div>
+      <div class="flujo-paso">✔️ Atendido</div>
+    </div>
+
+    <div class="pasos" style="margin-top:16px;">
+      <div class="paso">
+        <div class="paso-num">1</div>
+        <div class="paso-contenido">
+          <h4>Agendar turno</h4>
+          <p>La secretaria o el doctor selecciona el paciente, fecha, hora y motivo de consulta. Si el paciente no existe, se puede crear desde la misma pantalla.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">2</div>
+        <div class="paso-contenido">
+          <h4>Confirmar turno</h4>
+          <p>El turno pasa de PENDIENTE a CONFIRMADO. Al confirmar, aparece automáticamente el modal para notificar al paciente.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">3</div>
+        <div class="paso-contenido">
+          <h4>Notificar al paciente</h4>
+          <p>Se puede enviar por <strong>WhatsApp</strong> (abre un mensaje pre-escrito con fecha y hora) o por <strong>Email</strong> (llega un correo desde lemesconsultorios@gmail.com con los detalles del turno).</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">4</div>
+        <div class="paso-contenido">
+          <h4>Iniciar consulta</h4>
+          <p>Cuando el paciente llega, el doctor presiona "Iniciar" y el turno pasa a EN CONSULTA. Se abre la historia clínica para cargar la atención.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">5</div>
+        <div class="paso-contenido">
+          <h4>Turno atendido</h4>
+          <p>Al finalizar la consulta, el turno queda como ATENDIDO y queda registrado en el historial del paciente.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tip">💡 Los turnos ya CONFIRMADOS muestran el botón 📤 Notificar para poder reenviar la notificación si el paciente no la recibió.</div>
+  </div>
+
+  <!-- SECCIÓN 6: HISTORIA CLÍNICA -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-icono rojo">🩺</div>
+      <div>
+        <h2>5. Historia Clínica</h2>
+        <div class="subtitulo">Registro completo de la atención médica del paciente</div>
+      </div>
+    </div>
+
+    <div class="acciones-grid">
+      <div class="accion-item">
+        <div class="accion-icono">📋</div>
+        <div><h4>Consultas</h4><p>Registro de cada visita con fecha, motivo y notas del médico.</p></div>
+      </div>
+      <div class="accion-item">
+        <div class="accion-icono">💊</div>
+        <div><h4>Medicamentos</h4><p>Lista de medicamentos prescriptos con dosis y frecuencia.</p></div>
+      </div>
+      <div class="accion-item">
+        <div class="accion-icono">🔬</div>
+        <div><h4>Diagnósticos CIE-10</h4><p>Diagnósticos codificados con el estándar internacional CIE-10.</p></div>
+      </div>
+      <div class="accion-item">
+        <div class="accion-icono">💉</div>
+        <div><h4>Tratamiento</h4><p>Plan de tratamiento con indicaciones y duración.</p></div>
+      </div>
+      <div class="accion-item">
+        <div class="accion-icono">❤️</div>
+        <div><h4>Signos Vitales</h4><p>Presión arterial, frecuencia cardíaca, temperatura, peso, talla.</p></div>
+      </div>
+      <div class="accion-item">
+        <div class="accion-icono">📝</div>
+        <div><h4>Anamnesis</h4><p>Historia del paciente, síntomas y motivo de consulta.</p></div>
+      </div>
+      <div class="accion-item">
+        <div class="accion-icono">📁</div>
+        <div><h4>Estudios Adjuntos</h4><p>Imágenes, análisis y documentos médicos subidos a la nube.</p></div>
+      </div>
+      <div class="accion-item">
+        <div class="accion-icono">🔍</div>
+        <div><h4>Antecedentes</h4><p>Enfermedades previas, cirugías, alergias y antecedentes familiares.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN 7: RECETA -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-icono verde">📄</div>
+      <div>
+        <h2>6. Receta Médica</h2>
+        <div class="subtitulo">Generar, imprimir y enviar la receta al paciente</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+      <!-- Mockup receta -->
+      <div style="background:white;border:1px solid #ddd;border-radius:8px;padding:16px;font-family:'Times New Roman',serif;font-size:10px;color:#222;">
+        <div style="text-align:center;border-bottom:2px solid #222;padding-bottom:8px;margin-bottom:8px;">
+          <div style="font-size:14px;font-weight:bold;font-family:cursive;">Dr. Carlos Alberto Lemes</div>
+          <div style="font-size:8px;line-height:1.6;">MÉDICO – M.P. 6306 · M.N. 158.838<br>Medicina General y Familiar – Endocrinología</div>
+          <div style="font-size:8px;font-style:italic;color:#555;">"El que no vive para servir, no sirve para vivir"</div>
+        </div>
+        <div style="font-size:9px;margin-bottom:6px;">PEDRO RODRIGUEZ · DNI: 25500900 · 43 años</div>
+        <div style="font-size:12px;font-weight:bold;">Rp./</div>
+        <div style="margin:4px 0 4px 10px;font-size:9px;"><strong>Hidroclorotiazida</strong> 25mg</div>
+        <div style="margin:4px 0 4px 10px;font-size:9px;"><strong>Glibenclamida</strong> 5mg</div>
+        <div style="margin-top:8px;padding-top:4px;border-top:1px dashed #bbb;">
+          <div style="font-size:7px;text-transform:uppercase;color:#666;">Diagnósticos</div>
+          <div style="font-size:8px;color:#333;">E11 – Diabetes mellitus tipo 2</div>
+        </div>
+        <div style="margin-top:30px;text-align:right;font-size:8px;">
+          <div>Santo Tomé, 22 de marzo de 2026</div>
+          <div style="border-top:1px solid #222;width:80px;margin:4px 0 2px auto;"></div>
+          <div>Dr. Carlos Alberto Lemes</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:7px;color:#666;border-top:1px solid #ccc;margin-top:6px;padding-top:4px;">
+          <span>WhatsApp: (3756) 619763</span><span>Ángel S. Blanco 121</span>
+        </div>
+      </div>
+      <div>
+        <h3 style="font-size:14px;margin-bottom:12px;color:#1a3a3a;">La receta se puede:</h3>
+        <div class="pasos">
+          <div class="paso">
+            <div class="paso-num" style="background:#6366f1;">🖨️</div>
+            <div class="paso-contenido">
+              <h4>Imprimir</h4>
+              <p>Se imprime en A4 horizontal con <strong>2 copias</strong>: izquierda con medicamentos y diagnósticos, derecha con tratamiento.</p>
+            </div>
+          </div>
+          <div class="paso">
+            <div class="paso-num" style="background:#25D366;">💬</div>
+            <div class="paso-contenido">
+              <h4>Enviar por WhatsApp</h4>
+              <p>Abre WhatsApp con un mensaje formateado con todos los datos de la receta listos para enviar.</p>
+            </div>
+          </div>
+          <div class="paso">
+            <div class="paso-num" style="background:#3b82f6;">📧</div>
+            <div class="paso-contenido">
+              <h4>Enviar por Email</h4>
+              <p>Llega un correo con la receta como <strong>PDF adjunto</strong>, idéntico al impreso, desde lemesconsultorios@gmail.com.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="advertencia">⚠️ La receta incluye marca de agua con el logo del consultorio y datos del médico. El PDF adjunto tiene el mismo formato que la versión impresa (A4 horizontal, 2 columnas).</div>
+  </div>
+
+  <!-- SECCIÓN 8: NOTIFICACIONES -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-icono naranja">📤</div>
+      <div>
+        <h2>7. Notificaciones al Paciente</h2>
+        <div class="subtitulo">WhatsApp y Email integrados en el sistema</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div style="background:#f0fdf4;border:2px solid #86efac;border-radius:10px;padding:20px;">
+        <div style="font-size:28px;margin-bottom:8px;">💬</div>
+        <h3 style="font-size:15px;color:#166534;margin-bottom:8px;">WhatsApp</h3>
+        <ul style="font-size:12px;color:#555;list-style:none;">
+          <li style="padding:4px 0;">✓ Confirmación de turno (fecha, hora, médico)</li>
+          <li style="padding:4px 0;">✓ Receta médica completa formateada</li>
+          <li style="padding:4px 0;">✓ El número se carga desde la ficha del paciente</li>
+          <li style="padding:4px 0;">✓ Se puede editar el número antes de enviar</li>
+          <li style="padding:4px 0;">✓ Abre WhatsApp Web o la app</li>
+        </ul>
+      </div>
+      <div style="background:#eff6ff;border:2px solid #93c5fd;border-radius:10px;padding:20px;">
+        <div style="font-size:28px;margin-bottom:8px;">📧</div>
+        <h3 style="font-size:15px;color:#1e40af;margin-bottom:8px;">Email</h3>
+        <ul style="font-size:12px;color:#555;list-style:none;">
+          <li style="padding:4px 0;">✓ Email de turno confirmado con detalles</li>
+          <li style="padding:4px 0;">✓ Receta como PDF adjunto</li>
+          <li style="padding:4px 0;">✓ El email se carga desde la ficha del paciente</li>
+          <li style="padding:4px 0;">✓ Se puede editar el email antes de enviar</li>
+          <li style="padding:4px 0;">✓ Enviado desde lemesconsultorios@gmail.com</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tip" style="margin-top:16px;">💡 Tanto el teléfono como el email se pre-cargan automáticamente desde la ficha del paciente, pero se pueden modificar antes de enviar.</div>
+  </div>
+
+  <!-- SECCIÓN 8: ROLES -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-icono violeta">👥</div>
+      <div>
+        <h2>8. Roles y Permisos</h2>
+        <div class="subtitulo">Tres perfiles con funciones diferenciadas</div>
+      </div>
+    </div>
+    <div class="roles-grid">
+      <div class="rol-card doctor">
+        <div class="rol-icono">👨‍⚕️</div>
+        <h3>Doctor</h3>
+        <ul>
+          <li>Ver y gestionar sus turnos</li>
+          <li>Acceder a historia clínica completa</li>
+          <li>Cargar consultas médicas</li>
+          <li>Agregar diagnósticos CIE-10</li>
+          <li>Prescribir medicamentos</li>
+          <li>Generar y enviar recetas</li>
+          <li>Ver signos vitales</li>
+          <li>Cargar anamnesis y antecedentes</li>
+        </ul>
+      </div>
+      <div class="rol-card secretaria">
+        <div class="rol-icono">💼</div>
+        <h3>Secretaria</h3>
+        <ul>
+          <li>Agendar turnos</li>
+          <li>Confirmar turnos pendientes</li>
+          <li>Registrar nuevos pacientes</li>
+          <li>Notificar turnos por WhatsApp/Email</li>
+          <li>Buscar pacientes</li>
+          <li>Ver listado de turnos</li>
+          <li>Cambiar estado de turnos</li>
+        </ul>
+      </div>
+      <div class="rol-card admin">
+        <div class="rol-icono">⚙️</div>
+        <h3>Admin</h3>
+        <ul>
+          <li>Crear y gestionar usuarios</li>
+          <li>Configurar doctores</li>
+          <li>Acceso completo al sistema</li>
+          <li>Gestión de parámetros</li>
+          <li>Ver estadísticas globales</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN 9: DIAGNÓSTICOS CIE-10 -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-icono rojo">🔬</div>
+      <div>
+        <h2>9. Cómo cargar un Diagnóstico CIE-10</h2>
+        <div class="subtitulo">Desde la historia clínica del paciente</div>
+      </div>
+    </div>
+
+    <div class="pasos">
+      <div class="paso">
+        <div class="paso-num">1</div>
+        <div class="paso-contenido">
+          <h4>Abrir la historia clínica del paciente</h4>
+          <p>Desde <strong>Pacientes → Ver → Historia Clínica</strong>, o desde Turnos → Iniciar consulta.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">2</div>
+        <div class="paso-contenido">
+          <h4>Ir a la sección "Diagnósticos" en el menú lateral</h4>
+          <p>En el sidebar izquierdo de la historia clínica, hacé click en <strong>Diagnósticos</strong>.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">3</div>
+        <div class="paso-contenido">
+          <h4>Buscar el diagnóstico por código o nombre</h4>
+          <p>Escribí en el buscador el <strong>código CIE-10</strong> (ej: E11) o el nombre de la enfermedad (ej: "diabetes"). El sistema muestra sugerencias en tiempo real.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">4</div>
+        <div class="paso-contenido">
+          <h4>Seleccionar el diagnóstico</h4>
+          <p>Hacé click sobre el resultado que corresponde. El diagnóstico queda guardado automáticamente en la historia del paciente.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">5</div>
+        <div class="paso-contenido">
+          <h4>El diagnóstico aparece en la receta</h4>
+          <p>Al abrir el modal de receta, los diagnósticos cargados aparecen automáticamente en la sección <strong>DIAGNÓSTICOS</strong> de la receta lista para imprimir o enviar.</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#f8fafc;border-radius:10px;padding:20px;margin-top:16px;border:1px solid #e5e7eb;">
+      <h3 style="font-size:13px;color:#555;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em;">Ejemplos de códigos CIE-10 frecuentes</h3>
+      <table class="datos">
+        <tr><th>Código</th><th>Diagnóstico</th></tr>
+        <tr><td><strong>E11</strong></td><td>Diabetes mellitus tipo 2</td></tr>
+        <tr><td><strong>I10</strong></td><td>Hipertensión esencial (primaria)</td></tr>
+        <tr><td><strong>J06</strong></td><td>Infección aguda de las vías respiratorias superiores</td></tr>
+        <tr><td><strong>K21</strong></td><td>Enfermedad por reflujo gastroesofágico</td></tr>
+        <tr><td><strong>E78</strong></td><td>Trastornos del metabolismo de las lipoproteínas</td></tr>
+        <tr><td><strong>M54</strong></td><td>Dorsalgia (dolor de espalda)</td></tr>
+      </table>
+    </div>
+
+    <div class="tip">💡 Podés cargar <strong>varios diagnósticos</strong> por paciente. Todos aparecerán en la receta y quedarán en el historial permanente de la historia clínica.</div>
+  </div>
+
+  <!-- SECCIÓN 10: DOCUMENTOS ADJUNTOS -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-icono azul">📁</div>
+      <div>
+        <h2>10. Cómo subir Documentos Adjuntos</h2>
+        <div class="subtitulo">Estudios, análisis, imágenes y documentos del paciente</div>
+      </div>
+    </div>
+
+    <div class="pasos">
+      <div class="paso">
+        <div class="paso-num">1</div>
+        <div class="paso-contenido">
+          <h4>Ir a la historia clínica del paciente</h4>
+          <p>Desde <strong>Pacientes → Ver → Historia Clínica</strong>.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">2</div>
+        <div class="paso-contenido">
+          <h4>Ir a la sección "Estudios" en el menú lateral</h4>
+          <p>En el sidebar izquierdo hacé click en <strong>Estudios</strong> o <strong>Documentos</strong>.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">3</div>
+        <div class="paso-contenido">
+          <h4>Hacer click en "Subir archivo"</h4>
+          <p>Se abre el selector de archivos. Podés subir imágenes (JPG, PNG), PDF, o cualquier documento médico.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">4</div>
+        <div class="paso-contenido">
+          <h4>Completar los datos del estudio</h4>
+          <p>Escribí el nombre del estudio (ej: "Análisis de sangre", "Radiografía de tórax") y la fecha.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">5</div>
+        <div class="paso-contenido">
+          <h4>El archivo se guarda en la nube</h4>
+          <p>Los documentos quedan almacenados en <strong>Cloudinary</strong> y se pueden ver en cualquier momento desde cualquier dispositivo.</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;">
+      <div style="background:#eff6ff;border-radius:8px;padding:16px;text-align:center;border:1px solid #bfdbfe;">
+        <div style="font-size:30px;margin-bottom:6px;">🖼️</div>
+        <div style="font-size:12px;font-weight:600;color:#1e40af;">Imágenes</div>
+        <div style="font-size:11px;color:#666;margin-top:4px;">JPG, PNG<br>Radiografías, ecografías</div>
+      </div>
+      <div style="background:#f0fdf4;border-radius:8px;padding:16px;text-align:center;border:1px solid #bbf7d0;">
+        <div style="font-size:30px;margin-bottom:6px;">📄</div>
+        <div style="font-size:12px;font-weight:600;color:#166534;">Documentos</div>
+        <div style="font-size:11px;color:#666;margin-top:4px;">PDF<br>Análisis, informes</div>
+      </div>
+      <div style="background:#fdf4ff;border-radius:8px;padding:16px;text-align:center;border:1px solid #e9d5ff;">
+        <div style="font-size:30px;margin-bottom:6px;">☁️</div>
+        <div style="font-size:12px;font-weight:600;color:#7e22ce;">En la nube</div>
+        <div style="font-size:11px;color:#666;margin-top:4px;">Siempre disponibles<br>desde cualquier lugar</div>
+      </div>
+    </div>
+
+    <div class="tip">💡 Los archivos adjuntos quedan asociados al paciente para siempre. Podés verlos, descargarlos o eliminarlos desde la historia clínica en cualquier momento.</div>
+    <div class="advertencia" style="margin-top:8px;">⚠️ El sistema almacena los archivos en la nube (Cloudinary). No ocupan espacio en la computadora y se accede a ellos desde cualquier dispositivo con internet.</div>
+  </div>
+
+  <!-- SECCIÓN 11: AGENDA DEL DOCTOR -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-icono teal">📅</div>
+      <div>
+        <h2>11. Agenda del Doctor</h2>
+        <div class="subtitulo">Turnos confirmados del día, iniciar consulta y finalizar</div>
+      </div>
+    </div>
+
+    <p style="font-size:14px;color:#555;margin-bottom:20px;">
+      Al ingresar al dashboard, el doctor ve automáticamente los turnos del día agrupados por estado.
+      Solo se muestran los turnos <strong>CONFIRMADOS</strong> y <strong>EN_CONSULTA</strong>.
+      El sistema permite iniciar la consulta con un solo clic, navegando directamente a la Historia Clínica del paciente.
+    </p>
+
+    <!-- Mockup de la agenda -->
+    <div style="background:#f8fafc;border-radius:10px;padding:20px;margin-bottom:20px;border:1px solid #e2e8f0;">
+      <div style="font-size:12px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;">Vista: Agenda de hoy en el Dashboard</div>
+
+      <!-- Turno CONFIRMADO -->
+      <div style="background:white;border-radius:8px;padding:14px 16px;margin-bottom:10px;border-left:4px solid #1D9E75;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <div>
+          <div style="font-weight:700;font-size:14px;color:#1a3a3a;">09:00 – García, Juan</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;">Control mensual · Confirmado</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <span style="background:#d1fae5;color:#065f46;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;border:none;cursor:pointer;">▶ Iniciar Consulta</span>
+          <span style="background:#fee2e2;color:#991b1b;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;border:none;cursor:pointer;">✕ Cancelar</span>
+        </div>
+      </div>
+
+      <!-- Turno EN_CONSULTA -->
+      <div style="background:white;border-radius:8px;padding:14px 16px;margin-bottom:10px;border-left:4px solid #f59e0b;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <div>
+          <div style="font-weight:700;font-size:14px;color:#1a3a3a;">10:30 – Rodríguez, María</div>
+          <div style="font-size:12px;color:#d97706;margin-top:2px;">🟡 En consulta ahora</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <span style="background:#dbeafe;color:#1e40af;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;border:none;cursor:pointer;">📋 Ver Historia</span>
+          <span style="background:#d1fae5;color:#065f46;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;border:none;cursor:pointer;">✔ Finalizar</span>
+          <span style="background:#fee2e2;color:#991b1b;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;border:none;cursor:pointer;">✕ Cancelar</span>
+        </div>
+      </div>
+
+      <!-- Turno PENDIENTE (sin botón HC) -->
+      <div style="background:white;border-radius:8px;padding:14px 16px;border-left:4px solid #94a3b8;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);opacity:0.7;">
+        <div>
+          <div style="font-weight:700;font-size:14px;color:#1a3a3a;">11:00 – López, Pedro</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;">Sin confirmar · No disponible</div>
+        </div>
+        <div>
+          <span style="background:#f3f4f6;color:#9ca3af;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:not-allowed;">Pendiente confirmación</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flujo de estados -->
+    <h3 style="font-size:15px;font-weight:700;color:#1a3a3a;margin-bottom:12px;">Flujo de la consulta</h3>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+      <div style="background:#f3f4f6;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:#555;text-align:center;">PENDIENTE<div style="font-size:11px;font-weight:400;color:#888;margin-top:2px;">Turno solicitado</div></div>
+      <div style="color:#94a3b8;font-size:18px;">→</div>
+      <div style="background:#d1fae5;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:#065f46;text-align:center;">CONFIRMADO<div style="font-size:11px;font-weight:400;color:#059669;margin-top:2px;">Listo para atender</div></div>
+      <div style="color:#94a3b8;font-size:18px;">→</div>
+      <div style="background:#fef3c7;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:#92400e;text-align:center;">EN CONSULTA<div style="font-size:11px;font-weight:400;color:#d97706;margin-top:2px;">Paciente en atención</div></div>
+      <div style="color:#94a3b8;font-size:18px;">→</div>
+      <div style="background:#dbeafe;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:#1e40af;text-align:center;">ATENDIDO<div style="font-size:11px;font-weight:400;color:#3b82f6;margin-top:2px;">Consulta finalizada</div></div>
+    </div>
+
+    <!-- Pasos -->
+    <div class="pasos">
+      <div class="paso">
+        <div class="paso-num">1</div>
+        <div class="paso-contenido">
+          <h4>Ver los turnos del día</h4>
+          <p>Al ingresar al dashboard como doctor, el sistema muestra automáticamente la lista de turnos confirmados para el día de hoy. Solo aparecen los turnos en estado <strong>CONFIRMADO</strong> o <strong>EN_CONSULTA</strong>.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">2</div>
+        <div class="paso-contenido">
+          <h4>Iniciar consulta → apertura automática de la HC</h4>
+          <p>Al hacer clic en <strong>"Iniciar Consulta"</strong>, el sistema cambia el turno a EN_CONSULTA y <em>navega directamente</em> a la Historia Clínica del paciente en la misma pestaña. No se abren ventanas emergentes (que los navegadores bloquean).</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">3</div>
+        <div class="paso-contenido">
+          <h4>Durante la consulta</h4>
+          <p>Mientras el turno está en EN_CONSULTA, el doctor puede registrar la nueva consulta, diagnósticos, medicamentos y receta desde la Historia Clínica. El botón <strong>"Ver Historia"</strong> en el dashboard también lleva directamente a esa HC.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">4</div>
+        <div class="paso-contenido">
+          <h4>Finalizar la consulta</h4>
+          <p>Al terminar la atención, el doctor hace clic en <strong>"Finalizar"</strong> desde el dashboard. El turno pasa a estado ATENDIDO y desaparece de la agenda activa. Opcionalmente puede <strong>Cancelar</strong> si el paciente no se presentó.</p>
+        </div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">5</div>
+        <div class="paso-contenido">
+          <h4>Pacientes sin Historia Clínica</h4>
+          <p>La lista de pacientes en el sistema solo muestra pacientes que ya tienen al menos una consulta registrada (Historia Clínica activa). Los pacientes sin HC aún no aparecen en la lista de pacientes.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tip" style="margin-top:18px;">💡 Si el día está muy ocupado, los turnos EN_CONSULTA se muestran resaltados en amarillo para que el doctor sepa de un vistazo cuál está en curso.</div>
+    <div class="advertencia" style="margin-top:8px;">⚠️ Solo los turnos <strong>CONFIRMADOS</strong> tienen el botón "Iniciar Consulta". Los turnos PENDIENTES no habilitarán la Historia Clínica hasta ser confirmados (tarea de la secretaria).</div>
+  </div>
+
+  <!-- PIE -->
+  <div style="text-align:center;padding:30px;color:#aaa;font-size:12px;">
+    <div style="font-size:24px;margin-bottom:8px;">🏥</div>
+    <div style="font-weight:700;color:#1a3a3a;font-size:15px;">Sistema Médico LEMES</div>
+    <div style="margin-top:6px;">Dr. Carlos Alberto Lemes · M.P. 6306 · M.N. 158.838</div>
+    <div style="margin-top:4px;">Ángel S. Blanco 121 · Santo Tomé, Corrientes · Solo WhatsApp: (3756) 619763</div>
+    <div style="margin-top:12px;font-size:11px;color:#ccc;">lemescarlos-alberto-production.up.railway.app</div>
+  </div>
+
+</div>
+</body>
+</html>
