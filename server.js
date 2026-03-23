@@ -4607,7 +4607,7 @@ async function enviarEmailBrevo({ to, subject, html, attachments = [] }) {
   if (attachments.length > 0) {
     body.attachment = attachments.map(a => ({
       name: a.filename,
-      content: Buffer.isBuffer(a.content) ? a.content.toString('base64') : a.content
+      content: Buffer.from(a.content).toString('base64')
     }));
   }
 
