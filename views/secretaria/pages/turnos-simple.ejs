@@ -233,9 +233,9 @@
         <div class="col-md-6 col-lg-3">
           <div class="filter-group">
             <label>&nbsp;</label>
-            <a href="/doctor/agendar-turno" class="btn btn-agendar w-100">
+            <button onclick="abrirCalendarioAgendar()" class="btn btn-agendar w-100">
               <i class="fas fa-plus"></i> Agendar Turno
-            </a>
+            </button>
           </div>
         </div>
       </div>
@@ -1421,5 +1421,143 @@
 </script>
 
 <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }</script>
+
+<script>
+// ============================================================
+// CALENDARIO PARA AGENDAR TURNO
+// ============================================================
+function abrirCalendarioAgendar() {
+  // Calcular turnos por fecha (solo PENDIENTE y EN_CONSULTA)
+  const turnosPorFecha = {};
+  if (typeof turnosGlobales !== 'undefined' && turnosGlobales) {
+    turnosGlobales.forEach(t => {
+      if (['PENDIENTE', 'EN_CONSULTA'].includes(t.estado?.nombre)) {
+        // fecha viene como "23/3/2026" o "23/03/2026"
+        const partes = t.fecha.split('/');
+        if (partes.length === 3) {
+          const key = `${partes[2]}-${String(partes[1]).padStart(2,'0')}-${String(partes[0]).padStart(2,'0')}`;
+          turnosPorFecha[key] = (turnosPorFecha[key] || 0) + 1;
+        }
+      }
+    });
+  }
+
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+  let mesActual = hoy.getMonth();
+  let anioActual = hoy.getFullYear();
+
+  function renderCalendario(mes, anio) {
+    const diasSemana = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const mesesNombre = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const primerDia = new Date(anio, mes, 1).getDay();
+    const diasEnMes = new Date(anio, mes + 1, 0).getDate();
+    const hoyISO = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+
+    let celdas = '';
+    // Celdas vacías al inicio
+    for (let i = 0; i < primerDia; i++) {
+      celdas += `<div style="padding:6px;"></div>`;
+    }
+    // Días del mes
+    for (let d = 1; d <= diasEnMes; d++) {
+      const fechaISO = `${anio}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const fechaObj = new Date(anio, mes, d);
+      const esPasado = fechaObj < hoy;
+      const esDomingo = fechaObj.getDay() === 0;
+      const esHoy = fechaISO === hoyISO;
+      const count = turnosPorFecha[fechaISO] || 0;
+
+      let bg = '#f0fdf4'; let colorNum = '#059669'; let border = '1px solid #bbf7d0';
+      if (count >= 5) { bg = '#fee2e2'; colorNum = '#dc2626'; border = '1px solid #fca5a5'; }
+      else if (count >= 3) { bg = '#fef3c7'; colorNum = '#d97706'; border = '1px solid #fde68a'; }
+      else if (count >= 1) { bg = '#dbeafe'; colorNum = '#1d4ed8'; border = '1px solid #bfdbfe'; }
+
+      if (esPasado || esDomingo) {
+        bg = '#f9fafb'; colorNum = '#d1d5db'; border = '1px solid #e5e7eb';
+        celdas += `<div style="padding:6px;border-radius:8px;background:${bg};border:${border};opacity:0.5;text-align:center;cursor:not-allowed;">
+          <div style="font-weight:700;font-size:14px;color:#9ca3af;">${d}</div>
+          ${!esDomingo ? `<div style="font-size:10px;color:#d1d5db;">—</div>` : `<div style="font-size:10px;color:#e5e7eb;">Dom</div>`}
+        </div>`;
+      } else {
+        celdas += `<div onclick="seleccionarFechaCalendario('${fechaISO}')" style="padding:6px;border-radius:8px;background:${bg};border:${border};text-align:center;cursor:pointer;transition:transform .1s;${esHoy ? 'box-shadow:0 0 0 2px #1D9E75;' : ''}"
+          onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+          <div style="font-weight:700;font-size:14px;color:#1a3a3a;">${d}${esHoy ? ' <span style="font-size:8px;color:#1D9E75;">HOY</span>' : ''}</div>
+          <div style="font-size:10px;font-weight:600;color:${colorNum};">${count > 0 ? count + ' turno' + (count>1?'s':'') : 'libre'}</div>
+        </div>`;
+      }
+    }
+
+    const puedoAnterior = new Date(anio, mes, 1) > hoy;
+    document.getElementById('calBody').innerHTML = celdas;
+    document.getElementById('calTitulo').textContent = `${mesesNombre[mes]} ${anio}`;
+    document.getElementById('calBtnAnterior').style.opacity = puedoAnterior ? '1' : '0.3';
+    document.getElementById('calBtnAnterior').style.pointerEvents = puedoAnterior ? 'auto' : 'none';
+  }
+
+  let container = document.getElementById('modalCalendarioContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'modalCalendarioContainer';
+    document.body.appendChild(container);
+  }
+
+  const diasSemana = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const headers = diasSemana.map(d => `<div style="text-align:center;font-size:11px;font-weight:700;color:#888;padding:4px;">${d}</div>`).join('');
+
+  container.innerHTML = `
+    <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);display:flex;justify-content:center;align-items:center;z-index:9999;padding:16px;" onclick="cerrarCalendario()">
+      <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+          <h3 style="font-size:16px;font-weight:700;color:#1a3a3a;margin:0;">📅 Elegí el día del turno</h3>
+          <button onclick="cerrarCalendario()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;line-height:1;">✕</button>
+        </div>
+
+        <!-- Leyenda -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+          <span style="font-size:11px;display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:3px;display:inline-block;"></span>Libre</span>
+          <span style="font-size:11px;display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:#dbeafe;border:1px solid #bfdbfe;border-radius:3px;display:inline-block;"></span>1–2 turnos</span>
+          <span style="font-size:11px;display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:#fef3c7;border:1px solid #fde68a;border-radius:3px;display:inline-block;"></span>3–4</span>
+          <span style="font-size:11px;display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:#fee2e2;border:1px solid #fca5a5;border-radius:3px;display:inline-block;"></span>5+</span>
+        </div>
+
+        <!-- Navegación mes -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <button id="calBtnAnterior" onclick="navegarCalendario(-1)" style="background:#f3f4f6;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:700;">‹</button>
+          <span id="calTitulo" style="font-weight:700;font-size:15px;color:#1a3a3a;"></span>
+          <button onclick="navegarCalendario(1)" style="background:#f3f4f6;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:700;">›</button>
+        </div>
+
+        <!-- Grilla -->
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">
+          ${headers}
+          <div id="calBody" style="display:contents;"></div>
+        </div>
+      </div>
+    </div>`;
+
+  renderCalendario(mesActual, anioActual);
+
+  window._calMes = mesActual;
+  window._calAnio = anioActual;
+  window.navegarCalendario = function(dir) {
+    window._calMes += dir;
+    if (window._calMes > 11) { window._calMes = 0; window._calAnio++; }
+    if (window._calMes < 0) { window._calMes = 11; window._calAnio--; }
+    renderCalendario(window._calMes, window._calAnio);
+  };
+}
+
+function seleccionarFechaCalendario(fechaISO) {
+  cerrarCalendario();
+  window.location.href = `/doctor/agendar-turno?fecha=${fechaISO}`;
+}
+
+function cerrarCalendario() {
+  const c = document.getElementById('modalCalendarioContainer');
+  if (c) c.innerHTML = '';
+}
+</script>
 </body>
 </html>

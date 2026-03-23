@@ -870,6 +870,12 @@
             // Limitar fecha mínima a hoy en el campo de turno
             const fechaInput = document.getElementById('fecha');
             if (fechaInput) fechaInput.min = new Date().toISOString().split('T')[0];
+            // Pre-llenar fecha si viene del calendario (?fecha=YYYY-MM-DD)
+            const params = new URLSearchParams(window.location.search);
+            const fechaParam = params.get('fecha');
+            if (fechaParam && fechaInput && !params.get('editar')) {
+                fechaInput.value = fechaParam;
+            }
             cargarTurnoParaEditar();
         });
     </script>
