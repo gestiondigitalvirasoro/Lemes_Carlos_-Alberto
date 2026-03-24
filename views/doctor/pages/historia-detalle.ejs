@@ -804,15 +804,14 @@
                         <div id="formTratamiento" style="background:#f8f9fa;border:0.5px solid #e9ecef;border-radius:10px;padding:1rem;display:none;">
                             <div style="font-size:13px;font-weight:600;color:#333;margin-bottom:12px;">+ Agregar medicamento</div>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-                                <div>
+                                <div style="position:relative;">
                                     <label style="font-size:12px;color:#666;display:block;margin-bottom:3px;">Medicamento</label>
-                                    <select id="trat-med-select" onchange="toggleTratCustom(this)" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;background:white;">
-                                        <option value="">Cargando...</option>
-                                    </select>
-                                </div>
-                                <div id="trat-custom-wrap" style="display:none;">
-                                    <label style="font-size:12px;color:#666;display:block;margin-bottom:3px;">Nombre del medicamento</label>
-                                    <input type="text" id="trat-custom-name" placeholder="Escribí el medicamento" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+                                    <input type="text" id="med-search-input" placeholder="Buscar medicamento..." autocomplete="off"
+                                        style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;"
+                                        oninput="filtrarMedicamentos(this.value)" onfocus="mostrarDropMed()" onblur="setTimeout(()=>ocultarDropMed(),200)">
+                                    <div id="med-dropdown" style="display:none;position:absolute;background:white;border:1px solid #ddd;border-top:none;max-height:220px;overflow-y:auto;width:100%;z-index:2000;box-shadow:0 4px 8px rgba(0,0,0,0.1);border-radius:0 0 6px 6px;">
+                                    </div>
+                                    <input type="hidden" id="trat-med-select" value="">
                                 </div>
                             </div>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
@@ -2648,37 +2647,53 @@ M.P. 6306 · M.N. 158.838
             document.getElementById('trat-custom-wrap').style.display = sel.value === 'otro' ? 'block' : 'none';
         }
 
-        // Cargar medicamentos desde BD
+        let _medicamentosLista = [];
         (async function cargarMedicamentos() {
-            const sel = document.getElementById('trat-med-select');
-            if (!sel) return;
             try {
                 const res = await fetch('/api/medicamentos', { credentials: 'include' });
-                const lista = await res.json();
-                // Agrupar por categoria
-                const grupos = {};
-                lista.forEach(m => {
-                    if (!grupos[m.categoria]) grupos[m.categoria] = [];
-                    grupos[m.categoria].push(m.nombre);
-                });
-                sel.innerHTML = '<option value="">Seleccionar...</option>';
-                Object.keys(grupos).sort().forEach(cat => {
-                    const og = document.createElement('optgroup');
-                    og.label = cat;
-                    grupos[cat].forEach(nom => {
-                        const opt = document.createElement('option');
-                        opt.value = nom; opt.textContent = nom;
-                        og.appendChild(opt);
-                    });
-                    sel.appendChild(og);
-                });
-                const otrOpt = document.createElement('option');
-                otrOpt.value = 'otro'; otrOpt.textContent = 'Otro (escribir)';
-                sel.appendChild(otrOpt);
-            } catch(e) {
-                console.error('Error cargando medicamentos:', e);
-            }
+                _medicamentosLista = await res.json();
+            } catch(e) { console.error('Error cargando medicamentos:', e); }
         })();
+
+        function filtrarMedicamentos(q) {
+            const drop = document.getElementById('med-dropdown');
+            const term = q.trim().toLowerCase();
+            const resultados = term.length === 0
+                ? _medicamentosLista.slice(0, 60)
+                : _medicamentosLista.filter(m =>
+                    m.nombre.toLowerCase().includes(term) ||
+                    m.categoria.toLowerCase().includes(term)
+                  ).slice(0, 80);
+
+            if (resultados.length === 0) {
+                drop.innerHTML = '<div style="padding:10px;color:#999;font-size:12px;">Sin resultados</div>';
+                drop.style.display = 'block';
+                return;
+            }
+            const grupos = {};
+            resultados.forEach(m => {
+                if (!grupos[m.categoria]) grupos[m.categoria] = [];
+                grupos[m.categoria].push(m.nombre);
+            });
+            let html = '';
+            Object.keys(grupos).sort().forEach(cat => {
+                html += `<div style="padding:6px 10px;font-size:11px;font-weight:700;color:#444;background:#f5f5f5;border-bottom:1px solid #eee;">${cat}</div>`;
+                grupos[cat].forEach(nom => {
+                    html += `<div onclick="seleccionarMed('${nom.replace(/'/g,"\\'")}'')" style="padding:8px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #f0f0f0;" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">${nom}</div>`;
+                });
+            });
+            drop.innerHTML = html;
+            drop.style.display = 'block';
+        }
+
+        function seleccionarMed(nombre) {
+            document.getElementById('med-search-input').value = nombre;
+            document.getElementById('trat-med-select').value = nombre;
+            ocultarDropMed();
+        }
+
+        function mostrarDropMed() { filtrarMedicamentos(document.getElementById('med-search-input').value); }
+        function ocultarDropMed() { document.getElementById('med-dropdown').style.display = 'none'; }
 
         function abrirFormTratamiento() {
             if (!modoEdicion) {
@@ -2692,10 +2707,10 @@ M.P. 6306 · M.N. 158.838
         }
 
         async function guardarTratamiento() {
-            const sel = document.getElementById('trat-med-select');
-            const nombre = sel.value === 'otro'
-                ? document.getElementById('trat-custom-name').value.trim()
-                : sel.value;
+            const hiddenMed = document.getElementById('trat-med-select');
+            const searchInput = document.getElementById('med-search-input');
+            const nombre = (hiddenMed && hiddenMed.value) ? hiddenMed.value.trim()
+                         : (searchInput ? searchInput.value.trim() : '');
             const dosis = document.getElementById('trat-dosis').value.trim();
             const frecuencia = document.getElementById('trat-frecuencia').value.trim();
             const fechaInicio = document.getElementById('trat-fecha-inicio').value;
@@ -2748,13 +2763,13 @@ M.P. 6306 · M.N. 158.838
                 grid.appendChild(card);
 
                 // Limpiar formulario
-                sel.value = '';
+                document.getElementById('trat-med-select').value = '';
+                document.getElementById('med-search-input').value = '';
                 document.getElementById('trat-dosis').value = '';
                 document.getElementById('trat-frecuencia').value = '';
                 document.getElementById('trat-fecha-inicio').value = '';
                 document.getElementById('trat-duracion').value = '';
                 document.getElementById('trat-indicaciones').value = '';
-                document.getElementById('trat-custom-wrap').style.display = 'none';
                 document.getElementById('formTratamiento').style.display = 'none';
                 document.getElementById('btnNuevoTratamiento').style.display = 'inline-block';
 
