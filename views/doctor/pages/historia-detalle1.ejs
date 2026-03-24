@@ -855,33 +855,7 @@
                                 <div>
                                     <label style="font-size:12px;color:#666;display:block;margin-bottom:3px;">Medicamento</label>
                                     <select id="trat-med-select" onchange="toggleTratCustom(this)" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;background:white;">
-                                        <option value="">Seleccionar...</option>
-                                        <optgroup label="Antidiabéticos">
-                                            <option>Metformina</option><option>Empagliflozina</option><option>Dapagliflozina</option>
-                                            <option>Glibenclamida</option><option>Glimepirida</option><option>Sitagliptina</option>
-                                            <option>Insulina NPH</option><option>Insulina Glargina</option>
-                                        </optgroup>
-                                        <optgroup label="Antihipertensivos">
-                                            <option>Enalapril</option><option>Losartán</option><option>Amlodipina</option>
-                                            <option>Atenolol</option><option>Bisoprolol</option><option>Hidroclorotiazida</option>
-                                            <option>Espironolactona</option>
-                                        </optgroup>
-                                        <optgroup label="Hipolipemiantes">
-                                            <option>Atorvastatina</option><option>Rosuvastatina</option><option>Gemfibrozilo</option>
-                                        </optgroup>
-                                        <optgroup label="Analgésicos / AINEs">
-                                            <option>Ibuprofeno</option><option>Paracetamol</option><option>Diclofenac</option>
-                                            <option>Naproxeno</option><option>Ketorolac</option>
-                                        </optgroup>
-                                        <optgroup label="Antibióticos">
-                                            <option>Amoxicilina</option><option>Amoxicilina + Clavulánico</option>
-                                            <option>Azitromicina</option><option>Ciprofloxacina</option>
-                                        </optgroup>
-                                        <optgroup label="Otros comunes">
-                                            <option>Omeprazol</option><option>Ranitidina</option><option>Metoclopramida</option>
-                                            <option>Loratadina</option><option>Salbutamol</option>
-                                        </optgroup>
-                                        <option value="otro">Otro (escribir)</option>
+                                        <option value="">Cargando...</option>
                                     </select>
                                 </div>
                                 <div id="trat-custom-wrap" style="display:none;">
@@ -2543,6 +2517,36 @@
         function toggleTratCustom(sel) {
             document.getElementById('trat-custom-wrap').style.display = sel.value === 'otro' ? 'block' : 'none';
         }
+
+        (async function cargarMedicamentos() {
+            const sel = document.getElementById('trat-med-select');
+            if (!sel) return;
+            try {
+                const res = await fetch('/api/medicamentos', { credentials: 'include' });
+                const lista = await res.json();
+                const grupos = {};
+                lista.forEach(m => {
+                    if (!grupos[m.categoria]) grupos[m.categoria] = [];
+                    grupos[m.categoria].push(m.nombre);
+                });
+                sel.innerHTML = '<option value="">Seleccionar...</option>';
+                Object.keys(grupos).sort().forEach(cat => {
+                    const og = document.createElement('optgroup');
+                    og.label = cat;
+                    grupos[cat].forEach(nom => {
+                        const opt = document.createElement('option');
+                        opt.value = nom; opt.textContent = nom;
+                        og.appendChild(opt);
+                    });
+                    sel.appendChild(og);
+                });
+                const otrOpt = document.createElement('option');
+                otrOpt.value = 'otro'; otrOpt.textContent = 'Otro (escribir)';
+                sel.appendChild(otrOpt);
+            } catch(e) {
+                console.error('Error cargando medicamentos:', e);
+            }
+        })();
 
         function abrirFormTratamiento() {
             if (!modoEdicion) {

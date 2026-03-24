@@ -395,6 +395,21 @@ model Turno {
 }
 
 // ============================================================================
+// 💊 MEDICAMENTO - Catálogo de medicamentos
+// ============================================================================
+model Medicamento {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @db.VarChar(200)
+  categoria   String   @db.VarChar(100)
+  activo      Boolean  @default(true)
+  creado_en   DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([categoria], map: "idx_medicamento_categoria")
+  @@index([nombre], map: "idx_medicamento_nombre")
+  @@map("medicamentos")
+}
+
+// ============================================================================
 // ENUMS - Tipos de datos simples
 // ============================================================================
 

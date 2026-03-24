@@ -2338,6 +2338,20 @@ app.get('/api/estados-turnos', async (req, res) => {
 // ============================================================================
 // ENDPOINT: BUSCAR CÓDIGOS CIE-10
 // ============================================================================
+// Cache en memoria para medicamentos
+let _medicamentosCache = null;
+app.get('/api/medicamentos', async (req, res) => {
+  try {
+    if (!_medicamentosCache) {
+      const rows = await prisma.$queryRaw`SELECT nombre, categoria FROM medicamentos WHERE activo = true ORDER BY categoria, nombre`;
+      _medicamentosCache = rows;
+    }
+    res.json(_medicamentosCache);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/cie10/search', async (req, res) => {
   try {
     const query = req.query.q || '';
