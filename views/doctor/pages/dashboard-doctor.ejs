@@ -114,6 +114,7 @@
     .estado-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; 
       font-weight: 600; text-transform: uppercase; }
     .estado-PENDIENTE { background: #FFC107; color: #333; }
+    .fila-pendiente-seleccionable:hover { background: rgba(255, 193, 7, 0.12) !important; transition: background 0.15s; }
     .estado-CONFIRMADO { background: #17A2B8; color: white; }
     .estado-EN_CONSULTA { background: #007BFF; color: white; }
     .estado-ATENDIDO { background: #28A745; color: white; }
@@ -782,14 +783,12 @@
         return;
       }
 
-      // 🔥 PRIORIZAR EN_CONSULTA, luego PENDIENTE
+      // Solo mostrar EN_CONSULTA activo — el doctor elige el siguiente con doble clic
       let siguiente = turnosHoy.find(t => t.estado === 'EN_CONSULTA');
+
       if (!siguiente) {
-        siguiente = turnosHoy.find(t => t.estado === 'PENDIENTE');
-      }
-      
-      if (!siguiente) {
-        document.getElementById('siguiente-nombre').textContent = 'Sin turnos próximos';
+        const hayPendientes = turnosHoy.some(t => t.estado === 'PENDIENTE');
+        document.getElementById('siguiente-nombre').textContent = hayPendientes ? 'Seleccioná un paciente' : 'Sin turnos pendientes';
         document.getElementById('siguiente-hora').textContent = '--:--';
         document.getElementById('siguiente-fecha').textContent = '--/--/----';
         document.getElementById('siguiente-dni').textContent = '-';
@@ -800,7 +799,9 @@
         const estadoBadge = document.getElementById('siguiente-estado');
         estadoBadge.textContent = '';
         estadoBadge.className = 'estado-badge';
-        document.getElementById('siguiente-botones').innerHTML = '<p style="opacity:0.7;font-size:0.9rem;margin:0;">Todos los turnos han sido completados</p>';
+        document.getElementById('siguiente-botones').innerHTML = hayPendientes
+          ? '<p style="opacity:0.7;font-size:0.85rem;margin:0;"><i class="bi bi-hand-index"></i> Doble clic en un turno de la lista para iniciar la consulta</p>'
+          : '<p style="opacity:0.7;font-size:0.9rem;margin:0;">Todos los turnos han sido completados</p>';
         return;
       }
 
@@ -1175,7 +1176,7 @@
 
         // Generar botones según el estado
         if (turno.estado === 'PENDIENTE') {
-          botonesAccion = `<span class="text-muted" style="font-size: 0.85rem;">—</span>`;
+          botonesAccion = `<span class="text-muted" style="font-size: 0.8rem;"><i class="bi bi-mouse2"></i> Doble clic para iniciar</span>`;
         } else if (turno.estado === 'EN_CONSULTA') {
           botonesAccion = `
             <button class="btn btn-sm btn-info" onclick="abrirHistoriaClinica(${turno.id}, ${turno.paciente.id})" title="Ver historia clínica">
@@ -1194,7 +1195,13 @@
           `;
         }
         
-        return `<tr>
+        const esPendiente = turno.estado === 'PENDIENTE';
+        const hayEnConsulta = turnosHoy.some(t => t.estado === 'EN_CONSULTA');
+        const dblclick = esPendiente && !hayEnConsulta
+          ? `ondblclick="iniciarConsultaTurno(${turno.id})" style="cursor:pointer;" title="Doble clic para iniciar consulta"`
+          : '';
+
+        return `<tr ${dblclick} class="${esPendiente && !hayEnConsulta ? 'fila-pendiente-seleccionable' : ''}">
           <td><small class="text-muted">${turno.fecha}</small></td>
           <td><strong>${turno.hora}</strong></td>
           <td>${paciente.nombre} ${paciente.apellido}</td>

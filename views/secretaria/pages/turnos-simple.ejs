@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#1a3a3a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="LEMES">
+  <meta name="apple-mobile-web-app-title" content="L y L">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
 
   <title>Mis Turnos</title>
@@ -23,11 +23,14 @@
       padding: 30px 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.1); position: fixed; height: 100vh; 
       overflow-y: auto; z-index: 1000;
     }
-    .sidebar-brand { display: flex; flex-direction: column; align-items: center; margin-bottom: 40px; 
-      border-bottom: 2px solid #5CAEA3; padding-bottom: 20px; }
-    .sidebar-brand i { font-size: 1.8rem; margin-bottom: 8px; }
-    .sidebar-brand h4 { margin: 0; font-size: 1.3rem; font-weight: 700; letter-spacing: 1px; }
-    .sidebar-brand p { margin: 5px 0 0 0; font-size: 0.75rem; opacity: 0.8; text-transform: uppercase; }
+    .sidebar-brand { margin: -30px -20px 30px -20px; text-align: center; position: relative; overflow: hidden;
+      border-bottom: 1px solid rgba(92,174,163,0.4); padding-bottom: 6px; }
+    .sidebar-brand img.brand-logo { width: 100%; height: auto; display: block;
+      filter: invert(1) brightness(1.4); mix-blend-mode: screen; padding: 6px; }
+    .logo-text { display: block; font-size: 1.5rem; font-weight: 800; letter-spacing: 4px;
+      color: white; font-family: 'Georgia', serif; margin: 2px 0 0; }
+    .logo-subtitle { display: block; font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase;
+      color: rgba(255,255,255,0.65); font-weight: 500; margin-bottom: 10px; }
     
     .sidebar-nav { display: flex; flex-direction: column; gap: 15px; }
     .sidebar-nav .nav-item { margin: 0; }
@@ -188,9 +191,9 @@
   <!-- Sidebar -->
   <div class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-      <i class="fas fa-clinic-medical"></i>
-      <h4>LEMES</h4>
-      <p>Sistema Médico</p>
+      <img src="/images/logo-lyl-clean.svg" alt="L y L" class="brand-logo">
+      <span class="logo-text">L y L</span>
+      <span class="logo-subtitle">Consultorio privado</span>
     </div>
 
     <nav class="sidebar-nav">
@@ -1313,7 +1316,7 @@
       const tel = document.getElementById('compartirTelefono').value.replace(/\D/g, '');
       if (!tel) { alert('Ingresá un número de teléfono'); return; }
       const d = window._compartirData || {};
-      const msg = encodeURIComponent(`Hola ${d.nombre}! Tu turno con ${d.medico} quedó CONFIRMADO para el ${d.fecha} a las ${d.hora}. Ante cualquier consulta comuníquese con el consultorio. Clínica LEMES.`);
+      const msg = encodeURIComponent(`Hola ${d.nombre}! Tu turno con ${d.medico} quedó CONFIRMADO para el ${d.fecha} a las ${d.hora}. Ante cualquier consulta comuníquese con el consultorio. Consultorio L &amp; L.`);
       window.open(`https://wa.me/549${tel}?text=${msg}`, '_blank');
     }
 
