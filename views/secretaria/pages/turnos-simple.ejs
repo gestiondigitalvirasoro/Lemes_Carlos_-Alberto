@@ -146,8 +146,38 @@
       .filters-section { padding: 15px; }
       .btn-agendar { padding: 10px 18px; font-size: 0.9rem; }
     }  </style>
+  <style>
+    #globalSpinner {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 99999;
+      background: rgba(26,58,58,0.92);
+      color: white;
+      border-radius: 50px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      pointer-events: none;
+    }
+    #globalSpinner.visible { display: flex; }
+    .spin-circle {
+      width: 16px; height: 16px;
+      border: 2.5px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: giro 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes giro { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
+  <div id="globalSpinner"><div class="spin-circle"></div><span>Cargando...</span></div>
   <!-- Hamburger Button (mobile) -->
   <button class="hamburger-btn" onclick="toggleSidebar()">
     <i class="fas fa-bars"></i>
@@ -301,8 +331,28 @@
   </div>
 
   <script>
+    // ── Spinner global (circulito esquina inferior derecha) ──────────────────
+    let _spinnerCount = 0;
+    function _carga(texto) {
+      _spinnerCount++;
+      const el = document.getElementById('globalSpinner');
+      if (el) {
+        el.classList.add('visible');
+        if (texto) el.querySelector('span').textContent = texto;
+      }
+    }
+    function _listo() {
+      _spinnerCount = Math.max(0, _spinnerCount - 1);
+      if (_spinnerCount === 0) {
+        const el = document.getElementById('globalSpinner');
+        if (el) el.classList.remove('visible');
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     // Funciones globales de loading
     function mostrarLoading(texto = 'Procesando...') {
+      _carga(texto);
       const overlay = document.getElementById('loadingOverlay');
       const loadingText = document.getElementById('loadingText');
       if (overlay && loadingText) {
@@ -312,6 +362,7 @@
     }
 
     function ocultarLoading() {
+      _listo();
       const overlay = document.getElementById('loadingOverlay');
       if (overlay) {
         overlay.style.display = 'none';
@@ -1424,28 +1475,87 @@
 
 <script>
 // ============================================================
-// CALENDARIO PARA AGENDAR TURNO
+// CALENDARIO PARA AGENDAR TURNO - CON SLOTS Y BLOQUEOS
 // ============================================================
-function abrirCalendarioAgendar() {
-  // Calcular turnos por fecha (solo PENDIENTE y EN_CONSULTA)
-  const turnosPorFecha = {};
+
+const FERIADOS = new Set([
+  // 2025
+  '2025-01-01','2025-03-03','2025-03-04','2025-04-02','2025-04-18',
+  '2025-05-01','2025-05-25','2025-06-20','2025-07-09','2025-08-17',
+  '2025-10-12','2025-11-20','2025-12-08','2025-12-25',
+  // 2026
+  '2026-01-01','2026-02-16','2026-02-17','2026-04-02','2026-04-03',
+  '2026-05-01','2026-05-25','2026-06-20','2026-07-09','2026-08-17',
+  '2026-10-12','2026-11-20','2026-12-08','2026-12-25',
+  // 2027
+  '2027-01-01','2027-02-08','2027-02-09','2027-03-24','2027-04-02',
+  '2027-05-01','2027-05-25','2027-06-20','2027-07-09','2027-08-16',
+  '2027-10-11','2027-11-20','2027-12-08','2027-12-25'
+]);
+
+function generarSlots() {
+  const slots = [];
+  for (let h = 8; h < 12; h++) {
+    slots.push(`${String(h).padStart(2,'0')}:00`);
+    slots.push(`${String(h).padStart(2,'0')}:30`);
+  }
+  slots.push('12:00');
+  for (let h = 17; h < 20; h++) {
+    slots.push(`${String(h).padStart(2,'0')}:00`);
+    slots.push(`${String(h).padStart(2,'0')}:30`);
+  }
+  slots.push('20:00');
+  return slots;
+}
+
+async function abrirCalendarioAgendar() {
+  _carga('Abriendo calendario...');
+  try {
+  // Contar slots USADOS por fecha (considerando duración de cada turno)
+  const slotsPorFecha = {};
   if (typeof turnosGlobales !== 'undefined' && turnosGlobales) {
     turnosGlobales.forEach(t => {
       if (['PENDIENTE', 'EN_CONSULTA'].includes(t.estado?.nombre)) {
-        // fecha viene como "23/3/2026" o "23/03/2026"
         const partes = t.fecha.split('/');
         if (partes.length === 3) {
           const key = `${partes[2]}-${String(partes[1]).padStart(2,'0')}-${String(partes[0]).padStart(2,'0')}`;
-          turnosPorFecha[key] = (turnosPorFecha[key] || 0) + 1;
+          const slotsUsados = Math.ceil((t.duracion_minutos || 30) / 30);
+          slotsPorFecha[key] = (slotsPorFecha[key] || 0) + slotsUsados;
         }
       }
     });
   }
 
+  let diasBloqueados = [];
+  try {
+    const r = await fetch('/api/disponibilidad/bloqueados', { credentials: 'include' });
+    if (r.ok) { const d = await r.json(); diasBloqueados = d.bloqueados || []; }
+  } catch(e) {}
+
+  const diasBloqueadosSet = new Set();
+  const horasBloqueadasSet = new Set();
+  window._calDiasBloqueadosInfo = {};
+  diasBloqueados.forEach(b => {
+    if (!b.hora) {
+      diasBloqueadosSet.add(b.fecha);
+      window._calDiasBloqueadosInfo[b.fecha] = { motivo: b.motivo };
+    } else {
+      horasBloqueadasSet.add(`${b.fecha}|${b.hora}`);
+    }
+  });
+
+  const slots = generarSlots();
   const hoy = new Date();
   hoy.setHours(0,0,0,0);
   let mesActual = hoy.getMonth();
   let anioActual = hoy.getFullYear();
+
+  function contarSlotsLibres(fechaISO) {
+    if (diasBloqueadosSet.has(fechaISO)) return 0;
+    const slotsUsados = slotsPorFecha[fechaISO] || 0;
+    const bloqueadosHora = slots.filter(h => horasBloqueadasSet.has(`${fechaISO}|${h}`)).length;
+    return Math.max(0, slots.length - slotsUsados - bloqueadosHora);
+  }
 
   function renderCalendario(mes, anio) {
     const diasSemana = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
@@ -1455,35 +1565,37 @@ function abrirCalendarioAgendar() {
     const hoyISO = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
 
     let celdas = '';
-    // Celdas vacías al inicio
     for (let i = 0; i < primerDia; i++) {
       celdas += `<div style="padding:6px;"></div>`;
     }
-    // Días del mes
     for (let d = 1; d <= diasEnMes; d++) {
       const fechaISO = `${anio}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       const fechaObj = new Date(anio, mes, d);
+      const diaSemana = fechaObj.getDay();
       const esPasado = fechaObj < hoy;
-      const esDomingo = fechaObj.getDay() === 0;
+      const esFinde = diaSemana === 0 || diaSemana === 6;
+      const esFeriado = FERIADOS.has(fechaISO);
+      const esBloqueado = diasBloqueadosSet.has(fechaISO);
       const esHoy = fechaISO === hoyISO;
-      const count = turnosPorFecha[fechaISO] || 0;
 
-      let bg = '#f0fdf4'; let colorNum = '#059669'; let border = '1px solid #bbf7d0';
-      if (count >= 5) { bg = '#fee2e2'; colorNum = '#dc2626'; border = '1px solid #fca5a5'; }
-      else if (count >= 3) { bg = '#fef3c7'; colorNum = '#d97706'; border = '1px solid #fde68a'; }
-      else if (count >= 1) { bg = '#dbeafe'; colorNum = '#1d4ed8'; border = '1px solid #bfdbfe'; }
-
-      if (esPasado || esDomingo) {
-        bg = '#f9fafb'; colorNum = '#d1d5db'; border = '1px solid #e5e7eb';
-        celdas += `<div style="padding:6px;border-radius:8px;background:${bg};border:${border};opacity:0.5;text-align:center;cursor:not-allowed;">
+      if (esPasado || esFinde || esFeriado || esBloqueado) {
+        const label = esFeriado ? 'Feriado' : esBloqueado ? '🚫' : diaSemana === 6 ? 'Sáb' : 'Dom';
+        celdas += `<div style="padding:6px;border-radius:8px;background:#f9fafb;border:1px solid #e5e7eb;opacity:0.5;text-align:center;cursor:not-allowed;">
           <div style="font-weight:700;font-size:14px;color:#9ca3af;">${d}</div>
-          ${!esDomingo ? `<div style="font-size:10px;color:#d1d5db;">—</div>` : `<div style="font-size:10px;color:#e5e7eb;">Dom</div>`}
+          <div style="font-size:9px;color:#d1d5db;">${label}</div>
         </div>`;
       } else {
-        celdas += `<div onclick="seleccionarFechaCalendario('${fechaISO}')" style="padding:6px;border-radius:8px;background:${bg};border:${border};text-align:center;cursor:pointer;transition:transform .1s;${esHoy ? 'box-shadow:0 0 0 2px #1D9E75;' : ''}"
+        const libres = contarSlotsLibres(fechaISO);
+        let bg, colorNum, border;
+        if (libres === 0) { bg='#fee2e2'; colorNum='#dc2626'; border='1px solid #fca5a5'; }
+        else if (libres <= 3) { bg='#fef3c7'; colorNum='#d97706'; border='1px solid #fde68a'; }
+        else if (libres <= 7) { bg='#dbeafe'; colorNum='#1d4ed8'; border='1px solid #bfdbfe'; }
+        else { bg='#f0fdf4'; colorNum='#059669'; border='1px solid #bbf7d0'; }
+
+        celdas += `<div onclick="abrirSlotsDelDia('${fechaISO}')" style="padding:6px;border-radius:8px;background:${bg};border:${border};text-align:center;cursor:pointer;transition:transform .1s;${esHoy ? 'box-shadow:0 0 0 2px #1D9E75;' : ''}"
           onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
           <div style="font-weight:700;font-size:14px;color:#1a3a3a;">${d}${esHoy ? ' <span style="font-size:8px;color:#1D9E75;">HOY</span>' : ''}</div>
-          <div style="font-size:10px;font-weight:600;color:${colorNum};">${count > 0 ? count + ' turno' + (count>1?'s':'') : 'libre'}</div>
+          <div style="font-size:9px;font-weight:600;color:${colorNum};">${libres > 0 ? libres + ' libre' + (libres > 1 ? 's' : '') : 'sin lugar'}</div>
         </div>`;
       }
     }
@@ -1509,27 +1621,27 @@ function abrirCalendarioAgendar() {
     <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);display:flex;justify-content:center;align-items:center;z-index:9999;padding:16px;" onclick="cerrarCalendario()">
       <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
           <h3 style="font-size:16px;font-weight:700;color:#1a3a3a;margin:0;">📅 Elegí el día del turno</h3>
-          <button onclick="cerrarCalendario()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;line-height:1;">✕</button>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button onclick="abrirGestionDisponibilidad()" style="background:#fee2e2;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px;color:#dc2626;font-weight:600;">🚫 Bloquear</button>
+            <button onclick="cerrarCalendario()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;line-height:1;">✕</button>
+          </div>
         </div>
 
-        <!-- Leyenda -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-          <span style="font-size:11px;display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:3px;display:inline-block;"></span>Libre</span>
-          <span style="font-size:11px;display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:#dbeafe;border:1px solid #bfdbfe;border-radius:3px;display:inline-block;"></span>1–2 turnos</span>
-          <span style="font-size:11px;display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:#fef3c7;border:1px solid #fde68a;border-radius:3px;display:inline-block;"></span>3–4</span>
-          <span style="font-size:11px;display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:#fee2e2;border:1px solid #fca5a5;border-radius:3px;display:inline-block;"></span>5+</span>
+          <span style="font-size:10px;display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:2px;display:inline-block;"></span>Muchos libres</span>
+          <span style="font-size:10px;display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;background:#dbeafe;border:1px solid #bfdbfe;border-radius:2px;display:inline-block;"></span>Algunos</span>
+          <span style="font-size:10px;display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;background:#fef3c7;border:1px solid #fde68a;border-radius:2px;display:inline-block;"></span>Pocos</span>
+          <span style="font-size:10px;display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;background:#fee2e2;border:1px solid #fca5a5;border-radius:2px;display:inline-block;"></span>Sin lugar</span>
         </div>
 
-        <!-- Navegación mes -->
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
           <button id="calBtnAnterior" onclick="navegarCalendario(-1)" style="background:#f3f4f6;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:700;">‹</button>
           <span id="calTitulo" style="font-weight:700;font-size:15px;color:#1a3a3a;"></span>
           <button onclick="navegarCalendario(1)" style="background:#f3f4f6;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:700;">›</button>
         </div>
 
-        <!-- Grilla -->
         <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">
           ${headers}
           <div id="calBody" style="display:contents;"></div>
@@ -1538,25 +1650,293 @@ function abrirCalendarioAgendar() {
     </div>`;
 
   renderCalendario(mesActual, anioActual);
-
   window._calMes = mesActual;
   window._calAnio = anioActual;
+  window._calHorasBloqueadas = horasBloqueadasSet;
+  window._calDiasBloqueados = diasBloqueadosSet;
+  window._calSlotsPorFecha = slotsPorFecha;
   window.navegarCalendario = function(dir) {
     window._calMes += dir;
     if (window._calMes > 11) { window._calMes = 0; window._calAnio++; }
     if (window._calMes < 0) { window._calMes = 11; window._calAnio--; }
     renderCalendario(window._calMes, window._calAnio);
   };
+  } catch(e) { console.error('abrirCalendarioAgendar:', e); } finally { _listo(); }
 }
 
-function seleccionarFechaCalendario(fechaISO) {
+function horaAMinutos(h) { const [hh,mm] = (h||'00:00').split(':').map(Number); return hh*60+mm; }
+
+async function abrirSlotsDelDia(fechaISO) {
+  _carga('Cargando horarios...');
+  try {
+  // Calcular slots ocupados desde turnosGlobales (evita problemas de timezone con la API)
+  const allSlots = generarSlots();
+  const ocupadasSet = new Set();
+
+  if (typeof turnosGlobales !== 'undefined' && turnosGlobales) {
+    turnosGlobales.forEach(t => {
+      if (['PENDIENTE', 'EN_CONSULTA'].includes(t.estado?.nombre)) {
+        const partes = t.fecha.split('/');
+        if (partes.length === 3) {
+          const tFechaISO = `${partes[2]}-${String(partes[1]).padStart(2,'0')}-${String(partes[0]).padStart(2,'0')}`;
+          if (tFechaISO === fechaISO) {
+            const hora = (t.hora || '').substring(0, 5);
+            const dur = t.duracion_minutos || 30;
+            const ini = horaAMinutos(hora);
+            const fin = ini + dur;
+            allSlots.forEach(s => { const sm = horaAMinutos(s); if (sm >= ini && sm < fin) ocupadasSet.add(s); });
+          }
+        }
+      }
+    });
+  }
+
+  // Obtener horas bloqueadas y estado del día desde la API
+  let horasBloqueadasAPI = [];
+  let diaBloqueadoTotal = false;
+  try {
+    const r = await fetch(`/api/disponibilidad/turnos-del-dia?fecha=${fechaISO}`, { credentials: 'include' });
+    if (r.ok) {
+      const d = await r.json();
+      horasBloqueadasAPI = d.horasBloqueadas || [];
+      diaBloqueadoTotal = d.diaBloqueado || false;
+    }
+  } catch(e) {}
+
+  // Si el día está bloqueado completo, mostrar mensaje y no continuar
+  if (diaBloqueadoTotal) {
+    const [anio2, mes2, dia2] = fechaISO.split('-');
+    const fechaLabel2 = `${dia2}/${mes2}/${anio2}`;
+    const diasNombre2 = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const diaNombre2 = diasNombre2[new Date(parseInt(anio2), parseInt(mes2)-1, parseInt(dia2)).getDay()];
+    // Buscar motivo en la lista de bloqueos del calendario
+    const bloqInfo = (window._calDiasBloqueadosInfo || {})[fechaISO] || {};
+    const motivoTexto = bloqInfo.motivo ? ` — ${bloqInfo.motivo}` : '';
+    let container = document.getElementById('modalCalendarioContainer');
+    if (!container) { container = document.createElement('div'); container.id = 'modalCalendarioContainer'; document.body.appendChild(container); }
+    container.innerHTML = `
+      <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);display:flex;justify-content:center;align-items:center;z-index:9999;padding:16px;" onclick="cerrarCalendario()">
+        <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <button onclick="abrirCalendarioAgendar()" style="background:#f3f4f6;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;color:#666;">← Volver</button>
+            <button onclick="cerrarCalendario()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;line-height:1;">✕</button>
+          </div>
+          <h3 style="font-size:16px;font-weight:700;color:#1a3a3a;margin-bottom:8px;">🚫 ${diaNombre2} ${fechaLabel2}</h3>
+          <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:16px;text-align:center;">
+            <div style="font-size:14px;font-weight:600;color:#dc2626;">No hay atención este día${motivoTexto}</div>
+            <div style="font-size:12px;color:#9ca3af;margin-top:6px;">Seleccioná otro día en el calendario</div>
+          </div>
+          <button onclick="abrirCalendarioAgendar()" style="margin-top:14px;width:100%;padding:10px;background:#f3f4f6;border:none;border-radius:8px;cursor:pointer;font-weight:600;color:#374151;">← Volver al calendario</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  // Combinar bloqueos manuales (del calendario) + los del servidor
+  const bloqueadasSet = new Set([
+    ...horasBloqueadasAPI,
+    ...[...(window._calHorasBloqueadas || [])].filter(k => k.startsWith(fechaISO+'|')).map(k => k.split('|')[1])
+  ]);
+  const slots = generarSlots();
+  const mañana = slots.filter(h => parseInt(h) < 13);
+  const tarde = slots.filter(h => parseInt(h) >= 17);
+
+  const [anio, mes, dia] = fechaISO.split('-');
+  const fechaLabel = `${dia}/${mes}/${anio}`;
+  const diasNombre = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const diaNombre = diasNombre[new Date(parseInt(anio), parseInt(mes)-1, parseInt(dia)).getDay()];
+
+  // Validación de horarios pasados
+  const ahora = new Date();
+  const hoyISO = `${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getDate()).padStart(2,'0')}`;
+  const esMismoDia = fechaISO === hoyISO;
+  const minutosActuales = ahora.getHours() * 60 + ahora.getMinutes();
+
+  function renderSlots(lista) {
+    return lista.map(hora => {
+      const [hh, mm] = hora.split(':').map(Number);
+      const minutosSlot = hh * 60 + mm;
+      const pasado = esMismoDia && minutosSlot <= minutosActuales;
+      const ocupado = !pasado && ocupadasSet.has(hora);
+      const bloqueado = !pasado && bloqueadasSet.has(hora);
+      const clickable = !pasado && !ocupado && !bloqueado;
+      let bg, color, label;
+      if (pasado)   { bg='#f3f4f6'; color='#9ca3af'; label='Pasado'; }
+      else if (bloqueado) { bg='#f3f4f6'; color='#9ca3af'; label='Bloqueado'; }
+      else if (ocupado)   { bg='#fee2e2'; color='#dc2626'; label='Ocupado'; }
+      else { bg='#f0fdf4'; color='#059669'; label='Libre'; }
+      return `<div onclick="${clickable ? `seleccionarSlot('${fechaISO}','${hora}')` : ''}"
+        style="padding:8px 4px;border-radius:8px;background:${bg};border:1px solid ${bg};text-align:center;cursor:${clickable ? 'pointer' : 'not-allowed'};"
+        ${clickable ? `onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"` : ''}>
+        <div style="font-weight:700;font-size:13px;color:#1a3a3a;">${hora}</div>
+        <div style="font-size:9px;color:${color};">${label}</div>
+      </div>`;
+    }).join('');
+  }
+
+  let container = document.getElementById('modalCalendarioContainer');
+  if (!container) { container = document.createElement('div'); container.id = 'modalCalendarioContainer'; document.body.appendChild(container); }
+
+  container.innerHTML = `
+    <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);display:flex;justify-content:center;align-items:center;z-index:9999;padding:16px;" onclick="cerrarCalendario()">
+      <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <button onclick="abrirCalendarioAgendar()" style="background:#f3f4f6;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;color:#666;">← Volver</button>
+          <button onclick="cerrarCalendario()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;line-height:1;">✕</button>
+        </div>
+
+        <h3 style="font-size:16px;font-weight:700;color:#1a3a3a;margin-bottom:4px;">🕐 ${diaNombre} ${fechaLabel}</h3>
+        <p style="font-size:12px;color:#666;margin-bottom:16px;">Seleccioná un horario disponible</p>
+
+        <div style="margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">☀️ Mañana</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+            ${renderSlots(mañana)}
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🌙 Tarde</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+            ${renderSlots(tarde)}
+          </div>
+        </div>
+
+        <div style="padding:10px;background:#fef3c7;border-radius:8px;">
+          <p style="font-size:11px;color:#92400e;margin:0;">💡 También podés agendar sin horario fijo — <a href="/doctor/agendar-turno?fecha=${fechaISO}" style="color:#d97706;font-weight:600;">abrir formulario</a></p>
+        </div>
+      </div>
+    </div>`;
+  } catch(e) { console.error('abrirSlotsDelDia:', e); } finally { _listo(); }
+}
+
+function seleccionarSlot(fechaISO, hora) {
   cerrarCalendario();
-  window.location.href = `/doctor/agendar-turno?fecha=${fechaISO}`;
+  window.location.href = `/doctor/agendar-turno?fecha=${fechaISO}&hora=${encodeURIComponent(hora)}`;
 }
 
 function cerrarCalendario() {
   const c = document.getElementById('modalCalendarioContainer');
   if (c) c.innerHTML = '';
+}
+
+function abrirGestionDisponibilidad() {
+  cerrarCalendario();
+  let container = document.getElementById('modalCalendarioContainer');
+  if (!container) { container = document.createElement('div'); container.id = 'modalCalendarioContainer'; document.body.appendChild(container); }
+
+  const hoy = new Date();
+  const hoyISO = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+
+  container.innerHTML = `
+    <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);display:flex;justify-content:center;align-items:center;z-index:9999;padding:16px;" onclick="cerrarCalendario()">
+      <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+          <h3 style="font-size:16px;font-weight:700;color:#1a3a3a;margin:0;">🚫 Gestión de Disponibilidad</h3>
+          <button onclick="cerrarCalendario()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;line-height:1;">✕</button>
+        </div>
+
+        <p style="font-size:13px;color:#666;margin-bottom:16px;">Bloqueá días u horarios para que no aparezcan como disponibles en el calendario.</p>
+
+        <div style="background:#f9fafb;border-radius:10px;padding:16px;margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:12px;">Nuevo bloqueo</div>
+          <div style="margin-bottom:10px;">
+            <label style="font-size:12px;color:#666;display:block;margin-bottom:4px;">Fecha *</label>
+            <input type="date" id="bloqueoFecha" min="${hoyISO}" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;">
+          </div>
+          <div style="margin-bottom:10px;">
+            <label style="font-size:12px;color:#666;display:block;margin-bottom:4px;">Hora (dejar vacío para bloquear el día entero)</label>
+            <select id="bloqueoHora" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;">
+              <option value="">— Día completo —</option>
+              ${generarSlots().map(h => `<option value="${h}">${h}</option>`).join('')}
+            </select>
+          </div>
+          <div style="margin-bottom:12px;">
+            <label style="font-size:12px;color:#666;display:block;margin-bottom:4px;">Motivo (opcional)</label>
+            <input type="text" id="bloqueoMotivo" placeholder="Ej: Feriado local, reunión..." style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;">
+          </div>
+          <button onclick="guardarBloqueoManual()" style="width:100%;padding:9px;background:#dc2626;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;">🚫 Guardar bloqueo</button>
+        </div>
+
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:10px;">Bloqueos activos</div>
+          <div id="listaBloqueos">
+            <div style="text-align:center;color:#9ca3af;font-size:13px;padding:16px;">Cargando...</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  cargarListaBloqueos();
+}
+
+async function cargarListaBloqueos() {
+  try {
+    const r = await fetch('/api/disponibilidad/bloqueados', { credentials: 'include' });
+    const data = await r.json();
+    const lista = data.bloqueados || [];
+    const el = document.getElementById('listaBloqueos');
+    if (!el) return;
+    if (lista.length === 0) {
+      el.innerHTML = '<div style="text-align:center;color:#9ca3af;font-size:13px;padding:16px;">Sin bloqueos activos</div>';
+      return;
+    }
+    el.innerHTML = lista.map(b => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#f9fafb;border-radius:6px;margin-bottom:6px;">
+        <div>
+          <span style="font-size:13px;font-weight:600;color:#1a3a3a;">${b.fecha}</span>
+          ${b.hora ? `<span style="font-size:12px;color:#666;margin-left:6px;">🕐 ${b.hora}</span>` : '<span style="font-size:11px;color:#dc2626;margin-left:6px;">Día completo</span>'}
+          ${b.motivo ? `<div style="font-size:11px;color:#9ca3af;">${b.motivo}</div>` : ''}
+        </div>
+        <button onclick="eliminarBloqueo('${b.fecha}','${b.hora||''}')" style="background:#fee2e2;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px;color:#dc2626;">✕</button>
+      </div>`).join('');
+  } catch(e) {
+    const el = document.getElementById('listaBloqueos');
+    if (el) el.innerHTML = '<div style="color:#dc2626;font-size:12px;padding:8px;">Error al cargar bloqueos</div>';
+  }
+}
+
+async function guardarBloqueoManual() {
+  const fecha = document.getElementById('bloqueoFecha').value;
+  const hora = document.getElementById('bloqueoHora').value;
+  const motivo = document.getElementById('bloqueoMotivo').value;
+  if (!fecha) { alert('Por favor ingresá una fecha'); return; }
+  _carga('Guardando bloqueo...');
+  try {
+    const r = await fetch('/api/disponibilidad/bloquear', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ fecha, hora: hora || null, motivo: motivo || null })
+    });
+    const data = await r.json();
+    if (r.ok && data.success) {
+      document.getElementById('bloqueoFecha').value = '';
+      document.getElementById('bloqueoHora').value = '';
+      document.getElementById('bloqueoMotivo').value = '';
+      cargarListaBloqueos();
+    } else {
+      alert('Error: ' + (data.error || data.message || 'No se pudo guardar'));
+    }
+  } catch(e) { alert('Error de conexión'); } finally { _listo(); }
+}
+
+async function eliminarBloqueo(fecha, hora) {
+  if (!confirm(`¿Eliminar bloqueo${hora ? ' del horario ' + hora : ' del día completo'}?`)) return;
+  _carga('Eliminando bloqueo...');
+  try {
+    const r = await fetch('/api/disponibilidad/desbloquear', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ fecha, hora: hora || null })
+    });
+    const data = await r.json();
+    if (r.ok && data.success) { cargarListaBloqueos(); }
+    else { alert('Error: ' + (data.error || data.message || 'No se pudo eliminar')); }
+  } catch(e) { alert('Error de conexión'); } finally { _listo(); }
 }
 </script>
 </body>

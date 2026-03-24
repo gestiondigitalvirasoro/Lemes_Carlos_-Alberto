@@ -1,0 +1,18 @@
+<svg width="200" height="180" viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg">
+  <!-- ECG line left + hand shape -->
+  <path d="M10 90 L25 90 L30 80 L35 95 L40 75 L45 98 L48 85 L52 92 L55 88 L60 90 L65 90 L68 60 L72 30 L76 60 L80 90" stroke="#9FE1CB" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Finger/vertical stroke -->
+  <path d="M80 90 L80 20 Q80 10 90 10 Q100 10 100 20 L100 70" stroke="#9FE1CB" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- L loop -->
+  <path d="M100 70 Q100 85 115 80 Q130 75 125 60 Q120 50 110 55 Q100 60 100 70" stroke="#5DCAA5" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- ECG line right -->
+  <path d="M115 80 L120 90 L130 90 L133 82 L136 95 L140 78 L143 90 L150 90 L155 85 L158 92 L162 88 L168 90 L190 90" stroke="#5DCAA5" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Stethoscope tube -->
+  <path d="M80 90 L80 130 Q80 150 70 155 Q60 160 55 155" stroke="#E1F5EE" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- Stethoscope head -->
+  <circle cx="52" cy="158" r="14" fill="#0F6E56" stroke="#5DCAA5" stroke-width="1.5"/>
+  <circle cx="52" cy="158" r="9" fill="#085041" stroke="#5DCAA5" stroke-width="1"/>
+  <!-- Red cross -->
+  <path d="M48 158 L56 158" stroke="#F09595" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M52 154 L52 162" stroke="#F09595" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

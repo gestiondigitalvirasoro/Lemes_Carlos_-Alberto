@@ -1,0 +1,107 @@
+
+<div style="font-family: var(--font-sans); padding: 1rem 0;">
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+
+<div style="text-align: center;">
+<p style="font-size: 12px; color: var(--color-text-secondary); margin: 0 0 8px; font-weight: 500;">Original</p>
+<div style="background: #F5F3EE; border-radius: 12px; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 200px;">
+<div style="width: 140px; height: 140px; background: #F5F0EB; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 0.5px solid #ddd;">
+<span style="font-size: 11px; color: #999;">logo-lyl.png</span>
+</div>
+</div>
+</div>
+
+<div style="text-align: center;">
+<p style="font-size: 12px; color: var(--color-text-secondary); margin: 0 0 8px; font-weight: 500;">Version SVG limpia</p>
+<div style="background: #F5F3EE; border-radius: 12px; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 200px;">
+<svg width="160" height="160" viewBox="0 0 200 200">
+<path d="M10 90 L25 90 L30 80 L35 95 L40 75 L45 98 L48 85 L52 92 L55 88 L60 90 L65 90 L68 60 L72 30 L76 60 L80 90" stroke="#085041" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M80 90 L80 20 Q80 10 90 10 Q100 10 100 20 L100 70" stroke="#085041" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M100 70 Q100 85 115 80 Q130 75 125 60 Q120 50 110 55 Q100 60 100 70" stroke="#0F6E56" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M115 80 L120 90 L130 90 L133 82 L136 95 L140 78 L143 90 L150 90 L155 85 L158 92 L162 88 L168 90 L190 90" stroke="#0F6E56" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M80 90 L80 130 Q80 150 70 155 Q60 160 55 155" stroke="#2C2C2A" stroke-width="3" fill="none" stroke-linecap="round"/>
+<circle cx="52" cy="158" r="14" fill="#D3D1C7" stroke="#888780" stroke-width="1.5"/>
+<circle cx="52" cy="158" r="9" fill="#F5F3EE" stroke="#888780" stroke-width="1"/>
+<path d="M48 158 L56 158" stroke="#A32D2D" stroke-width="2.5" stroke-linecap="round"/>
+<path d="M52 154 L52 162" stroke="#A32D2D" stroke-width="2.5" stroke-linecap="round"/>
+<text x="100" y="192" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="500" fill="#085041">L y L</text>
+</svg>
+</div>
+</div>
+</div>
+
+<p style="font-size: 13px; color: var(--color-text-secondary); margin: 0 0 12px; font-weight: 500;">Variantes para tu app</p>
+
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+
+<div style="text-align: center;">
+<p style="font-size: 11px; color: var(--color-text-secondary); margin: 0 0 6px;">Fondo claro</p>
+<div style="background: #FFFFFF; border-radius: 12px; padding: 16px; border: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; justify-content: center;">
+<svg width="80" height="80" viewBox="0 0 200 200">
+<path d="M10 90 L25 90 L30 80 L35 95 L40 75 L45 98 L48 85 L52 92 L55 88 L60 90 L65 90 L68 60 L72 30 L76 60 L80 90" stroke="#085041" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M80 90 L80 20 Q80 10 90 10 Q100 10 100 20 L100 70" stroke="#085041" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M100 70 Q100 85 115 80 Q130 75 125 60 Q120 50 110 55 Q100 60 100 70" stroke="#0F6E56" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M115 80 L120 90 L130 90 L133 82 L136 95 L140 78 L143 90 L150 90 L155 85 L158 92 L162 88 L168 90 L190 90" stroke="#0F6E56" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M80 90 L80 130 Q80 150 70 155 Q60 160 55 155" stroke="#2C2C2A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+<circle cx="52" cy="158" r="14" fill="#E8E6E0" stroke="#888780" stroke-width="2"/>
+<circle cx="52" cy="158" r="9" fill="#fff" stroke="#888780" stroke-width="1"/>
+<path d="M48 158 L56 158" stroke="#A32D2D" stroke-width="3" stroke-linecap="round"/>
+<path d="M52 154 L52 162" stroke="#A32D2D" stroke-width="3" stroke-linecap="round"/>
+</svg>
+</div>
+</div>
+
+<div style="text-align: center;">
+<p style="font-size: 11px; color: var(--color-text-secondary); margin: 0 0 6px;">Fondo verde</p>
+<div style="background: #E1F5EE; border-radius: 12px; padding: 16px; display: flex; align-items: center; justify-content: center;">
+<svg width="80" height="80" viewBox="0 0 200 200">
+<path d="M10 90 L25 90 L30 80 L35 95 L40 75 L45 98 L48 85 L52 92 L55 88 L60 90 L65 90 L68 60 L72 30 L76 60 L80 90" stroke="#085041" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M80 90 L80 20 Q80 10 90 10 Q100 10 100 20 L100 70" stroke="#085041" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M100 70 Q100 85 115 80 Q130 75 125 60 Q120 50 110 55 Q100 60 100 70" stroke="#0F6E56" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M115 80 L120 90 L130 90 L133 82 L136 95 L140 78 L143 90 L150 90 L155 85 L158 92 L162 88 L168 90 L190 90" stroke="#0F6E56" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M80 90 L80 130 Q80 150 70 155 Q60 160 55 155" stroke="#04342C" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+<circle cx="52" cy="158" r="14" fill="#9FE1CB" stroke="#0F6E56" stroke-width="2"/>
+<circle cx="52" cy="158" r="9" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+<path d="M48 158 L56 158" stroke="#A32D2D" stroke-width="3" stroke-linecap="round"/>
+<path d="M52 154 L52 162" stroke="#A32D2D" stroke-width="3" stroke-linecap="round"/>
+</svg>
+</div>
+</div>
+
+<div style="text-align: center;">
+<p style="font-size: 11px; color: var(--color-text-secondary); margin: 0 0 6px;">Fondo oscuro</p>
+<div style="background: #085041; border-radius: 12px; padding: 16px; display: flex; align-items: center; justify-content: center;">
+<svg width="80" height="80" viewBox="0 0 200 200">
+<path d="M10 90 L25 90 L30 80 L35 95 L40 75 L45 98 L48 85 L52 92 L55 88 L60 90 L65 90 L68 60 L72 30 L76 60 L80 90" stroke="#9FE1CB" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M80 90 L80 20 Q80 10 90 10 Q100 10 100 20 L100 70" stroke="#9FE1CB" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M100 70 Q100 85 115 80 Q130 75 125 60 Q120 50 110 55 Q100 60 100 70" stroke="#5DCAA5" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M115 80 L120 90 L130 90 L133 82 L136 95 L140 78 L143 90 L150 90 L155 85 L158 92 L162 88 L168 90 L190 90" stroke="#5DCAA5" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M80 90 L80 130 Q80 150 70 155 Q60 160 55 155" stroke="#E1F5EE" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+<circle cx="52" cy="158" r="14" fill="#0F6E56" stroke="#5DCAA5" stroke-width="2"/>
+<circle cx="52" cy="158" r="9" fill="#085041" stroke="#5DCAA5" stroke-width="1"/>
+<path d="M48 158 L56 158" stroke="#F09595" stroke-width="3" stroke-linecap="round"/>
+<path d="M52 154 L52 162" stroke="#F09595" stroke-width="3" stroke-linecap="round"/>
+</svg>
+</div>
+</div>
+
+<div style="text-align: center;">
+<p style="font-size: 11px; color: var(--color-text-secondary); margin: 0 0 6px;">Sidebar (mini)</p>
+<div style="background: #085041; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;">
+<svg width="48" height="48" viewBox="0 0 200 180">
+<path d="M10 90 L25 90 L30 80 L35 95 L40 75 L45 98 L48 85 L52 92 L55 88 L60 90 L65 90 L68 60 L72 30 L76 60 L80 90" stroke="#9FE1CB" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M80 90 L80 20 Q80 10 90 10 Q100 10 100 20 L100 70" stroke="#9FE1CB" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M100 70 Q100 85 115 80 Q130 75 125 60 Q120 50 110 55 Q100 60 100 70" stroke="#5DCAA5" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M115 80 L120 90 L130 90 L133 82 L136 95 L140 78 L143 90 L150 90 L155 85 L158 92 L162 88 L168 90 L190 90" stroke="#5DCAA5" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M80 90 L80 130 Q80 150 70 155 Q60 160 55 155" stroke="#E1F5EE" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+<circle cx="52" cy="158" r="14" fill="#0F6E56" stroke="#5DCAA5" stroke-width="2.5"/>
+<path d="M48 158 L56 158" stroke="#F09595" stroke-width="3.5" stroke-linecap="round"/>
+<path d="M52 154 L52 162" stroke="#F09595" stroke-width="3.5" stroke-linecap="round"/>
+</svg>
+<span style="color: #fff; font-size: 12px; font-weight: 500;">L & L</span>
+</div>
+</div>
+</div>
+
+</div>

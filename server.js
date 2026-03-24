@@ -1923,7 +1923,7 @@ app.get('/api/doctor-todos-turnos', requireAuth, async (req, res) => {
 
       return {
         id: turno.id.toString(),
-        hora: turno.hora || '12:00',
+        hora: (turno.hora || '12:00').substring(0, 5),
         fecha: turno.fecha.toLocaleDateString('es-AR'),
         estado: turno.estado ? {
           id: turno.estado.id.toString(),
@@ -1960,7 +1960,8 @@ app.get('/api/doctor-todos-turnos', requireAuth, async (req, res) => {
           especialidad: turno.medico?.especialidad || 'General'
         },
         observaciones: turno.observaciones || '',
-        motivo: turno.consulta?.motivo_consulta || ''
+        motivo: turno.consulta?.motivo_consulta || '',
+        duracion_minutos: turno.duracion_minutos || 30
       };
     });
 
@@ -4625,6 +4626,119 @@ async function enviarEmailBrevo({ to, subject, html, attachments = [] }) {
 }
 
 // ============================================================================
+// ENDPOINTS: DISPONIBILIDAD - BLOQUEAR / DESBLOQUEAR DÍAS Y HORARIOS
+// ============================================================================
+
+// GET /api/disponibilidad/bloqueados?medico_id=X&mes=YYYY-MM
+app.get('/api/disponibilidad/bloqueados', requireAuth, async (req, res) => {
+  try {
+    const medicoId = req.user.medicoId ? BigInt(req.user.medicoId) : null;
+    if (!medicoId) return res.json({ success: true, bloqueados: [] });
+    const rows = await prisma.$queryRaw`
+      SELECT id::text, medico_id::text, fecha::text, hora, motivo
+      FROM dias_bloqueados
+      WHERE medico_id = ${medicoId}
+      ORDER BY fecha, hora
+    `;
+    res.json({ success: true, bloqueados: rows });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// GET /api/disponibilidad/turnos-del-dia?fecha=YYYY-MM-DD
+app.get('/api/disponibilidad/turnos-del-dia', requireAuth, async (req, res) => {
+  try {
+    const { fecha } = req.query;
+    if (!fecha) return res.status(400).json({ success: false, message: 'fecha requerida' });
+    const medicoId = req.user.medicoId ? BigInt(req.user.medicoId) : null;
+    const where = {
+      fecha: new Date(fecha),
+      estado: { nombre: { in: ['PENDIENTE', 'EN_CONSULTA'] } }
+    };
+    if (medicoId) where.medico_id = medicoId;
+    const turnos = await prisma.turno.findMany({
+      where,
+      select: { hora: true, duracion_minutos: true },
+      orderBy: { hora: 'asc' }
+    });
+    // Bloqueados del día
+    const bloqueados = medicoId ? await prisma.$queryRaw`
+      SELECT hora FROM dias_bloqueados
+      WHERE medico_id = ${medicoId}
+        AND (fecha = ${fecha}::date OR fecha IS NULL)
+        AND hora IS NOT NULL
+    ` : [];
+    // Normalizar hora a HH:MM (puede venir como "17:00:00" desde la BD)
+    const turnosNorm = turnos.map(t => ({
+      hora: (t.hora || '').substring(0, 5),
+      duracion_minutos: t.duracion_minutos || 30
+    }));
+    // Expandir horas ocupadas por duración (cada slot es 30 min)
+    const ALL_SLOTS_MAÑANA = ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00'];
+    const ALL_SLOTS_TARDE  = ['17:00','17:30','18:00','18:30','19:00','19:30','20:00'];
+    const ALL_SLOTS = [...ALL_SLOTS_MAÑANA, ...ALL_SLOTS_TARDE];
+    function horaAMin(h) { const [hh,mm] = h.split(':').map(Number); return hh*60+mm; }
+    const horasOcupadasSet = new Set();
+    turnosNorm.forEach(({hora, duracion_minutos}) => {
+      const ini = horaAMin(hora);
+      const fin = ini + (duracion_minutos || 30);
+      ALL_SLOTS.forEach(s => { const sm = horaAMin(s); if (sm >= ini && sm < fin) horasOcupadasSet.add(s); });
+    });
+    res.json({
+      success: true,
+      horasOcupadas: [...horasOcupadasSet],
+      turnosConDuracion: turnosNorm,
+      horasBloqueadas: bloqueados.map(b => (b.hora || '').substring(0, 5)),
+      diaBloqueado: medicoId ? (await prisma.$queryRaw`
+        SELECT id FROM dias_bloqueados
+        WHERE medico_id = ${medicoId} AND fecha = ${fecha}::date AND hora IS NULL
+        LIMIT 1
+      `).length > 0 : false
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// POST /api/disponibilidad/bloquear  { fecha?, hora?, motivo? }
+app.post('/api/disponibilidad/bloquear', requireAuth, requireRole(['doctor', 'secretaria', 'admin']), async (req, res) => {
+  try {
+    const medicoId = req.user.medicoId ? BigInt(req.user.medicoId) : null;
+    if (!medicoId) return res.status(400).json({ success: false, message: 'Sin médico asociado' });
+    const { fecha, hora, motivo } = req.body;
+    await prisma.$executeRaw`
+      INSERT INTO dias_bloqueados (medico_id, fecha, hora, motivo)
+      VALUES (${medicoId}, ${fecha ? fecha : null}::date, ${hora || null}, ${motivo || null})
+    `;
+    res.json({ success: true, message: 'Bloqueado correctamente' });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// DELETE /api/disponibilidad/desbloquear  { fecha?, hora? }
+app.delete('/api/disponibilidad/desbloquear', requireAuth, requireRole(['doctor', 'secretaria', 'admin']), async (req, res) => {
+  try {
+    const medicoId = req.user.medicoId ? BigInt(req.user.medicoId) : null;
+    if (!medicoId) return res.status(400).json({ success: false, message: 'Sin médico asociado' });
+    const { fecha, hora } = req.body;
+    if (hora) {
+      await prisma.$executeRaw`
+        DELETE FROM dias_bloqueados WHERE medico_id = ${medicoId} AND fecha = ${fecha}::date AND hora = ${hora}
+      `;
+    } else {
+      await prisma.$executeRaw`
+        DELETE FROM dias_bloqueados WHERE medico_id = ${medicoId} AND fecha = ${fecha}::date AND hora IS NULL
+      `;
+    }
+    res.json({ success: true, message: 'Desbloqueado correctamente' });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// ============================================================================
 // ENDPOINT: NOTIFICAR TURNO POR EMAIL
 // ============================================================================
 app.post('/api/notificar-turno', requireAuth, async (req, res) => {
@@ -4864,6 +4978,23 @@ async function startServer() {
       if (migrados > 0) console.log(`🔄 Migración: ${migrados} turno(s) CONFIRMADO → PENDIENTE`);
     } catch (e) {
       console.warn('⚠️ Migración CONFIRMADO→PENDIENTE omitida:', e.message);
+    }
+
+    // Crear tabla dias_bloqueados si no existe
+    try {
+      await prisma.$executeRaw`
+        CREATE TABLE IF NOT EXISTS dias_bloqueados (
+          id BIGSERIAL PRIMARY KEY,
+          medico_id BIGINT NOT NULL,
+          fecha DATE,
+          hora VARCHAR(5),
+          motivo VARCHAR(255),
+          creado_at TIMESTAMPTZ DEFAULT NOW()
+        )
+      `;
+      console.log('✅ Tabla dias_bloqueados verificada');
+    } catch (e) {
+      console.warn('⚠️ dias_bloqueados:', e.message);
     }
 
     // Iniciar servidor

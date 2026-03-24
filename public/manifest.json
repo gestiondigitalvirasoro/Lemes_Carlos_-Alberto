@@ -1,7 +1,7 @@
 {
-  "name": "LEMES Sistema Médico",
-  "short_name": "LEMES",
-  "description": "Sistema de gestión clínica LEMES",
+  "name": "L & L Consultorio Privado",
+  "short_name": "L & L",
+  "description": "Sistema de gestión del consultorio privado L & L",
   "start_url": "/doctor/dashboard",
   "display": "standalone",
   "background_color": "#1a3a3a",
