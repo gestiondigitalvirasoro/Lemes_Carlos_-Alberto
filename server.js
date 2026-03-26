@@ -3106,9 +3106,9 @@ app.post('/api/pacientes/alta', requireAuth, async (req, res) => {
   try {
     const { nombre, apellido, dni, fecha_nacimiento, sexo, telefono, email, direccion, obra_social, numero_afiliado, observaciones } = req.body;
 
-    if (!nombre || !apellido || !dni || !fecha_nacimiento) {
+    if (!nombre || !apellido || !dni) {
       return res.status(400).json({
-        error: 'Faltan datos requeridos: nombre, apellido, dni, fecha_nacimiento'
+        error: 'Faltan datos requeridos: nombre, apellido, dni'
       });
     }
 
@@ -3129,7 +3129,7 @@ app.post('/api/pacientes/alta', requireAuth, async (req, res) => {
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         dni: parseInt(dni),
-        fecha_nacimiento: new Date(fecha_nacimiento),
+        fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
         sexo: sexo || 'OTRO',
         telefono: telefono || null,
         email: email || null,

@@ -355,7 +355,6 @@
 
     // Funciones globales de loading
     function mostrarLoading(texto = 'Procesando...') {
-      _carga(texto);
       const overlay = document.getElementById('loadingOverlay');
       const loadingText = document.getElementById('loadingText');
       if (overlay && loadingText) {
@@ -365,7 +364,6 @@
     }
 
     function ocultarLoading() {
-      _listo();
       const overlay = document.getElementById('loadingOverlay');
       if (overlay) {
         overlay.style.display = 'none';

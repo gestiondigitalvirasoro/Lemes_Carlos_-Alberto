@@ -73,25 +73,25 @@ const validarAgendarTurno = [
   body('persona_dni')
     .notEmpty().withMessage('DNI es requerido'),
   body('persona_email')
-    .optional()
+    .optional({ checkFalsy: true })
     .isEmail().withMessage('Email debe ser válido'),
   body('persona_telefono')
-    .optional()
+    .optional({ checkFalsy: true })
     .isString(),
   body('persona_fecha_nacimiento')
-    .optional()
+    .optional({ checkFalsy: true })
     .isISO8601().withMessage('Fecha de nacimiento debe ser un formato válido'),
   body('persona_sexo')
-    .optional()
+    .optional({ checkFalsy: true })
     .isIn(['M', 'F', 'O']).withMessage('Sexo debe ser M, F u O'),
   body('persona_direccion')
-    .optional()
+    .optional({ checkFalsy: true })
     .isString(),
   body('persona_obra_social')
-    .optional()
+    .optional({ checkFalsy: true })
     .isString(),
   body('persona_numero_afiliado')
-    .optional()
+    .optional({ checkFalsy: true })
     .isString(),
   // 📅 Datos de Turno (requeridos)
   body('medico_id')
