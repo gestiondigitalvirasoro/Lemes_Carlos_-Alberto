@@ -346,7 +346,6 @@
     });
 
     async function cargarTurnos() {
-      mostrarLoading('Cargando turnos...');
       const cargando = document.getElementById('cargando');
       const error = document.getElementById('error');
       const vacio = document.getElementById('vacio');
@@ -364,11 +363,10 @@
         if (!response.ok) throw new Error('Error al cargar turnos');
 
         const datos = await response.json();
-        
+
         if (!datos.success || !datos.data || datos.data.length === 0) {
           vacio.style.display = 'block';
           cargando.style.display = 'none';
-          ocultarLoading();
           return;
         }
 
@@ -380,7 +378,6 @@
         error.style.display = 'block';
       } finally {
         cargando.style.display = 'none';
-        ocultarLoading();
       }
     }
 
