@@ -918,6 +918,18 @@
     window.abrirEditarPaciente = abrirEditarPaciente;
     window.guardarEdicionPaciente = guardarEdicionPaciente;
 
+    // Auto-abrir modal si viene con ?editarPaciente=ID (desde Incidencias en Turnos)
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const editarId = params.get('editarPaciente');
+      if (editarId) {
+        const btn = document.querySelector(`.btn-editar-paciente[data-id="${editarId}"]`);
+        if (btn) {
+          btn.click();
+        }
+      }
+    })();
+
     // ── Migración ──
     var consultasMigracion = [];
 

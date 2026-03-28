@@ -513,11 +513,41 @@
             </button>`;
         }
 
+        // Columna Incidencias
+        let incidencias = '';
+        if (estadoNombre !== 'CANCELADA') {
+          const camposFaltantes = [];
+          if (!persona?.telefono) camposFaltantes.push('teléfono');
+          if (!persona?.email) camposFaltantes.push('email');
+          if (!persona?.fecha_nacimiento) camposFaltantes.push('fecha de nac.');
+          if (camposFaltantes.length > 0) {
+            const pacienteId = persona?.paciente?.id || '';
+            let completarBtn = '';
+            if (estadoNombre === 'PENDIENTE') {
+              completarBtn = `<button onclick="window.location.href='/doctor/agendar-turno?editar=${turno.id}'"
+                style="padding:2px 8px;background:#667eea;color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;">
+                ✏️ Completar
+              </button>`;
+            } else if (pacienteId) {
+              completarBtn = `<button onclick="window.location.href='/doctor/pacientes?editarPaciente=${pacienteId}'"
+                style="padding:2px 8px;background:#667eea;color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;">
+                ✏️ Completar
+              </button>`;
+            }
+            incidencias = `
+              <div style="margin-top:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                <span style="background:#fee2e2;color:#dc2626;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;" title="Faltan: ${camposFaltantes.join(', ')}">⚠️ Datos incompletos</span>
+                ${completarBtn}
+              </div>`;
+          }
+        }
+
         return `<tr>
           <td>
             <strong>${persona?.nombre || '-'} ${persona?.apellido || '-'}</strong><br>
             <small class="text-muted">DNI: ${persona?.dni || '-'}</small><br>
-            <small class="text-muted">Tel: ${persona?.telefono || '-'}</small>
+            <small class="text-muted">Tel: ${persona?.telefono || '—'}</small>
+            ${incidencias}
           </td>
           <td><strong>${turno.fecha || '-'}</strong></td>
           <td><strong>${turno.hora || '-'}</strong></td>
