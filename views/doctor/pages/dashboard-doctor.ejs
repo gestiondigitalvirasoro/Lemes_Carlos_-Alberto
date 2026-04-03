@@ -251,17 +251,14 @@
       <!-- BLOQUE 3: ACCIONES RÁPIDAS (Oculto - Manejado desde Próximo Paciente) -->
       <!-- Comentado: Las acciones se manejan desde la tarjeta de próximo paciente -->
 
-      <!-- BLOQUE 4: ALERTAS CLÍNICAS -->
-      <div class="alertas-clinicas">
-        <h5>
-          <i class="bi bi-exclamation-triangle-fill"></i>
-          Alertas Clínicas
-        </h5>
-        <div id="contenedor-alertas">
-          <div class="empty-state">
-            <i class="bi bi-check-circle"></i>
-            <p>Cargando alertas...</p>
-          </div>
+      <!-- PRÓXIMAS VISITAS / INCIDENCIAS -->
+      <div style="background:white;border-radius:12px;padding:24px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+          <h5 style="margin:0;color:#1a3a3a;font-size:16px;font-weight:700;"><i class="bi bi-calendar-check"></i> Próximas Visitas</h5>
+          <button onclick="cargarIncidencias()" style="padding:5px 14px;background:#f0f4ff;color:#667eea;border:1px solid #667eea;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">↻ Actualizar</button>
+        </div>
+        <div id="incidencias-dashboard">
+          <div style="text-align:center;color:#aaa;padding:20px;font-size:13px;"><i class="bi bi-hourglass-split"></i> Cargando...</div>
         </div>
       </div>
 
@@ -701,7 +698,159 @@
       cargarTurnos();
       cargarAlertas();
       cargarPacientes();
+      cargarIncidencias();
     });
+
+    // ============================================================
+    // PRÓXIMAS VISITAS / INCIDENCIAS
+    // ============================================================
+    async function cargarIncidencias() {
+      const cont = document.getElementById('incidencias-dashboard');
+      try {
+        const resp = await fetch('/api/incidencias', { credentials: 'include' });
+        const data = await resp.json();
+        if (!data.success || !data.data.length) {
+          cont.innerHTML = '<div style="text-align:center;color:#aaa;padding:16px;font-size:13px;">No hay próximas visitas pendientes.</div>';
+          return;
+        }
+        const COLOR_ESTADO = { 'Pendiente':'#ffc107','Notificada':'#17a2b8','Turno asignado':'#28a745','Reprogramada':'#fd7e14' };
+        const COLOR_PRIOR  = { 'Urgente':'#dc3545','Alta':'#fd7e14','Normal':'#6c757d' };
+        cont.innerHTML = `
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+              <thead>
+                <tr style="background:#f8f9fa;color:#555;">
+                  <th style="padding:10px;text-align:left;font-weight:600;border-bottom:2px solid #eee;">Paciente</th>
+                  <th style="padding:10px;text-align:left;font-weight:600;border-bottom:2px solid #eee;">Fecha sugerida</th>
+                  <th style="padding:10px;text-align:left;font-weight:600;border-bottom:2px solid #eee;">Motivo</th>
+                  <th style="padding:10px;text-align:left;font-weight:600;border-bottom:2px solid #eee;">Estado</th>
+                  <th style="padding:10px;text-align:left;font-weight:600;border-bottom:2px solid #eee;">Turno asignado</th>
+                  <th style="padding:10px;text-align:left;font-weight:600;border-bottom:2px solid #eee;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.data.map(i => {
+                  const fecha = i.fecha_sugerida ? new Date(i.fecha_sugerida).toLocaleDateString('es-AR') : '-';
+                  const turnoInfo = i.turno_fecha ? `${new Date(i.turno_fecha).toLocaleDateString('es-AR')} ${i.turno_hora || ''}` : '—';
+                  const colorEst = COLOR_ESTADO[i.estado] || '#6c757d';
+                  const colorPri = COLOR_PRIOR[i.prioridad] || '#6c757d';
+                  const puedeNotificar = i.estado === 'Pendiente' || i.estado === 'Notificada';
+                  return `<tr style="border-bottom:1px solid #f0f0f0;">
+                    <td style="padding:10px;">
+                      <strong>${i.paciente}</strong><br>
+                      <small style="color:#888;">DNI: ${i.paciente_dni || '-'}</small><br>
+                      <span style="background:${colorPri};color:white;border-radius:3px;padding:1px 6px;font-size:10px;">${i.prioridad}</span>
+                    </td>
+                    <td style="padding:10px;"><strong>${fecha}</strong><br><small style="color:#aaa;">±${i.dias_tolerancia} días</small></td>
+                    <td style="padding:10px;">${i.motivo || '—'}<br>${i.observaciones ? `<small style="color:#888;">${i.observaciones}</small>` : ''}</td>
+                    <td style="padding:10px;"><span style="background:${colorEst};color:white;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:600;">${i.estado}</span>
+                      ${i.fecha_notificacion ? `<br><small style="color:#aaa;">Notif: ${new Date(i.fecha_notificacion).toLocaleDateString('es-AR')}</small>` : ''}
+                    </td>
+                    <td style="padding:10px;">${turnoInfo}</td>
+                    <td style="padding:10px;white-space:nowrap;">
+                      ${puedeNotificar ? `
+                        <button onclick="notificarIncidencia('${i.id}','${i.paciente_telefono}','${i.paciente_email}')"
+                          style="padding:4px 10px;background:#25D366;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;margin-bottom:3px;display:block;">
+                          📲 Notificar
+                        </button>` : ''}
+                      <button onclick="cancelarIncidenciaDash('${i.id}')"
+                        style="padding:4px 10px;background:#fee2e2;color:#dc2626;border:none;border-radius:4px;font-size:11px;cursor:pointer;display:block;">
+                        ✕ Cancelar
+                      </button>
+                    </td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>`;
+      } catch(e) {
+        cont.innerHTML = '<div style="color:#dc3545;padding:12px;font-size:13px;">Error al cargar próximas visitas.</div>';
+      }
+    }
+
+    async function notificarIncidencia(id, telefono, email) {
+      const opciones = [];
+      if (telefono) opciones.push('WhatsApp');
+      if (email) opciones.push('Email');
+      if (!opciones.length) { alert('El paciente no tiene teléfono ni email registrado.'); return; }
+      const canal = opciones.length === 2
+        ? (confirm('¿Enviar por WhatsApp?\nCancelar = Email') ? 'whatsapp' : 'email')
+        : (opciones[0] === 'WhatsApp' ? 'whatsapp' : 'email');
+      try {
+        const resp = await fetch(`/api/incidencias/${id}/notificar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ canal, telefono, email })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          if (data.whatsapp_url) window.open(data.whatsapp_url, '_blank');
+          else alert('✅ Email enviado correctamente');
+          cargarIncidencias();
+        } else {
+          alert('Error: ' + data.error);
+        }
+      } catch(e) {
+        alert('Error de red');
+      }
+    }
+
+    async function notificarIncDesdeAlerta(id) {
+      await fetch(`/api/incidencias/${id}/notificar`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', body: JSON.stringify({ canal: 'whatsapp' })
+      });
+      cargarAlertas();
+      cargarIncidencias();
+    }
+
+    async function notificarEmailIncAlerta(id, email) {
+      const resp = await fetch(`/api/incidencias/${id}/notificar`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', body: JSON.stringify({ canal: 'email', email })
+      });
+      const data = await resp.json();
+      if (data.success) alert('✅ Email enviado correctamente');
+      else alert('Error: ' + data.error);
+      cargarAlertas();
+      cargarIncidencias();
+    }
+
+    // === Funciones para solicitudes de turno en alertas ===
+    async function accionSolicitud(id, estado, btn) {
+      const card = document.getElementById(`alerta-sol-${id}`);
+      try {
+        await fetch(`/api/solicitudes-turno/${id}/estado`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          credentials: 'include', body: JSON.stringify({ estado })
+        });
+        if (card) card.style.transition = 'opacity 0.3s', card.style.opacity = '0', setTimeout(() => card.remove(), 300);
+      } catch(e) { alert('Error al actualizar solicitud'); }
+    }
+
+    async function notificarSolicitudWA(id, url, btn) {
+      window.open(url, '_blank');
+      await fetch(`/api/solicitudes-turno/${id}/notificar`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', body: JSON.stringify({ canal: 'whatsapp' })
+      });
+    }
+
+    async function notificarSolicitudEmail(id, email, btn) {
+      const resp = await fetch(`/api/solicitudes-turno/${id}/notificar`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', body: JSON.stringify({ canal: 'email', email })
+      });
+      const data = await resp.json();
+      if (data.success) alert('✅ Email enviado correctamente');
+      else alert('Error: ' + (data.error || 'No se pudo enviar'));
+    }
+
+    function cerrarNotifSolicitud(id, btn) {
+      const card = document.getElementById(`alerta-sol-${id}`);
+      if (card) card.style.transition = 'opacity 0.3s', card.style.opacity = '0', setTimeout(() => card.remove(), 300);
+    }
 
     // ============================================================
     // CARGAR LISTA DE PACIENTES (para autocomplete)
@@ -921,10 +1070,10 @@
           throw new Error('No se pudo obtener el ID del paciente');
         }
 
-        // 📂 Redirigir a historia clínica automáticamente
+        // 📂 Abrir NUEVA consulta en blanco en pestaña nueva
         hideLoading();
-        const historiaUrl = `/doctor/pacientes/${pacienteId}?turno_id=${turnoId}`;
-        window.location.href = historiaUrl;
+        const historiaUrl = `/doctor/historia-nueva?paciente_id=${pacienteId}&turno_id=${turnoId}`;
+        window.open(historiaUrl, '_blank');
         
       } catch (error) {
         hideLoading();
@@ -1023,7 +1172,7 @@
           document.getElementById('modalAltaContainer').innerHTML = '';
           const pacienteId = data.data?.paciente_id;
           if (pacienteId) {
-            window.location.href = `/doctor/pacientes/${pacienteId}?turno_id=${turnoId}`;
+            window.open(`/doctor/historia-nueva?paciente_id=${pacienteId}&turno_id=${turnoId}`, '_blank');
           } else {
             window.location.reload();
           }
@@ -1139,8 +1288,7 @@
     // ABRIR HISTORIA CLÍNICA EN NUEVA PESTAÑA
     // ============================================================
     function abrirHistoriaClinica(turnoId, pacienteId) {
-      const historiaUrl = `/doctor/pacientes/${pacienteId}?turno_id=${turnoId}`;
-      console.log('📂 Abriendo historia clínica en nueva pestaña:', historiaUrl);
+      const historiaUrl = `/doctor/historia-nueva?paciente_id=${pacienteId}&turno_id=${turnoId}`;
       window.open(historiaUrl, '_blank');
     }
 
@@ -1247,23 +1395,43 @@
 
       if (bloque) bloque.style.display = '';
 
-      // Agrupar por prioridad
-      const grupos = {
-        critica:      alertas.filter(a => a.prioridad === 'critica'),
-        importante:   alertas.filter(a => a.prioridad === 'importante'),
-        informativa:  alertas.filter(a => a.prioridad === 'informativa'),
-        administrativa: alertas.filter(a => a.prioridad === 'administrativa')
+      const renderItem = (a, cls) => {
+        let btnNotif = '';
+        if (a.prioridad === 'solicitud_turno') {
+          btnNotif = `<div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
+            ${a.whatsapp_url ? `<button onclick="notificarSolicitudWA('${a.solicitud_id}','${a.whatsapp_url}',this)"
+              style="padding:3px 9px;background:#25D366;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600;">💬 WhatsApp</button>` : ''}
+            ${a.email ? `<button onclick="notificarSolicitudEmail('${a.solicitud_id}','${a.email}',this)"
+              style="padding:3px 9px;background:#3b82f6;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600;">📧 Email</button>` : ''}
+            <button onclick="accionSolicitud('${a.solicitud_id}','Turno asignado',this)"
+              style="padding:3px 9px;background:#28a745;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600;">✅ Ya tiene turno</button>
+            <button onclick="accionSolicitud('${a.solicitud_id}','Vencida',this)"
+              style="padding:3px 9px;background:#fd7e14;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600;">⌛ Venció</button>
+            <button onclick="cerrarNotifSolicitud('${a.solicitud_id}',this)"
+              style="padding:3px 9px;background:#e2e8f0;color:#555;border:none;border-radius:4px;font-size:11px;cursor:pointer;">✕ Cerrar</button>
+            <button onclick="accionSolicitud('${a.solicitud_id}','Cancelada',this)"
+              style="padding:3px 9px;background:#dc3545;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600;">❌ Cancelar</button>
+          </div>`;
+        }
+        return `
+          <div class="alerta-item ${cls}" id="alerta-sol-${a.solicitud_id || ''}">
+            <div class="alerta-icono"><i class="bi ${a.icono || 'bi-exclamation-circle'}"></i></div>
+            <div class="alerta-contenido">
+              <p class="alerta-titulo">${a.titulo}</p>
+              <p class="alerta-valor">${a.descripcion}</p>
+              <p class="alerta-paciente">→ ${a.paciente}${a.turno_hora ? ' · turno ' + a.turno_hora : ''}</p>
+              ${btnNotif}
+            </div>
+          </div>`;
       };
 
-      const renderItem = (a, cls) => `
-        <div class="alerta-item ${cls}">
-          <div class="alerta-icono"><i class="bi ${a.icono || 'bi-exclamation-circle'}"></i></div>
-          <div class="alerta-contenido">
-            <p class="alerta-titulo">${a.titulo}</p>
-            <p class="alerta-valor">${a.descripcion}</p>
-            <p class="alerta-paciente">→ ${a.paciente}${a.turno_hora ? ' · turno ' + a.turno_hora : ''}</p>
-          </div>
-        </div>`;
+      // Agrupar por prioridad
+      const grupos = {
+        critica:         alertas.filter(a => a.prioridad === 'critica'),
+        importante:      alertas.filter(a => a.prioridad === 'importante'),
+        informativa:     alertas.filter(a => a.prioridad === 'informativa'),
+        solicitud_turno: alertas.filter(a => a.prioridad === 'solicitud_turno')
+      };
 
       const renderCategoria = (titulo, icono, items, catClass, itemClass) => {
         if (items.length === 0) return '';
@@ -1278,7 +1446,7 @@
         ${renderCategoria('Críticas', '⚠️', grupos.critica, 'cat-critica', 'alerta-critica')}
         ${renderCategoria('Importantes', '⏱', grupos.importante, 'cat-importante', 'alerta-importante')}
         ${renderCategoria('Informativas', 'ℹ️', grupos.informativa, 'cat-informativa', 'alerta-informativa')}
-        ${renderCategoria('Administrativas', '📋', grupos.administrativa, 'cat-administrativa', 'alerta-administrativa')}
+        ${renderCategoria('Solicitudes de turno', '📅', grupos.solicitud_turno, 'cat-informativa', 'alerta-informativa')}
       </div>`;
     }
 

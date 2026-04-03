@@ -186,7 +186,7 @@
       <div class="nav-item">
         <a href="/doctor/dashboard" class="nav-link">
           <i class="fas fa-chart-line"></i>
-          <span>Dashboard</span>
+          <span>Inicio</span>
         </a>
       </div>
       <div class="nav-item">
@@ -200,6 +200,13 @@
         <a href="/doctor/turnos" class="nav-link active">
           <i class="fas fa-calendar-check"></i>
           <span>Turnos</span>
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="/notificaciones" class="nav-link" style="position:relative;">
+          <i class="fas fa-bell"></i>
+          <span>Notificaciones</span>
+          <span id="badge-solicitudes" style="display:none;position:absolute;top:4px;right:6px;background:#ef4444;color:white;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;line-height:1;"></span>
         </a>
       </div>
     </nav>
@@ -343,7 +350,20 @@
       await cargarEstados();
       await cargarTurnos();
       inicializarFiltros();
+      cargarBadgeSolicitudes();
     });
+
+    async function cargarBadgeSolicitudes() {
+      try {
+        const resp = await fetch('/api/solicitudes-turno/count', { credentials: 'include' });
+        const data = await resp.json();
+        const badge = document.getElementById('badge-solicitudes');
+        if (badge) {
+          badge.textContent = data.count || '';
+          badge.style.display = data.count > 0 ? 'inline-flex' : 'none';
+        }
+      } catch(e) {}
+    }
 
     async function cargarTurnos() {
       const cargando = document.getElementById('cargando');
@@ -551,7 +571,7 @@
         alert('No se encontró ID de paciente para este turno');
         return;
       }
-      window.open(`/doctor/pacientes/${pacienteId}?turno_id=${turnoId}`, '_blank');
+      window.open(`/doctor/historia-nueva?paciente_id=${pacienteId}&turno_id=${turnoId}`, '_blank');
     }
 
     function mostrarModalCancelarConConsulta(turnoId, turno) {

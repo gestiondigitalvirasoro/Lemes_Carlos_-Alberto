@@ -772,9 +772,9 @@
           const modal = bootstrap.Modal.getInstance(document.getElementById('modalDarAltaConsulta'));
           modal.hide();
 
-          // Redirigir al detalle de historia clínica
+          // Abrir historia clínica nueva en pestaña
           setTimeout(() => {
-            window.location.href = `/doctor/pacientes/${pacienteId}`;
+            window.open(`/doctor/historia-nueva?paciente_id=${pacienteId}`, '_blank');
           }, 500);
         } else {
           hideLoading();

@@ -201,7 +201,7 @@
       <div class="nav-item">
         <a href="/doctor/dashboard" class="nav-link">
           <i class="fas fa-chart-line"></i>
-          <span>Dashboard</span>
+          <span>Inicio</span>
         </a>
       </div>
       <div class="nav-item">
@@ -212,9 +212,16 @@
       </div>
       <% } %>
       <div class="nav-item">
-        <a href="/doctor/turnos" class="nav-link active">
+        <a href="/doctor/turnos" class="nav-link active" style="position:relative;">
           <i class="fas fa-calendar-check"></i>
           <span>Turnos</span>
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="/notificaciones" class="nav-link" style="position:relative;">
+          <i class="fas fa-bell"></i>
+          <span>Notificaciones</span>
+          <span id="badge-solicitudes" style="display:none;position:absolute;top:4px;right:6px;background:#ef4444;color:white;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;line-height:1;"></span>
         </a>
       </div>
     </nav>
@@ -378,6 +385,12 @@
       await cargarEstados();
       await cargarTurnos();
       inicializarFiltros();
+      cargarBadgeSolicitudes();
+      // Auto-refresh solicitudes cada 30 minutos
+      setInterval(async () => {
+        await cargarTurnos();
+        cargarBadgeSolicitudes();
+      }, 30 * 60 * 1000);
     });
 
     async function cargarTurnos() {
@@ -406,6 +419,12 @@
         }
 
         turnosGlobales = datos.data;
+        // Cargar solicitudes activas para cruzar con pacientes
+        try {
+          const respSol = await fetch('/api/solicitudes-turno', { credentials: 'include' });
+          const dataSol = await respSol.json();
+          window._solicitudesActivas = dataSol.success ? dataSol.data : [];
+        } catch(e) { window._solicitudesActivas = []; }
         mostrarTurnos(turnosGlobales);
       } catch (err) {
         console.error('Error:', err);
@@ -522,32 +541,32 @@
           if (!persona?.fecha_nacimiento) camposFaltantes.push('fecha de nac.');
           if (camposFaltantes.length > 0) {
             const pacienteId = persona?.paciente?.id || '';
-            let completarBtn = '';
-            if (estadoNombre === 'PENDIENTE') {
-              completarBtn = `<button onclick="window.location.href='/doctor/agendar-turno?editar=${turno.id}'"
-                style="padding:2px 8px;background:#667eea;color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;">
-                ✏️ Completar
-              </button>`;
-            } else if (pacienteId) {
-              completarBtn = `<button onclick="window.location.href='/doctor/pacientes?editarPaciente=${pacienteId}'"
-                style="padding:2px 8px;background:#667eea;color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;">
-                ✏️ Completar
-              </button>`;
-            }
-            incidencias = `
-              <div style="margin-top:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
-                <span style="background:#fee2e2;color:#dc2626;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;" title="Faltan: ${camposFaltantes.join(', ')}">⚠️ Datos incompletos</span>
-                ${completarBtn}
-              </div>`;
+            const completarHref = estadoNombre === 'PENDIENTE'
+              ? `/doctor/agendar-turno?editar=${turno.id}`
+              : (pacienteId ? `/doctor/pacientes?editarPaciente=${pacienteId}` : '');
+            incidencias = `<span title="Faltan: ${camposFaltantes.join(', ')}" style="background:#fee2e2;color:#dc2626;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:700;cursor:pointer;" onclick="window.location.href='${completarHref}'">⚠️ Incompleto</span>`;
           }
         }
+
+        // Chip de solicitud de turno (solo indicador, el panel completo está en /notificaciones)
+        const pacienteIdStr = String(persona?.paciente?.id || '');
+        const solPaciente = pacienteIdStr
+          ? (window._solicitudesActivas || []).find(s => s.paciente_id === pacienteIdStr)
+          : null;
+        let panelSolicitud = '';
+        if (solPaciente && (solPaciente.estado === 'Pendiente' || solPaciente.estado === 'Notificado')) {
+          const colorEst = solPaciente.estado === 'Notificado' ? '#0ea5e9' : '#f59e0b';
+          panelSolicitud = `<a href="/notificaciones" style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;background:${colorEst};color:white;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;text-decoration:none;">🔔 Visita pendiente · ${solPaciente.estado}</a>`;
+        }
+
+        const chips = [incidencias].filter(Boolean).join(' ');
 
         return `<tr>
           <td>
             <strong>${persona?.nombre || '-'} ${persona?.apellido || '-'}</strong><br>
-            <small class="text-muted">DNI: ${persona?.dni || '-'}</small><br>
-            <small class="text-muted">Tel: ${persona?.telefono || '—'}</small>
-            ${incidencias}
+            <small class="text-muted">DNI: ${persona?.dni || '-'} · Tel: ${persona?.telefono || '—'}</small>
+            ${chips ? `<div style="margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">${chips}</div>` : ''}
+            ${panelSolicitud}
           </td>
           <td><strong>${turno.fecha || '-'}</strong></td>
           <td><strong>${turno.hora || '-'}</strong></td>
@@ -1371,6 +1390,72 @@
         statusEl.style.color = '#ef4444';
         statusEl.textContent = '❌ Error al enviar email';
       }
+    }
+
+    async function accionSolTurno(accion, id, extra) {
+      const card = document.getElementById(`sol-row-${id}`);
+      try {
+        if (accion === 'wa') {
+          window.open(extra, '_blank');
+          await fetch(`/api/solicitudes-turno/${id}/notificar`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', body: JSON.stringify({ canal: 'whatsapp' })
+          });
+          if (card) card.querySelector('[style*="ffc107"],[style*="17a2b8"]') && (card.innerHTML = card.innerHTML.replace(/Pendiente|Notificado/, 'Notificado'));
+        } else if (accion === 'email') {
+          const resp = await fetch(`/api/solicitudes-turno/${id}/notificar`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', body: JSON.stringify({ canal: 'email', email: extra })
+          });
+          const data = await resp.json();
+          alert(data.success ? '✅ Email enviado' : '❌ ' + (data.error || 'Error'));
+        } else if (accion === 'notificado') {
+          await fetch(`/api/solicitudes-turno/${id}/estado`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', body: JSON.stringify({ estado: 'Notificado' })
+          });
+          alert('✅ Marcado como Notificado');
+        } else if (accion === 'asignado' || accion === 'cancelar') {
+          const estado = accion === 'asignado' ? 'Turno asignado' : 'Cancelada';
+          await fetch(`/api/solicitudes-turno/${id}/estado`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', body: JSON.stringify({ estado })
+          });
+          if (card) { card.style.transition = 'opacity 0.3s'; card.style.opacity = '0'; setTimeout(() => card.remove(), 300); }
+        } else if (accion === 'cerrar') {
+          if (card) { card.style.transition = 'opacity 0.3s'; card.style.opacity = '0'; setTimeout(() => card.remove(), 300); }
+        }
+        // Actualizar badge
+        cargarBadgeSolicitudes();
+      } catch(e) { alert('Error al procesar acción'); }
+    }
+
+    async function cargarBadgeSolicitudes() {
+      try {
+        const resp = await fetch('/api/solicitudes-turno/count', { credentials: 'include' });
+        const data = await resp.json();
+        const badge = document.getElementById('badge-solicitudes');
+        if (badge) {
+          badge.textContent = data.count || '';
+          badge.style.display = data.count > 0 ? 'inline-flex' : 'none';
+        }
+      } catch(e) {}
+    }
+
+    async function notificarSolSec(id, telefono, email) {
+      const canal = telefono ? (confirm('¿Enviar por WhatsApp?\nCancelar = Email') ? 'whatsapp' : 'email') : 'email';
+      if (canal === 'email' && !email) { alert('El paciente no tiene email registrado.'); return; }
+      try {
+        const resp = await fetch(`/api/solicitudes-turno/${id}/notificar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ canal, telefono, email })
+        });
+        const data = await resp.json();
+        if (canal === 'whatsapp' && data.url) { window.open(data.url, '_blank'); }
+        else { alert(data.success ? '✅ Email enviado' : '❌ ' + data.error); }
+      } catch(e) { alert('Error al notificar'); }
     }
 
     // ============================================================================

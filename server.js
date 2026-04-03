@@ -11,6 +11,7 @@ import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { PrismaClient } from '@prisma/client';
+import cron from 'node-cron';
 import authRoutes from './src/routes/auth.js';
 import pacientesRoutes from './src/routes/pacientes.js';
 import turnosRoutes from './src/routes/turnos.js';
@@ -388,6 +389,18 @@ app.get('/doctor/turnos', requireAuth, requireRole(['secretaria', 'doctor']), (r
   });
 });
 
+// Notificaciones (solicitudes de turno por paciente)
+app.get('/notificaciones', requireAuth, requireRole(['secretaria', 'doctor', 'admin']), (req, res) => {
+  res.render('secretaria/pages/notificaciones', {
+    user: {
+      nombre: req.user.nombre,
+      apellido: req.user.apellido,
+      rol: req.user.role,
+      email: req.user.email
+    }
+  });
+});
+
 // Agendar Nuevo Turno
 app.get('/agendar-turno', requireAuth, (req, res) => {
   res.render('doctor/pages/agendar-turno-nuevo', {
@@ -465,6 +478,7 @@ app.get('/historias', requireAuth, async (req, res) => {
 app.get('/historia/:pacienteId', requireAuth, async (req, res) => {
   try {
     const { pacienteId } = req.params;
+    const { turno_id } = req.query;
     
     // Obtener datos del paciente con persona relacionada
     const paciente = await prisma.paciente.findUnique({
@@ -527,8 +541,7 @@ app.get('/historia/:pacienteId', requireAuth, async (req, res) => {
             signos_vitales: true,
             diagnosticos: true,
             tratamientos: true,
-            estudios: true,
-            documentos: true
+            estudios: true
           },
           orderBy: {
             fecha: 'desc'
@@ -564,8 +577,7 @@ app.get('/historia/:pacienteId', requireAuth, async (req, res) => {
               signos_vitales: true,
               diagnosticos: true,
               tratamientos: true,
-              estudios: true,
-              documentos: true
+              estudios: true
             },
             orderBy: {
               fecha: 'desc'
@@ -695,7 +707,7 @@ app.get('/historia/:pacienteId', requireAuth, async (req, res) => {
       },
       historia: historiaSerializada || null,
       turno_id: turno_id || '',
-      is_new_consulta: !historia,
+      is_new_consulta: false,
       user: {
         nombre: req.user.nombre,
         apellido: req.user.apellido,
@@ -766,10 +778,31 @@ app.get('/doctor/historia-nueva', requireAuth, async (req, res) => {
       }
     }
 
-    console.log(`📂 Historia Nueva Vacía - Paciente: ${paciente.persona?.nombre}, Turno: ${turno_id}`);
+    console.log(`📂 Historia Nueva - Paciente: ${paciente.persona?.nombre}, Turno: ${turno_id}`);
 
-    // Renderizar historia clínica VACÍA (sin datos, para que el doctor la complete)
-    res.render('doctor/pages/historia-detalle-full', {
+    // Obtener HC existente para mostrar consultas anteriores
+    let historia = await prisma.historiaClinica.findFirst({
+      where: { paciente_id: BigInt(paciente_id) },
+      orderBy: { fecha_apertura: 'desc' },
+      include: {
+        consultas: {
+          include: {
+            medico: { select: { nombre: true, apellido: true } },
+            signos_vitales: true,
+            diagnosticos: true,
+            tratamientos: true,
+            estudios: true
+          },
+          orderBy: { fecha: 'desc' }
+        },
+        medico_apertura: { select: { nombre: true, apellido: true } }
+      }
+    });
+
+    const historiaSerializada = historia ? JSON.parse(JSON.stringify(serializeBigInt(historia))) : null;
+
+    // Renderizar con HC existente pero flag de nueva consulta
+    res.render('doctor/pages/historia-detalle', {
       title: 'Historia Clínica - Nueva Consulta',
       paciente: {
         id: paciente.id.toString(),
@@ -785,7 +818,7 @@ app.get('/doctor/historia-nueva', requireAuth, async (req, res) => {
         obra_social: paciente.obra_social || 'N/A',
         numero_afiliado: paciente.numero_afiliado || 'N/A'
       },
-      historia: null, // ✅ VACÍO - sin historia previa
+      historia: historiaSerializada,
       turno_id: turno_id || null,
       is_new_consulta: true, // Flag para indicar que es nueva consulta
       user: {
@@ -1745,48 +1778,58 @@ app.get('/api/alertas-clinicas', requireAuth, async (req, res) => {
 
     const alertas = [];
 
+    // === SOLICITUDES DE TURNO (pendientes o notificadas) ===
+    try {
+      const medicoId = req.user.medicoId ? Number(req.user.medicoId) : null;
+      const esSecretaria = req.user.role === 'secretaria' || req.user.role === 'admin';
+      if (medicoId || esSecretaria) {
+        const solicitudes = esSecretaria
+          ? await prisma.$queryRaw`
+              SELECT s.id, s.fecha_sugerida, s.motivo, s.observaciones, s.estado, s.fecha_notificacion,
+                     p.nombre AS pnombre, p.apellido AS papellido, p.telefono AS ptel, p.email AS pemail
+              FROM solicitudes_turno s
+              JOIN pacientes pac ON pac.id = s.paciente_id
+              JOIN personas p ON p.id = pac.persona_id
+              WHERE s.estado IN ('Pendiente','Notificado')
+              ORDER BY s.fecha_sugerida ASC
+            `
+          : await prisma.$queryRaw`
+              SELECT s.id, s.fecha_sugerida, s.motivo, s.observaciones, s.estado, s.fecha_notificacion,
+                     p.nombre AS pnombre, p.apellido AS papellido, p.telefono AS ptel, p.email AS pemail
+              FROM solicitudes_turno s
+              JOIN pacientes pac ON pac.id = s.paciente_id
+              JOIN personas p ON p.id = pac.persona_id
+              WHERE s.medico_id = ${medicoId}
+                AND s.estado IN ('Pendiente','Notificado')
+              ORDER BY s.fecha_sugerida ASC
+            `;
+        for (const sol of solicitudes) {
+          const fechaStr = sol.fecha_sugerida ? new Date(sol.fecha_sugerida).toLocaleDateString('es-AR') : '-';
+          const tel = (sol.ptel || '').replace(/\D/g, '');
+          const msg = encodeURIComponent(`Hola ${sol.pnombre}! Le recordamos que el médico le ha sugerido una consulta para el ${fechaStr}. Motivo: ${sol.motivo || 'control médico'}. Por favor comuníquese con el consultorio. Consultorio L & L.`);
+          alertas.push({
+            prioridad: 'solicitud_turno',
+            titulo: `Solicitud de turno: ${fechaStr}`,
+            descripcion: sol.motivo || 'Control médico',
+            paciente: `${sol.pnombre} ${sol.papellido}`,
+            icono: 'bi-calendar-plus',
+            solicitud_id: sol.id.toString(),
+            estado: sol.estado,
+            telefono: sol.ptel || '',
+            email: sol.pemail || '',
+            whatsapp_url: tel ? `https://wa.me/549${tel}?text=${msg}` : null
+          });
+        }
+      }
+    } catch(eSol) {
+      console.warn('⚠️ Error cargando solicitudes en alertas:', eSol.message);
+    }
+
     for (const turno of turnos) {
       const persona = turno.persona;
       if (!persona) continue;
       const nombre = `${persona.nombre} ${persona.apellido}`;
       const paciente = persona.paciente;
-
-      // === ADMINISTRATIVAS ===
-      if (!persona.fecha_nacimiento) {
-        alertas.push({
-          prioridad: 'administrativa',
-          titulo: 'Fecha de nacimiento no cargada',
-          descripcion: 'No se puede calcular la edad. Completar antes o durante la consulta.',
-          paciente: nombre,
-          turno_hora: turno.hora,
-          icono: 'bi-person-badge',
-          color: '#6C757D'
-        });
-      }
-
-      if (!persona.telefono) {
-        alertas.push({
-          prioridad: 'administrativa',
-          titulo: 'Sin teléfono de contacto',
-          descripcion: 'No es posible contactar al paciente ante cancelaciones o urgencias.',
-          paciente: nombre,
-          turno_hora: turno.hora,
-          icono: 'bi-telephone-x',
-          color: '#6C757D'
-        });
-      }
-
-      if (!paciente || !paciente.obra_social) {
-        alertas.push({
-          prioridad: 'administrativa',
-          titulo: 'Sin obra social verificada',
-          descripcion: 'El paciente no tiene cobertura registrada. Confirmar en la consulta.',
-          paciente: nombre,
-          turno_hora: turno.hora,
-          icono: 'bi-shield-x',
-          color: '#6C757D'
-        });
-      }
 
       // === INFORMATIVAS / IMPORTANTES ===
       if (!paciente || !paciente.historias_clinicas || paciente.historias_clinicas.length === 0) {
@@ -2032,6 +2075,18 @@ app.put('/api/turnos/:turnoId/estado', requireAuth, async (req, res) => {
     });
 
     console.log('✅ Turno actualizado - Nuevo estado:', estado_nombre);
+
+    // Auto-update solicitud de turno relacionada
+    try {
+      if (estado_nombre === 'CANCELADA') {
+        await prisma.$executeRaw`
+          UPDATE solicitudes_turno SET estado = 'Pendiente', turno_id = NULL
+          WHERE turno_id = ${Number(turnoId)} AND estado = 'Turno asignado'
+        `;
+      }
+    } catch(eInc) {
+      console.warn('⚠️ Error actualizando incidencia por estado:', eInc.message);
+    }
 
     return res.status(200).json({
       success: true,
@@ -2722,6 +2777,30 @@ app.post('/api/agendar-turno', requireAuth, requireRole(['secretaria', 'doctor']
     console.log('✅ Turno CREADO:', turno.id, `para ${persona.nombre} ${persona.apellido}`);
 
     // ========================================
+    // AUTO-UPDATE SOLICITUD DE TURNO si existe una activa para este paciente
+    // ========================================
+    try {
+      let pacienteTmp = await prisma.paciente.findFirst({ where: { persona_id: persona.id } });
+      if (pacienteTmp) {
+        const solActivas = await prisma.$queryRaw`
+          SELECT id, fecha_sugerida, dias_tolerancia FROM solicitudes_turno
+          WHERE paciente_id = ${Number(pacienteTmp.id)}
+            AND estado IN ('Pendiente','Notificado')
+          ORDER BY fecha_sugerida ASC LIMIT 1
+        `;
+        if (solActivas.length > 0) {
+          await prisma.$executeRaw`
+            UPDATE solicitudes_turno SET estado = 'Turno asignado', turno_id = ${turno.id}
+            WHERE id = ${Number(solActivas[0].id)}
+          `;
+          console.log(`📅 Solicitud ${solActivas[0].id} → Turno asignado`);
+        }
+      }
+    } catch(eSol) {
+      console.warn('⚠️ Error actualizando solicitud de turno:', eSol.message);
+    }
+
+    // ========================================
     // PASO 3: CREAR PACIENTE (si es primera consulta)
     // ========================================
     let paciente = await prisma.paciente.findFirst({
@@ -3316,9 +3395,426 @@ app.post('/api/pacientes/migracion', requireAuth, requireRole(['doctor', 'admin'
 });
 
 // ============================================================================
+// ENDPOINTS: INCIDENCIAS PRÓXIMA VISITA
+// ============================================================================
+
+// GET /api/incidencias — listar incidencias activas (todas para secretaria, propias para doctor)
+app.get('/api/incidencias', requireAuth, async (req, res) => {
+  try {
+    const esSecretaria = req.user.role === 'secretaria' || req.user.role === 'admin';
+    const medicoId = req.user.medicoId ? Number(req.user.medicoId) : null;
+    if (!esSecretaria && !medicoId) return res.json({ success: true, data: [] });
+    const rows = esSecretaria
+      ? await prisma.$queryRaw`
+          SELECT i.id, i.paciente_id, i.fecha_sugerida, i.motivo, i.observaciones,
+                 i.prioridad, i.estado, i.turno_id, i.fecha_notificacion, i.dias_tolerancia,
+                 p.nombre AS pnombre, p.apellido AS papellido, p.dni AS pdni,
+                 p.telefono AS ptelefono, p.email AS pemail,
+                 t.fecha AS turno_fecha, t.hora AS turno_hora
+          FROM incidencias_proxima_visita i
+          JOIN pacientes pac ON pac.id = i.paciente_id
+          JOIN personas p ON p.id = pac.persona_id
+          LEFT JOIN turnos t ON t.id = i.turno_id
+          WHERE i.estado NOT IN ('Finalizada','Cancelada')
+          ORDER BY i.fecha_sugerida ASC
+        `
+      : await prisma.$queryRaw`
+          SELECT i.id, i.paciente_id, i.fecha_sugerida, i.motivo, i.observaciones,
+                 i.prioridad, i.estado, i.turno_id, i.fecha_notificacion, i.dias_tolerancia,
+                 p.nombre AS pnombre, p.apellido AS papellido, p.dni AS pdni,
+                 p.telefono AS ptelefono, p.email AS pemail,
+                 t.fecha AS turno_fecha, t.hora AS turno_hora
+          FROM incidencias_proxima_visita i
+          JOIN pacientes pac ON pac.id = i.paciente_id
+          JOIN personas p ON p.id = pac.persona_id
+          LEFT JOIN turnos t ON t.id = i.turno_id
+          WHERE i.medico_id = ${medicoId}
+            AND i.estado NOT IN ('Finalizada','Cancelada')
+          ORDER BY i.fecha_sugerida ASC
+        `;
+    res.json({ success: true, data: rows.map(r => ({
+      id: r.id.toString(),
+      paciente_id: r.paciente_id.toString(),
+      paciente: `${r.pnombre} ${r.papellido}`,
+      paciente_dni: r.pdni?.toString() || '',
+      paciente_telefono: r.ptelefono || '',
+      paciente_email: r.pemail || '',
+      fecha_sugerida: r.fecha_sugerida,
+      motivo: r.motivo || '',
+      observaciones: r.observaciones || '',
+      prioridad: r.prioridad || 'Normal',
+      estado: r.estado,
+      turno_id: r.turno_id?.toString() || null,
+      turno_fecha: r.turno_fecha || null,
+      turno_hora: r.turno_hora || null,
+      dias_tolerancia: Number(r.dias_tolerancia) || 7,
+      fecha_notificacion: r.fecha_notificacion || null
+    })) });
+  } catch(e) {
+    console.error('❌ GET /api/incidencias:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/incidencias — crear incidencia desde historia clínica
+app.post('/api/incidencias', requireAuth, requireRole(['doctor', 'admin']), async (req, res) => {
+  try {
+    const { paciente_id, fecha_sugerida, motivo, observaciones, prioridad, dias_tolerancia } = req.body;
+    if (!paciente_id || !fecha_sugerida) {
+      return res.status(400).json({ error: 'paciente_id y fecha_sugerida son requeridos' });
+    }
+    const medicoId = req.user.medicoId ? Number(req.user.medicoId) : null;
+    if (!medicoId) return res.status(403).json({ error: 'Solo médicos pueden crear incidencias' });
+    const result = await prisma.$queryRaw`
+      INSERT INTO incidencias_proxima_visita
+        (paciente_id, medico_id, fecha_sugerida, motivo, observaciones, prioridad, estado, usuario_creacion, dias_tolerancia)
+      VALUES
+        (${BigInt(paciente_id)}, ${medicoId}, ${new Date(fecha_sugerida)},
+         ${motivo || null}, ${observaciones || null}, ${prioridad || 'Normal'},
+         'Pendiente', ${medicoId}, ${dias_tolerancia ? parseInt(dias_tolerancia) : 7})
+      RETURNING id
+    `;
+    res.json({ success: true, id: result[0].id.toString() });
+  } catch(e) {
+    console.error('❌ POST /api/incidencias:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PUT /api/incidencias/:id/estado — cambiar estado
+app.put('/api/incidencias/:id/estado', requireAuth, async (req, res) => {
+  try {
+    const { estado } = req.body;
+    const estadosValidos = ['Pendiente','Notificada','Turno asignado','Reprogramada','Finalizada','Cancelada'];
+    if (!estadosValidos.includes(estado)) return res.status(400).json({ error: 'Estado inválido' });
+    await prisma.$executeRaw`
+      UPDATE incidencias_proxima_visita SET estado = ${estado} WHERE id = ${BigInt(req.params.id)}
+    `;
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// DELETE /api/incidencias/:id — cancelar incidencia
+app.delete('/api/incidencias/:id', requireAuth, async (req, res) => {
+  try {
+    await prisma.$executeRaw`
+      UPDATE incidencias_proxima_visita SET estado = 'Cancelada' WHERE id = ${BigInt(req.params.id)}
+    `;
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/incidencias/:id/notificar — enviar aviso (email o WhatsApp)
+app.post('/api/incidencias/:id/notificar', requireAuth, async (req, res) => {
+  try {
+    const { canal, email, telefono } = req.body;
+    const rows = await prisma.$queryRaw`
+      SELECT i.*, p.nombre AS pnom, p.apellido AS pape, p.telefono AS ptel, p.email AS pem,
+             mp.nombre AS mnom, mp.apellido AS mape
+      FROM incidencias_proxima_visita i
+      JOIN pacientes pac ON pac.id = i.paciente_id
+      JOIN personas p ON p.id = pac.persona_id
+      JOIN medicos m ON m.id = i.medico_id
+      JOIN personas mp ON mp.id = m.persona_id
+      WHERE i.id = ${BigInt(req.params.id)}
+    `;
+    if (!rows.length) return res.status(404).json({ error: 'Incidencia no encontrada' });
+    const inc = rows[0];
+    const fechaStr = inc.fecha_sugerida ? new Date(inc.fecha_sugerida).toLocaleDateString('es-AR') : '-';
+
+    if (canal === 'email') {
+      const emailDest = email || inc.pem;
+      if (!emailDest) return res.status(400).json({ error: 'No hay email disponible' });
+      await enviarEmailBrevo({
+        to: emailDest,
+        subject: `Recordatorio de próxima visita — Consultorio L&L`,
+        html: `<h2>Estimado/a ${inc.pnom} ${inc.pape},</h2>
+          <p>Le recordamos que tiene una visita médica sugerida para el <strong>${fechaStr}</strong>.</p>
+          <p><strong>Motivo:</strong> ${inc.motivo || 'Control médico'}</p>
+          ${inc.observaciones ? `<p><strong>Observaciones:</strong> ${inc.observaciones}</p>` : ''}
+          <p>Por favor comuníquese con el consultorio para confirmar su turno.</p>
+          <p>Dr/Dra. ${inc.mnom} ${inc.mape}<br>Consultorio L &amp; L</p>`
+      });
+    }
+
+    await prisma.$executeRaw`
+      UPDATE incidencias_proxima_visita
+      SET estado = 'Notificada', fecha_notificacion = NOW()
+      WHERE id = ${BigInt(req.params.id)}
+    `;
+
+    if (canal === 'whatsapp') {
+      const tel = (telefono || inc.ptel || '').replace(/\D/g,'');
+      const msg = encodeURIComponent(`Hola ${inc.pnom}! Le recordamos que tiene una visita médica sugerida para el ${fechaStr}. Motivo: ${inc.motivo || 'control médico'}. Comuníquese al consultorio para confirmar su turno. Consultorio L & L.`);
+      return res.json({ success: true, whatsapp_url: `https://wa.me/549${tel}?text=${msg}` });
+    }
+    res.json({ success: true });
+  } catch(e) {
+    console.error('❌ POST /api/incidencias/:id/notificar:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================================================
+// ALERTAS ADMINISTRATIVAS: pacientes con datos incompletos o sin HC
+// ============================================================================
+app.get('/api/alertas-administrativas', requireAuth, requireRole(['secretaria', 'admin', 'doctor']), async (req, res) => {
+  try {
+    // Pacientes con datos incompletos (telefono, email, fecha_nacimiento, dni, obra_social)
+    const sinDatos = await prisma.$queryRaw`
+      SELECT p.id AS persona_id, pac.id AS pac_id, p.nombre, p.apellido, p.dni,
+             p.telefono, p.email, p.fecha_nacimiento, p.sexo,
+             pac.obra_social, pac.numero_afiliado,
+             CASE WHEN hc.id IS NOT NULL THEN true ELSE false END AS tiene_hc
+      FROM personas p
+      JOIN pacientes pac ON pac.persona_id = p.id
+      LEFT JOIN historias_clinicas hc ON hc.paciente_id = pac.id AND hc.activa = true
+      WHERE (p.telefono IS NULL OR p.telefono = '')
+         OR (p.email IS NULL OR p.email = '')
+         OR p.fecha_nacimiento IS NULL
+         OR (p.dni IS NULL OR p.dni = 0)
+         OR (pac.obra_social IS NULL OR pac.obra_social = '')
+      ORDER BY p.apellido ASC
+    `;
+
+    // Pacientes sin historia clínica
+    const sinHC = await prisma.$queryRaw`
+      SELECT p.id AS persona_id, pac.id AS pac_id, p.nombre, p.apellido, p.dni, p.telefono, p.email
+      FROM personas p
+      JOIN pacientes pac ON pac.persona_id = p.id
+      LEFT JOIN historias_clinicas hc ON hc.paciente_id = pac.id
+      WHERE hc.id IS NULL
+      ORDER BY p.apellido ASC
+    `;
+
+    const alertasDatos = sinDatos.map(p => {
+      const faltantes = [];
+      if (!p.telefono) faltantes.push('teléfono');
+      if (!p.email) faltantes.push('email');
+      if (!p.fecha_nacimiento) faltantes.push('fecha de nacimiento');
+      if (!p.dni) faltantes.push('DNI');
+      if (!p.obra_social) faltantes.push('obra social');
+      return {
+        tipo: 'datos_incompletos',
+        paciente_id: p.pac_id.toString(),
+        paciente: `${p.nombre} ${p.apellido}`,
+        nombre: p.nombre,
+        apellido: p.apellido,
+        dni: p.dni?.toString() || '',
+        telefono: p.telefono || '',
+        email: p.email || '',
+        fecha_nacimiento: p.fecha_nacimiento ? new Date(p.fecha_nacimiento).toISOString().split('T')[0] : '',
+        sexo: p.sexo || '',
+        obra_social: p.obra_social || '',
+        numero_afiliado: p.numero_afiliado || '',
+        tiene_hc: p.tiene_hc === true || p.tiene_hc === 't',
+        faltantes
+      };
+    });
+
+    const alertasHC = sinHC.map(p => ({
+      tipo: 'sin_hc',
+      paciente_id: p.pac_id.toString(),
+      paciente: `${p.nombre} ${p.apellido}`,
+      dni: p.dni?.toString() || '',
+      telefono: p.telefono || '',
+      email: p.email || ''
+    }));
+
+    res.json({ success: true, datos_incompletos: alertasDatos, sin_hc: alertasHC });
+  } catch(e) {
+    console.error('❌ GET /api/alertas-administrativas:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================================================
+// ENDPOINTS: SOLICITUDES DE TURNO
+// ============================================================================
+
+// GET /api/solicitudes-turno/count — cantidad de solicitudes pendientes (para badge)
+app.get('/api/solicitudes-turno/count', requireAuth, async (req, res) => {
+  try {
+    const esSecretaria = req.user.role === 'secretaria' || req.user.role === 'admin';
+    const medicoId = req.user.medicoId ? Number(req.user.medicoId) : null;
+    const result = esSecretaria
+      ? await prisma.$queryRaw`SELECT COUNT(*) AS total FROM solicitudes_turno WHERE estado IN ('Pendiente','Notificado')`
+      : medicoId
+        ? await prisma.$queryRaw`SELECT COUNT(*) AS total FROM solicitudes_turno WHERE medico_id = ${medicoId} AND estado IN ('Pendiente','Notificado')`
+        : [{ total: 0 }];
+    res.json({ success: true, count: Number(result[0]?.total || 0) });
+  } catch(e) {
+    res.json({ success: true, count: 0 });
+  }
+});
+
+// GET /api/solicitudes-turno — listar (activas por defecto; ?todos=1 para ver todas)
+app.get('/api/solicitudes-turno', requireAuth, async (req, res) => {
+  try {
+    const esSecretaria = req.user.role === 'secretaria' || req.user.role === 'admin';
+    const medicoId = req.user.medicoId ? Number(req.user.medicoId) : null;
+    const verTodas = req.query.todos === '1';
+    if (!esSecretaria && !medicoId) return res.json({ success: true, data: [] });
+    const rows = esSecretaria
+      ? verTodas
+        ? await prisma.$queryRaw`
+            SELECT s.id, s.paciente_id, s.fecha_sugerida, s.motivo, s.observaciones,
+                   s.estado, s.turno_id, s.fecha_notificacion, s.dias_tolerancia,
+                   p.nombre AS pnombre, p.apellido AS papellido, p.dni AS pdni,
+                   p.telefono AS ptelefono, p.email AS pemail
+            FROM solicitudes_turno s
+            JOIN pacientes pac ON pac.id = s.paciente_id
+            JOIN personas p ON p.id = pac.persona_id
+            ORDER BY s.fecha_sugerida ASC
+          `
+        : await prisma.$queryRaw`
+            SELECT s.id, s.paciente_id, s.fecha_sugerida, s.motivo, s.observaciones,
+                   s.estado, s.turno_id, s.fecha_notificacion, s.dias_tolerancia,
+                   p.nombre AS pnombre, p.apellido AS papellido, p.dni AS pdni,
+                   p.telefono AS ptelefono, p.email AS pemail
+            FROM solicitudes_turno s
+            JOIN pacientes pac ON pac.id = s.paciente_id
+            JOIN personas p ON p.id = pac.persona_id
+            WHERE s.estado NOT IN ('Turno asignado','Vencida','Cancelada','Cerrada')
+            ORDER BY s.fecha_sugerida ASC
+          `
+      : verTodas
+        ? await prisma.$queryRaw`
+            SELECT s.id, s.paciente_id, s.fecha_sugerida, s.motivo, s.observaciones,
+                   s.estado, s.turno_id, s.fecha_notificacion, s.dias_tolerancia,
+                   p.nombre AS pnombre, p.apellido AS papellido, p.dni AS pdni,
+                   p.telefono AS ptelefono, p.email AS pemail
+            FROM solicitudes_turno s
+            JOIN pacientes pac ON pac.id = s.paciente_id
+            JOIN personas p ON p.id = pac.persona_id
+            WHERE s.medico_id = ${medicoId}
+            ORDER BY s.fecha_sugerida ASC
+          `
+        : await prisma.$queryRaw`
+            SELECT s.id, s.paciente_id, s.fecha_sugerida, s.motivo, s.observaciones,
+                   s.estado, s.turno_id, s.fecha_notificacion, s.dias_tolerancia,
+                   p.nombre AS pnombre, p.apellido AS papellido, p.dni AS pdni,
+                   p.telefono AS ptelefono, p.email AS pemail
+            FROM solicitudes_turno s
+            JOIN pacientes pac ON pac.id = s.paciente_id
+            JOIN personas p ON p.id = pac.persona_id
+            WHERE s.medico_id = ${medicoId}
+              AND s.estado NOT IN ('Turno asignado','Vencida','Cancelada','Cerrada')
+            ORDER BY s.fecha_sugerida ASC
+          `;
+    res.json({ success: true, data: rows.map(r => ({
+      id: r.id.toString(),
+      paciente_id: r.paciente_id.toString(),
+      paciente: `${r.pnombre} ${r.papellido}`,
+      paciente_nombre: r.pnombre || '',
+      paciente_apellido: r.papellido || '',
+      paciente_dni: r.pdni?.toString() || '',
+      paciente_telefono: r.ptelefono || '',
+      paciente_email: r.pemail || '',
+      fecha_sugerida: r.fecha_sugerida,
+      motivo: r.motivo || '',
+      observaciones: r.observaciones || '',
+      estado: r.estado,
+      turno_id: r.turno_id?.toString() || null,
+      dias_tolerancia: Number(r.dias_tolerancia) || 7,
+      fecha_notificacion: r.fecha_notificacion || null
+    })) });
+  } catch(e) {
+    console.error('❌ GET /api/solicitudes-turno:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/solicitudes-turno — crear desde historia clínica
+app.post('/api/solicitudes-turno', requireAuth, requireRole(['doctor', 'admin']), async (req, res) => {
+  try {
+    const { paciente_id, fecha_sugerida, motivo, observaciones, dias_tolerancia } = req.body;
+    if (!paciente_id || !fecha_sugerida) return res.status(400).json({ error: 'paciente_id y fecha_sugerida son requeridos' });
+    const medicoId = req.user.medicoId ? Number(req.user.medicoId) : null;
+    if (!medicoId) return res.status(403).json({ error: 'Solo médicos pueden crear solicitudes' });
+    const result = await prisma.$queryRaw`
+      INSERT INTO solicitudes_turno (paciente_id, medico_id, fecha_sugerida, motivo, observaciones, estado, usuario_creacion, dias_tolerancia)
+      VALUES (${Number(paciente_id)}, ${medicoId}, ${new Date(fecha_sugerida)}, ${motivo || null}, ${observaciones || null}, 'Pendiente', ${medicoId}, ${dias_tolerancia ? parseInt(dias_tolerancia) : 7})
+      RETURNING id
+    `;
+    res.json({ success: true, id: result[0].id.toString() });
+  } catch(e) {
+    console.error('❌ POST /api/solicitudes-turno:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PUT /api/solicitudes-turno/:id/estado — cambiar estado
+app.put('/api/solicitudes-turno/:id/estado', requireAuth, async (req, res) => {
+  try {
+    const { estado } = req.body;
+    const estadosValidos = ['Pendiente','Notificado','Turno asignado','Vencida','Cancelada','Cerrada'];
+    if (!estadosValidos.includes(estado)) return res.status(400).json({ error: 'Estado inválido' });
+    if (estado === 'Cerrada') {
+      await prisma.$executeRaw`UPDATE solicitudes_turno SET estado = ${estado}, fecha_cierre = NOW() WHERE id = ${Number(req.params.id)}`;
+    } else {
+      await prisma.$executeRaw`UPDATE solicitudes_turno SET estado = ${estado} WHERE id = ${Number(req.params.id)}`;
+    }
+    res.json({ success: true });
+  } catch(e) {
+    console.error('❌ PUT /api/solicitudes-turno/:id/estado:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/solicitudes-turno/:id/notificar — enviar email o WhatsApp
+app.post('/api/solicitudes-turno/:id/notificar', requireAuth, async (req, res) => {
+  try {
+    const { canal, email, telefono } = req.body;
+    const [sol] = await prisma.$queryRaw`
+      SELECT s.*, p.nombre AS pnom, p.apellido AS pape, p.telefono AS ptel, p.email AS pem
+      FROM solicitudes_turno s
+      JOIN pacientes pac ON pac.id = s.paciente_id
+      JOIN personas p ON p.id = pac.persona_id
+      WHERE s.id = ${Number(req.params.id)}
+    `;
+    if (!sol) return res.status(404).json({ error: 'Solicitud no encontrada' });
+    const fechaStr = sol.fecha_sugerida ? new Date(sol.fecha_sugerida).toLocaleDateString('es-AR') : '-';
+    const nombrePaciente = `${sol.pnom} ${sol.pape}`;
+    if (canal === 'whatsapp') {
+      const tel = (telefono || sol.ptel || '').replace(/\D/g, '');
+      if (!tel) return res.status(400).json({ error: 'Sin teléfono' });
+      const msg = encodeURIComponent(`Hola ${sol.pnom}! Le recordamos que el médico le ha sugerido una consulta de seguimiento para el ${fechaStr}. Motivo: ${sol.motivo || 'control médico'}. Por favor comuníquese con el consultorio para reservar su turno. Consultorio L & L.`);
+      await prisma.$executeRaw`UPDATE solicitudes_turno SET estado = 'Notificado', fecha_notificacion = NOW() WHERE id = ${Number(req.params.id)}`;
+      return res.json({ success: true, url: `https://wa.me/549${tel}?text=${msg}` });
+    } else {
+      const emailDest = email || sol.pem;
+      if (!emailDest) return res.status(400).json({ error: 'Sin email' });
+      await enviarEmailBrevo({
+        to: emailDest,
+        subject: `Recordatorio de consulta médica — Consultorio L&L`,
+        html: `<p>Estimado/a <strong>${nombrePaciente}</strong>,</p>
+               <p>Le recordamos que su médico le ha sugerido una consulta de seguimiento.</p>
+               <ul>
+                 <li><strong>Fecha sugerida:</strong> ${fechaStr}</li>
+                 <li><strong>Motivo:</strong> ${sol.motivo || 'Control médico'}</li>
+                 ${sol.observaciones ? `<li><strong>Observaciones:</strong> ${sol.observaciones}</li>` : ''}
+               </ul>
+               <p>Por favor comuníquese con el consultorio para reservar su turno.</p>
+               <p><em>Consultorio L & L</em></p>`
+      });
+      await prisma.$executeRaw`UPDATE solicitudes_turno SET estado = 'Notificado', fecha_notificacion = NOW() WHERE id = ${Number(req.params.id)}`;
+      return res.json({ success: true });
+    }
+  } catch(e) {
+    console.error('❌ POST /api/solicitudes-turno/:id/notificar:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================================================
 // ENDPOINT: EDITAR DATOS DEL PACIENTE
 // ============================================================================
-app.put('/api/pacientes/:id', requireAuth, requireRole(['doctor', 'admin']), async (req, res) => {
+app.put('/api/pacientes/:id', requireAuth, requireRole(['doctor', 'admin', 'secretaria']), async (req, res) => {
   try {
     const pacienteId = BigInt(req.params.id);
     const { nombre, apellido, email, telefono, fecha_nacimiento, sexo, obra_social, numero_afiliado } = req.body;
@@ -3483,11 +3979,13 @@ app.get('/api/pacientes-lista', requireAuth, async (req, res) => {
           select: {
             id: true,
             obra_social: true,
-            historiaClinica: {
+            historias_clinicas: {
               select: {
                 id: true,
                 activa: true
-              }
+              },
+              take: 1,
+              orderBy: { fecha_apertura: 'desc' }
             }
           }
         }
@@ -3507,8 +4005,8 @@ app.get('/api/pacientes-lista', requireAuth, async (req, res) => {
       email: p.email,
       obra_social: p.obra_social || (p.paciente?.obra_social || null),
       es_paciente: p.paciente ? true : false,
-      tiene_historia_clinica: p.paciente?.historiaClinica ? true : false,
-      historia_clinica_activa: p.paciente?.historiaClinica?.activa || false,
+      tiene_historia_clinica: p.paciente?.historias_clinicas?.length > 0,
+      historia_clinica_activa: p.paciente?.historias_clinicas?.[0]?.activa || false,
       ultimo_turno: p.turnos[0] ? {
         id: p.turnos[0].id.toString(),
         estado: {
@@ -5010,6 +5508,94 @@ async function startServer() {
     } catch (e) {
       console.warn('⚠️ dias_bloqueados:', e.message);
     }
+
+    // Crear tabla incidencias_proxima_visita si no existe
+    try {
+      await prisma.$executeRaw`
+        CREATE TABLE IF NOT EXISTS incidencias_proxima_visita (
+          id BIGSERIAL PRIMARY KEY,
+          paciente_id BIGINT NOT NULL,
+          medico_id BIGINT NOT NULL,
+          fecha_sugerida DATE NOT NULL,
+          motivo VARCHAR(255),
+          observaciones TEXT,
+          prioridad VARCHAR(50) DEFAULT 'Normal',
+          estado VARCHAR(50) DEFAULT 'Pendiente',
+          fecha_creacion TIMESTAMPTZ DEFAULT NOW(),
+          usuario_creacion BIGINT,
+          turno_id BIGINT,
+          fecha_notificacion TIMESTAMPTZ,
+          dias_tolerancia INT DEFAULT 7
+        )
+      `;
+      console.log('✅ Tabla incidencias_proxima_visita verificada');
+    } catch (e) {
+      console.warn('⚠️ incidencias_proxima_visita:', e.message);
+    }
+
+    // Crear tabla solicitudes_turno si no existe
+    try {
+      await prisma.$executeRaw`
+        CREATE TABLE IF NOT EXISTS solicitudes_turno (
+          id BIGSERIAL PRIMARY KEY,
+          paciente_id BIGINT NOT NULL,
+          medico_id BIGINT NOT NULL,
+          fecha_sugerida DATE NOT NULL,
+          motivo VARCHAR(255),
+          observaciones TEXT,
+          estado VARCHAR(50) DEFAULT 'Pendiente',
+          turno_id BIGINT,
+          fecha_creacion TIMESTAMPTZ DEFAULT NOW(),
+          usuario_creacion BIGINT,
+          fecha_notificacion TIMESTAMPTZ,
+          fecha_cierre TIMESTAMPTZ,
+          dias_tolerancia INT DEFAULT 7
+        )
+      `;
+      console.log('✅ Tabla solicitudes_turno verificada');
+    } catch (e) {
+      console.warn('⚠️ solicitudes_turno:', e.message);
+    }
+
+    // ============================================================
+    // CRON: revisar solicitudes pendientes 2x/día (8:00 y 14:00)
+    // Procesamiento secuencial: de a una por vez con delay de 3s entre cada una
+    // ============================================================
+    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    const procesarSolicitudCron = async (sol, index, total) => {
+      const fecha = sol.fecha_sugerida ? new Date(sol.fecha_sugerida).toLocaleDateString('es-AR') : '-';
+      console.log(`   [${index + 1}/${total}] 📅 ${sol.nombre} ${sol.apellido} — ${fecha} (${sol.motivo || 'Sin motivo'}) [${sol.estado}]`);
+      // TODO: cuando se active envío automático, agregar aquí:
+      //   if (sol.email) await enviarEmailBrevo(sol.email, ...)
+      //   if (sol.telefono) { /* abrir WA o enviar SMS */ }
+    };
+
+    cron.schedule('0 8,14 * * *', async () => {
+      try {
+        const lista = await prisma.$queryRaw`
+          SELECT s.id, s.fecha_sugerida, s.motivo, s.estado,
+                 p.nombre, p.apellido, p.email, p.telefono
+          FROM solicitudes_turno s
+          JOIN pacientes pac ON pac.id = s.paciente_id
+          JOIN personas p ON p.id = pac.persona_id
+          WHERE s.estado IN ('Pendiente','Notificado')
+          ORDER BY s.fecha_sugerida ASC
+        `;
+        const total = lista.length;
+        console.log(`\n🔔 [CRON ${new Date().toLocaleTimeString('es-AR')}] Solicitudes pendientes: ${total}`);
+        if (total === 0) return;
+
+        for (let i = 0; i < lista.length; i++) {
+          await procesarSolicitudCron(lista[i], i, total);
+          if (i < lista.length - 1) await delay(3000); // 3s entre cada una, excepto la última
+        }
+        console.log(`   ✅ Cron finalizado — ${total} solicitud(es) procesada(s)`);
+      } catch(e) {
+        console.warn('⚠️ Error en cron solicitudes:', e.message);
+      }
+    }, { timezone: 'America/Argentina/Buenos_Aires' });
+    console.log('✅ Cron solicitudes activo (08:00 y 14:00 ARG)');
 
     // Iniciar servidor
     app.listen(PORT, () => {

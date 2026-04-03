@@ -553,6 +553,7 @@
                     <li style="margin-bottom: 8px;"><a href="#impresion" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-stethoscope"></i> Impresión</a></li>
                     <li style="margin-bottom: 8px;"><a href="#estudios" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-flask"></i> Estudios <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;" id="estudiosCountSidebar"><%= (historia?.consultas?.[0]?.estudios?.length || 0) %></span></a></li>
                     <li><a href="#adjuntos" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-file-image"></i> Adjuntos <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;" id="adjuntosCountSidebar">0</span></a></li>
+                    <li style="margin-top:8px;"><a href="#proxima-visita" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-calendar-plus"></i> Próxima Visita</a></li>
                 </ul>
             </div>
 
@@ -615,9 +616,13 @@
                         <% if (historia && historia.consultas && historia.consultas.length > 0) { %>
                             <div class="d-flex align-items-center gap-3 flex-wrap">
                                 <select id="consultaSelector" onchange="confirmarCambioConsulta(this.value)" style="flex:1; min-width:200px; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px; cursor:pointer; background:white;">
+                                    <% if (typeof is_new_consulta !== 'undefined' && is_new_consulta) { %>
+                                        <option value="nueva" selected>— Nueva consulta (en curso) —</option>
+                                    <% } %>
                                     <% historia.consultas?.forEach((cons, idx) => { %>
-                                        <option value="<%= idx %>" <%= idx === 0 ? 'selected' : '' %>>
-                                            <%= cons.fecha %> — <%= cons.motivo_consulta || 'Consulta' %>
+                                        <option value="<%= idx %>" <%= (!is_new_consulta && idx === 0) ? 'selected' : '' %>>
+                                            <% const _fd = cons.fecha ? new Date(cons.fecha) : null; const _fdStr = _fd && !isNaN(_fd) ? _fd.toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'}) : (cons.fecha || 'Sin fecha'); %>
+                                            <%= _fdStr %> — <%= cons.motivo_consulta || 'Consulta' %>
                                         </option>
                                     <% }); %>
                                 </select>
@@ -980,12 +985,57 @@
                         <% } %>
                     </div>
                 </section>
+
+                <!-- ========== SECCIÓN: SOLICITUD DE TURNO ========== -->
+                <section class="section" id="proxima-visita" style="background:white;border-radius:12px;padding:28px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                  <h4 style="color:#1a3a3a;margin:0 0 6px 0;font-size:17px;font-weight:700;"><i class="bi bi-calendar-plus"></i> Solicitud de Turno</h4>
+                  <p style="color:#888;font-size:13px;margin:0 0 20px 0;">Indicá al paciente que debe volver en una fecha determinada. Se generará una notificación para la secretaria.</p>
+                  <div id="solicitudes-lista" style="margin-bottom:20px;"></div>
+                  <div id="form-solicitud-container">
+                    <button onclick="mostrarFormSolicitud()" id="btn-nueva-solicitud"
+                      style="padding:8px 18px;background:#667eea;color:white;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;">
+                      + Registrar solicitud de turno
+                    </button>
+                    <div id="form-solicitud" style="display:none;margin-top:16px;background:#f8f9fa;border-radius:8px;padding:20px;">
+                      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                        <div>
+                          <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Fecha sugerida <span style="color:#e74c3c">*</span></label>
+                          <input id="sol-fecha" type="date" style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+                        </div>
+                        <div>
+                          <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Motivo</label>
+                          <select id="sol-motivo" style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
+                            <option value="Control">Control</option>
+                            <option value="Seguimiento">Seguimiento</option>
+                            <option value="Resultados de estudios">Resultados de estudios</option>
+                            <option value="Revisión">Revisión</option>
+                            <option value="Otro">Otro</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div style="margin-bottom:14px;">
+                        <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Observaciones</label>
+                        <textarea id="sol-observaciones" rows="2" style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;resize:vertical;" placeholder="Indicaciones para el paciente..."></textarea>
+                      </div>
+                      <div style="display:flex;gap:10px;">
+                        <button onclick="guardarSolicitud()" id="btn-guardar-solicitud"
+                          style="padding:9px 22px;background:#667eea;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">
+                          ✅ Guardar
+                        </button>
+                        <button onclick="ocultarFormSolicitud()"
+                          style="padding:9px 22px;background:#e2e8f0;color:#333;border:none;border-radius:6px;font-size:13px;cursor:pointer;">
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
             </div>
 
             <!-- FOOTER -->
             <footer>
                 <p>
-                    <strong>Médico tratante:</strong> Dr. Carlos · Med. General · 
+                    <strong>Médico tratante:</strong> Dr. Carlos · Med. General ·
                     <strong>Última actualización:</strong> <%= new Date().toLocaleDateString('es-AR') %>
                 </p>
             </footer>
@@ -1016,15 +1066,22 @@
           console.log('📝 Sin consultas - será una nueva');
         }
 
+        function limpiarCamposConsulta() {
+            cambiarConsulta(99999); // índice inválido → limpia campos
+        }
+
         // Confirmar cambio de consulta si hay cambios pendientes
         function confirmarCambioConsulta(idx) {
+            if (idx === 'nueva') {
+                limpiarCamposConsulta();
+                return;
+            }
             if (modoEdicion) {
                 const confirmar = confirm('Tenés cambios sin guardar. ¿Querés guardar antes de cambiar de consulta?');
                 if (confirmar) {
                     guardarCambios().then(() => {
                         modoEdicion = false;
                         cambiarConsulta(idx);
-                        // Actualizar select por si acaso
                         const sel = document.getElementById('consultaSelector');
                         if (sel) sel.value = idx;
                     }).catch(() => {
@@ -1032,7 +1089,6 @@
                     });
                     return;
                 }
-                // Descartar cambios y cambiar
                 modoEdicion = false;
                 document.getElementById('btnEditar').style.display = 'flex';
                 document.getElementById('btnGuardar').style.display = 'none';
@@ -1075,13 +1131,13 @@
             
             // Actualizar información mostrada
             const fechaElem = document.getElementById('consultaFecha');
-            if (fechaElem) fechaElem.textContent = consulta.fecha || '-';
+            if (fechaElem) { const _fd2 = consulta.fecha ? new Date(consulta.fecha) : null; fechaElem.textContent = _fd2 && !isNaN(_fd2) ? _fd2.toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'}) : (consulta.fecha || '-'); }
             
             const motivoElem = document.getElementById('consultaMotivo');
             if (motivoElem) motivoElem.textContent = consulta.motivo_consulta || 'Sin especificar';
             
             const medicoElem = document.getElementById('consultaMedico');
-            if (medicoElem) medicoElem.textContent = consulta.medico || 'Sin médico asignado';
+            if (medicoElem) medicoElem.textContent = consulta.medico ? (typeof consulta.medico === 'object' ? (consulta.medico.nombre + ' ' + consulta.medico.apellido) : consulta.medico) : 'Sin médico asignado';
             
             // Actualizar Signos Vitales (signos_vitales es un ARRAY)
             const signosVitales = consulta.signos_vitales?.[0];
@@ -2220,8 +2276,10 @@ M.P. 6306 · M.N. 158.838
                 }
             });
             
-            // Inicializar datos de la consulta actual (índice 0)
-            cambiarConsulta(0);
+            // Inicializar datos de la consulta actual (índice 0), salvo que sea nueva consulta
+            if (!_IS_NEW_CONSULTA) {
+                cambiarConsulta(0);
+            }
             
             const archivosExistentes = document.querySelectorAll('[data-id]');
             archivosExistentes.forEach(card => {
@@ -2831,6 +2889,104 @@ M.P. 6306 · M.N. 158.838
                 modal.style.display = 'none';
             }
         });
+    </script>
+
+
+    <script>
+      const _PACIENTE_ID_HC = '<%= paciente.id %>';
+      const _IS_NEW_CONSULTA = <%= typeof is_new_consulta !== 'undefined' && is_new_consulta ? 'true' : 'false' %>;
+
+      function mostrarFormSolicitud() {
+        document.getElementById('form-solicitud').style.display = 'block';
+        document.getElementById('btn-nueva-solicitud').style.display = 'none';
+      }
+      function ocultarFormSolicitud() {
+        document.getElementById('form-solicitud').style.display = 'none';
+        document.getElementById('btn-nueva-solicitud').style.display = 'inline-block';
+      }
+
+      async function cargarSolicitudesHC() {
+        const lista = document.getElementById('solicitudes-lista');
+        try {
+          const resp = await fetch('/api/solicitudes-turno', { credentials: 'include' });
+          const data = await resp.json();
+          if (!data.success) { lista.innerHTML = ''; return; }
+          const hoy = new Date(); hoy.setHours(0,0,0,0);
+          const mias = data.data.filter(s => s.paciente_id === _PACIENTE_ID_HC);
+          if (!mias.length) { lista.innerHTML = '<p style="color:#aaa;font-size:13px;">Sin solicitudes activas.</p>'; return; }
+          const colorEstado = { 'Pendiente':'#ffc107','Notificado':'#17a2b8','Turno asignado':'#28a745' };
+          lista.innerHTML = mias.map(s => {
+            const fechaSol = s.fecha_sugerida ? new Date(s.fecha_sugerida) : null;
+            const vencida = fechaSol && fechaSol < hoy && s.estado === 'Pendiente';
+            const fecha = fechaSol ? fechaSol.toLocaleDateString('es-AR') : '-';
+            const col = vencida ? '#dc2626' : (colorEstado[s.estado] || '#6c757d');
+            const bordColor = vencida ? '#dc2626' : '#667eea';
+            const bgColor = vencida ? '#fff5f5' : '#f0f4ff';
+            const estadoLabel = vencida ? 'Vencida' : s.estado;
+            return `<div style="background:${bgColor};border-left:4px solid ${bordColor};border-radius:6px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+              <div>
+                <strong style="font-size:14px;">📅 ${fecha}</strong>
+                <span style="margin-left:10px;font-size:12px;color:#555;">${s.motivo || ''}</span>
+                ${s.observaciones ? `<div style="font-size:12px;color:#777;margin-top:2px;">${s.observaciones}</div>` : ''}
+                <div style="margin-top:4px;">
+                  <span style="background:${col};color:white;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;">${estadoLabel}</span>
+                  ${s.fecha_notificacion ? `<span style="margin-left:6px;font-size:11px;color:#888;">Notificado: ${new Date(s.fecha_notificacion).toLocaleDateString('es-AR')}</span>` : ''}
+                </div>
+              </div>
+              <button onclick="cancelarSolicitud('${s.id}')"
+                style="padding:4px 12px;background:#fee2e2;color:#dc2626;border:none;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600;">
+                Cancelar
+              </button>
+            </div>`;
+          }).join('');
+        } catch(e) { lista.innerHTML = ''; }
+      }
+
+      async function guardarSolicitud() {
+        const fecha = document.getElementById('sol-fecha').value;
+        if (!fecha) { alert('La fecha sugerida es obligatoria'); return; }
+        const btn = document.getElementById('btn-guardar-solicitud');
+        btn.disabled = true; btn.innerHTML = '⏳ Guardando...';
+        try {
+          const resp = await fetch('/api/solicitudes-turno', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              paciente_id: _PACIENTE_ID_HC,
+              fecha_sugerida: fecha,
+              motivo: document.getElementById('sol-motivo').value,
+              observaciones: document.getElementById('sol-observaciones').value.trim() || null
+            })
+          });
+          const data = await resp.json();
+          if (data.success) {
+            ocultarFormSolicitud();
+            document.getElementById('sol-fecha').value = '';
+            document.getElementById('sol-observaciones').value = '';
+            await cargarSolicitudesHC();
+          } else {
+            alert('Error: ' + (data.error || 'No se pudo guardar'));
+          }
+        } catch(e) {
+          alert('Error de red al guardar solicitud');
+        } finally {
+          btn.disabled = false; btn.innerHTML = '✅ Guardar';
+        }
+      }
+
+      async function cancelarSolicitud(id) {
+        if (!confirm('¿Cancelar esta solicitud de turno?')) return;
+        await fetch(`/api/solicitudes-turno/${id}/estado`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ estado: 'Cancelada' })
+        });
+        await cargarSolicitudesHC();
+      }
+
+      document.addEventListener('DOMContentLoaded', cargarSolicitudesHC);
     </script>
 
     <!-- ========== MODAL RECETA ========== -->

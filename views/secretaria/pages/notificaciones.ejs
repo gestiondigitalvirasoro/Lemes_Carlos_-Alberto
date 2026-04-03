@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notificaciones</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; display: flex; }
+
+    .sidebar {
+      width: 280px; background: linear-gradient(180deg, #1a3a3a 0%, #0d1f1f 100%); color: white;
+      padding: 30px 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.1); position: fixed; height: 100vh;
+      overflow-y: auto; z-index: 1000;
+    }
+    .sidebar-brand { margin: -30px -20px 30px -20px; text-align: center; position: relative; overflow: hidden;
+      border-bottom: 1px solid rgba(92,174,163,0.4); padding-bottom: 6px; }
+    .sidebar-brand img.brand-logo { width: 100%; height: auto; display: block;
+      filter: invert(1) brightness(1.4); mix-blend-mode: screen; padding: 6px; }
+    .logo-text { display: block; font-size: 1.5rem; font-weight: 800; letter-spacing: 4px;
+      color: white; font-family: 'Georgia', serif; margin: 2px 0 0; }
+    .logo-subtitle { display: block; font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase;
+      color: rgba(255,255,255,0.65); font-weight: 500; margin-bottom: 10px; }
+
+    .sidebar-nav { display: flex; flex-direction: column; gap: 15px; }
+    .sidebar-nav .nav-item { margin: 0; }
+    .sidebar-nav a { color: #bbb; text-decoration: none; padding: 10px 15px; border-radius: 6px;
+      transition: all 0.3s; display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+    .sidebar-nav a:hover { background: rgba(217,127,127,0.2); color: #D97F7F; }
+    .sidebar-nav a.active { background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; }
+    .sidebar-nav a i { width: 20px; text-align: center; }
+    .sidebar-divider { margin: 1.5rem 0; border: none; border-top: 1px solid rgba(255,255,255,0.2); }
+    .user-info { padding: 15px; background: rgba(255,255,255,0.1); border-radius: 6px; margin-top: auto; text-align: center; }
+    .user-info .user-name { font-weight: 600; margin: 5px 0; font-size: 0.9rem; }
+    .user-info .user-email { font-size: 0.75rem; opacity: 0.8; margin: 3px 0; }
+    .user-info .user-role { display: inline-block; font-size: 0.75rem; background: rgba(255,255,255,0.2);
+      padding: 3px 8px; border-radius: 3px; margin-top: 8px; font-weight: 600; }
+    .logout-btn { display: flex; align-items: center; gap: 8px; color: #ff9999; text-decoration: none;
+      padding: 10px 15px; border-radius: 6px; margin-top: 10px; font-size: 0.9rem; transition: background 0.3s; }
+    .logout-btn:hover { background: rgba(255,100,100,0.2); color: #ff6666; }
+
+    .main-content { margin-left: 280px; flex: 1; padding: 30px; }
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; color: #1a3a3a; }
+    .page-header p { color: #64748b; font-size: 0.9rem; margin-top: 4px; }
+
+    /* Tabs */
+    .tabs-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 8px 18px; border: 2px solid #d1d5db; border-radius: 20px; background: white;
+      font-size: 0.875rem; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tab-btn.active { border-color: #1a3a3a; background: #1a3a3a; color: white; }
+    .tab-btn .tab-count { background: #ef4444; color: white; border-radius: 10px; padding: 1px 7px; font-size: 11px; }
+    .tab-btn.active .tab-count { background: rgba(255,255,255,0.3); }
+
+    .filtros-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+    .filtros-bar select, .filtros-bar input { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+      font-size: 0.875rem; background: white; color: #374151; }
+    .btn-actualizar { padding: 8px 16px; background: #1a3a3a; color: white; border: none; border-radius: 8px;
+      font-size: 0.875rem; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+
+    /* Cards paciente */
+    .paciente-card {
+      background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 16px; overflow: hidden;
+    }
+    .paciente-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; cursor: pointer;
+    }
+    .paciente-header:hover { background: #f1f5f9; }
+    .paciente-info { display: flex; flex-direction: column; gap: 2px; }
+    .paciente-nombre { font-weight: 700; color: #1e293b; font-size: 1rem; }
+    .paciente-datos { font-size: 0.8rem; color: #64748b; }
+    .paciente-badge { display: flex; align-items: center; gap: 8px; }
+    .sol-count { background: #ef4444; color: white; border-radius: 50%; width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+
+    .items-lista { padding: 0; }
+    .item-row {
+      display: flex; align-items: flex-start; gap: 16px; padding: 14px 18px;
+      border-bottom: 1px solid #f1f5f9; transition: background 0.2s;
+    }
+    .item-row:last-child { border-bottom: none; }
+    .item-row:hover { background: #fafbfc; }
+    .item-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
+    .item-body { flex: 1; }
+    .item-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+    .item-fecha { font-weight: 600; color: #1e293b; font-size: 0.9rem; }
+    .item-estado { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+    .item-estado.pendiente { background: #fef3c7; color: #92400e; }
+    .item-estado.notificado, .item-estado.notificada { background: #dbeafe; color: #1e40af; }
+    .item-estado.urgente { background: #fee2e2; color: #991b1b; }
+    .item-prioridad { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #f1f5f9; color: #475569; }
+    .item-prioridad.alta { background: #fee2e2; color: #991b1b; }
+    .item-prioridad.urgente { background: #fecaca; color: #7f1d1d; }
+    .item-motivo { color: #64748b; font-size: 0.82rem; }
+    .item-obs { color: #94a3b8; font-size: 0.78rem; margin-top: 2px; }
+    .item-acciones { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .btn-acc { padding: 4px 10px; border: none; border-radius: 6px; font-size: 11px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s; }
+    .btn-acc:hover { opacity: 0.82; }
+    .btn-acc:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-wa { background: #25D366; color: white; }
+    .btn-mail { background: #3b82f6; color: white; }
+    .btn-notif { background: #0ea5e9; color: white; }
+    .btn-asignado { background: #22c55e; color: white; }
+    .btn-cerrar { background: #e2e8f0; color: #475569; }
+    .btn-cancelar { background: #ef4444; color: white; }
+
+    /* Alertas clínicas */
+    .alerta-card {
+      background: white; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+      padding: 14px 18px; margin-bottom: 12px; display: flex; gap: 14px; align-items: flex-start;
+      border-left: 4px solid #d1d5db;
+    }
+    .alerta-card.importante { border-left-color: #f59e0b; }
+    .alerta-card.informativa { border-left-color: #3b82f6; }
+    .alerta-card.solicitud_turno { border-left-color: #8b5cf6; }
+    .alerta-icon { font-size: 1.4rem; flex-shrink: 0; }
+    .alerta-body { flex: 1; }
+    .alerta-titulo { font-weight: 700; color: #1e293b; font-size: 0.92rem; }
+    .alerta-desc { color: #64748b; font-size: 0.82rem; margin-top: 2px; }
+    .alerta-paciente { font-size: 0.78rem; color: #94a3b8; margin-top: 4px; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+    .empty-state i { font-size: 3rem; margin-bottom: 12px; display: block; }
+
+    .spinner-inline { display: none; text-align: center; padding: 40px; color: #64748b; }
+    .spinner-inline.visible { display: block; }
+
+    @media (max-width: 768px) {
+      .main-content { margin-left: 0; padding: 16px; }
+      .sidebar { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <img src="/images/logo-lyl-clean.svg" alt="L y L" class="brand-logo">
+    <span class="logo-text">L y L</span>
+    <span class="logo-subtitle">Consultorio privado</span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <% if (user.rol !== 'secretaria') { %>
+    <div class="nav-item">
+      <a href="/doctor/dashboard"><i class="fas fa-chart-line"></i><span>Inicio</span></a>
+    </div>
+    <div class="nav-item">
+      <a href="/doctor/pacientes"><i class="fas fa-users"></i><span>Pacientes</span></a>
+    </div>
+    <% } %>
+    <div class="nav-item">
+      <a href="/doctor/turnos"><i class="fas fa-calendar-check"></i><span>Turnos</span></a>
+    </div>
+    <div class="nav-item">
+      <a href="/notificaciones" class="active" style="position:relative;">
+        <i class="fas fa-bell"></i><span>Notificaciones</span>
+        <span id="badge-solicitudes" style="display:none;position:absolute;top:4px;right:6px;background:#ef4444;color:white;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;line-height:1;"></span>
+      </a>
+    </div>
+  </nav>
+
+  <hr class="sidebar-divider">
+  <div class="user-info">
+    <div class="user-name"><%= user.nombre %> <%= user.apellido %></div>
+    <div class="user-email"><%= user.email %></div>
+    <div class="user-role"><%= user.rol %></div>
+  </div>
+  <a href="javascript:void(0)" onclick="logout()" class="logout-btn">
+    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+  </a>
+</div>
+
+<!-- Modal Editar Paciente -->
+<div class="modal fade" id="modalEditarPacienteNotif" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:linear-gradient(135deg,#D97F7F 0%,#5CAEA3 100%);color:white;border:none;">
+        <h5 class="modal-title"><i class="fas fa-pencil-alt"></i> Editar Datos del Paciente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter:brightness(0) invert(1);"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-pac-id">
+        <p class="text-muted mb-3" style="font-size:0.85rem;"><i class="fas fa-info-circle"></i> El DNI no puede modificarse desde aquí.</p>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Nombre *</label>
+            <input type="text" class="form-control" id="edit-pac-nombre">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Apellido *</label>
+            <input type="text" class="form-control" id="edit-pac-apellido">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Email</label>
+            <input type="email" class="form-control" id="edit-pac-email">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Teléfono</label>
+            <input type="text" class="form-control" id="edit-pac-telefono">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Fecha de Nacimiento</label>
+            <input type="date" class="form-control" id="edit-pac-fecha-nac">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Sexo</label>
+            <select class="form-select" id="edit-pac-sexo">
+              <option value="">-- Sin especificar --</option>
+              <option value="M">Masculino</option>
+              <option value="F">Femenino</option>
+              <option value="X">Otro</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Obra Social</label>
+            <input type="text" class="form-control" id="edit-pac-obra-social">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Nº Afiliado</label>
+            <input type="text" class="form-control" id="edit-pac-num-afiliado">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" id="btn-guardar-edit" class="btn btn-primary" onclick="guardarEdicionPacienteNotif()"
+          style="background:linear-gradient(135deg,#D97F7F 0%,#5CAEA3 100%);border:none;">
+          <i class="fas fa-check"></i> Guardar cambios
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main-content">
+  <div class="page-header">
+    <h1><i class="fas fa-bell"></i> Notificaciones</h1>
+    <p>Solicitudes de turno e incidencias pendientes</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs-bar">
+    <button class="tab-btn active" onclick="cambiarTab('solicitudes')" id="tab-solicitudes">
+      <i class="fas fa-calendar-plus"></i> Solicitudes de turno
+      <span class="tab-count" id="cnt-solicitudes">0</span>
+    </button>
+    <button class="tab-btn" onclick="cambiarTab('incidencias')" id="tab-incidencias">
+      <i class="fas fa-exclamation-triangle"></i> Próximas visitas
+      <span class="tab-count" id="cnt-incidencias">0</span>
+    </button>
+    <button class="tab-btn" onclick="cambiarTab('alertas')" id="tab-alertas">
+      <i class="fas fa-stethoscope"></i> Alertas clínicas
+      <span class="tab-count" id="cnt-alertas">0</span>
+    </button>
+    <button class="tab-btn" onclick="cambiarTab('admin')" id="tab-admin">
+      <i class="fas fa-user-cog"></i> Administrativas
+      <span class="tab-count" id="cnt-admin">0</span>
+    </button>
+  </div>
+
+  <!-- Filtros (solo para solicitudes e incidencias) -->
+  <div class="filtros-bar" id="filtros-bar">
+    <input type="text" id="filtroPaciente" placeholder="Buscar paciente..." oninput="renderTab()">
+    <select id="filtroEstado" onchange="renderTab()">
+      <option value="">Todos los estados</option>
+      <option value="Pendiente">Pendiente</option>
+      <option value="Notificado">Notificado</option>
+      <option value="Notificada">Notificada</option>
+      <option value="Turno asignado">Turno asignado</option>
+      <option value="Vencida">Vencida</option>
+      <option value="Cancelada">Cancelada</option>
+    </select>
+    <button class="btn-actualizar" onclick="cargarTodo()">
+      <i class="fas fa-sync-alt"></i> Actualizar
+    </button>
+  </div>
+
+  <div id="spinner" class="spinner-inline">
+    <div class="spinner-border text-secondary" role="status"></div>
+    <p style="margin-top:8px;">Cargando...</p>
+  </div>
+
+  <div id="contenedor"></div>
+</div>
+
+<script>
+let _solicitudes = [];
+let _incidencias = [];
+let _alertas = [];
+let _admin = { datos_incompletos: [], sin_hc: [] };
+let _tabActual = 'solicitudes';
+const _rol = '<%= user.rol %>';
+const _esDoctor = _rol === 'doctor' || _rol === 'admin';
+const _esSecretaria = _rol === 'secretaria' || _rol === 'admin';
+
+async function logout() {
+  await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+  window.location.href = '/';
+}
+
+function cambiarTab(tab) {
+  _tabActual = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  // Ocultar filtros en alertas clínicas y administrativas
+  document.getElementById('filtros-bar').style.display = (tab === 'alertas' || tab === 'admin') ? 'none' : 'flex';
+  renderTab();
+}
+
+async function cargarTodo() {
+  document.getElementById('spinner').classList.add('visible');
+  document.getElementById('contenedor').innerHTML = '';
+  try {
+    const fetches = [
+      fetch('/api/solicitudes-turno?todos=1', { credentials: 'include' }).then(r => r.json()),
+      fetch('/api/incidencias', { credentials: 'include' }).then(r => r.json()),
+      fetch('/api/alertas-clinicas', { credentials: 'include' }).then(r => r.json())
+    ];
+    fetches.push(fetch('/api/alertas-administrativas', { credentials: 'include' }).then(r => r.json()));
+
+    const [rSol, rInc, rAlt, rAdm] = await Promise.all(fetches);
+    _solicitudes = rSol.success ? rSol.data : [];
+    _incidencias = rInc.success ? rInc.data : [];
+    _alertas = rAlt.success ? rAlt.alertas : [];
+    if (rAdm) _admin = { datos_incompletos: rAdm.datos_incompletos || [], sin_hc: rAdm.sin_hc || [] };
+  } catch(e) {
+    _solicitudes = []; _incidencias = []; _alertas = [];
+  }
+  document.getElementById('spinner').classList.remove('visible');
+
+  // Contar pendientes
+  const cntSol = _solicitudes.filter(s => s.estado === 'Pendiente' || s.estado === 'Notificado').length;
+  const cntInc = _incidencias.filter(i => i.estado === 'Pendiente' || i.estado === 'Notificada').length;
+  const cntAlt = _alertas.length;
+  const cntAdm = _admin.datos_incompletos.length + _admin.sin_hc.length;
+
+  document.getElementById('cnt-solicitudes').textContent = cntSol;
+  document.getElementById('cnt-incidencias').textContent = cntInc;
+  document.getElementById('cnt-alertas').textContent = cntAlt;
+  document.getElementById('cnt-solicitudes').style.display = cntSol > 0 ? '' : 'none';
+  document.getElementById('cnt-incidencias').style.display = cntInc > 0 ? '' : 'none';
+  document.getElementById('cnt-alertas').style.display = cntAlt > 0 ? '' : 'none';
+  const tabAdm = document.getElementById('cnt-admin');
+  if (tabAdm) { tabAdm.textContent = cntAdm; tabAdm.style.display = cntAdm > 0 ? '' : 'none'; }
+
+  // Badge sidebar
+  const totalBadge = cntSol + cntInc;
+  const badge = document.getElementById('badge-solicitudes');
+  if (badge) {
+    badge.textContent = totalBadge;
+    badge.style.display = totalBadge > 0 ? 'inline-flex' : 'none';
+  }
+
+  renderTab();
+}
+
+function renderTab() {
+  if (_tabActual === 'solicitudes') renderSolicitudes();
+  else if (_tabActual === 'incidencias') renderIncidencias();
+  else if (_tabActual === 'alertas') renderAlertas();
+  else if (_tabActual === 'admin') renderAdmin();
+}
+
+// ===================== SOLICITUDES DE TURNO =====================
+function renderSolicitudes() {
+  const txtPac = document.getElementById('filtroPaciente').value.toLowerCase();
+  const estado = document.getElementById('filtroEstado').value;
+
+  let lista = _solicitudes.filter(s => {
+    const nombre = `${s.paciente_nombre || ''} ${s.paciente_apellido || ''}`.toLowerCase();
+    return (!txtPac || nombre.includes(txtPac)) && (!estado || s.estado === estado);
+  });
+
+  const porPaciente = {};
+  for (const s of lista) {
+    const key = s.paciente_id;
+    if (!porPaciente[key]) porPaciente[key] = { info: s, items: [] };
+    porPaciente[key].items.push(s);
+  }
+
+  const grupos = Object.values(porPaciente);
+  const contenedor = document.getElementById('contenedor');
+  if (grupos.length === 0) {
+    contenedor.innerHTML = `<div class="empty-state"><i class="fas fa-calendar-check"></i><p>No hay solicitudes con esos filtros</p></div>`;
+    return;
+  }
+  contenedor.innerHTML = grupos.map(g => renderGrupoPaciente(g, 'sol')).join('');
+}
+
+function renderGrupoPaciente(g, tipo) {
+  const { info, items } = g;
+  const pacId = tipo === 'sol' ? info.paciente_id : info.paciente_id;
+  const nombre = tipo === 'sol'
+    ? `${info.paciente_nombre || ''} ${info.paciente_apellido || ''}`.trim()
+    : info.paciente;
+  const dni = info.paciente_dni ? `DNI ${info.paciente_dni}` : '';
+  const tel = info.paciente_telefono ? `· Tel: ${info.paciente_telefono}` : '';
+  const email = info.paciente_email ? `· ${info.paciente_email}` : '';
+
+  const activos = items.filter(i => ['Pendiente','Notificado','Notificada'].includes(i.estado)).length;
+
+  return `
+    <div class="paciente-card">
+      <div class="paciente-header" onclick="toggleCard('${tipo}-${pacId}')">
+        <div class="paciente-info">
+          <div class="paciente-nombre">${nombre}</div>
+          <div class="paciente-datos">${[dni, tel, email].filter(Boolean).join(' ')}</div>
+        </div>
+        <div class="paciente-badge">
+          ${activos > 0 ? `<span class="sol-count">${activos}</span>` : ''}
+          <i class="fas fa-chevron-down" id="chev-${tipo}-${pacId}" style="color:#94a3b8;transition:transform 0.2s;"></i>
+        </div>
+      </div>
+      <div class="items-lista" id="lista-${tipo}-${pacId}">
+        ${items.map(i => tipo === 'sol' ? renderItemSolicitud(i) : renderItemIncidencia(i)).join('')}
+      </div>
+    </div>`;
+}
+
+function toggleCard(key) {
+  const lista = document.getElementById(`lista-${key}`);
+  const chev = document.getElementById(`chev-${key}`);
+  const oculto = lista.style.display === 'none';
+  lista.style.display = oculto ? '' : 'none';
+  chev.style.transform = oculto ? '' : 'rotate(-90deg)';
+}
+
+function renderItemSolicitud(s) {
+  const fecha = s.fecha_sugerida ? new Date(s.fecha_sugerida).toLocaleDateString('es-AR') : '-';
+  const estadoCls = s.estado === 'Notificado' ? 'notificado' : s.estado === 'Pendiente' ? 'pendiente' : '';
+  const icon = s.estado === 'Pendiente' ? '🔔' : s.estado === 'Notificado' ? '📨' : s.estado === 'Turno asignado' ? '✅' : s.estado === 'Cancelada' ? '❌' : '⌛';
+  const tel = (s.paciente_telefono || '').replace(/\D/g,'');
+  const waMsg = encodeURIComponent(`Hola! Le recordamos que el médico le sugirió una consulta para el ${fecha}. Motivo: ${s.motivo || 'control'}. Por favor comuníquese con el consultorio. L&L.`);
+  const waUrl = tel ? `https://wa.me/549${tel}?text=${waMsg}` : '';
+  const activa = s.estado === 'Pendiente' || s.estado === 'Notificado';
+
+  return `
+    <div class="item-row" id="sol-${s.id}">
+      <div class="item-icon">${icon}</div>
+      <div class="item-body">
+        <div class="item-meta">
+          <span class="item-fecha">📅 ${fecha}</span>
+          <span class="item-estado ${estadoCls}">${s.estado}</span>
+          ${s.motivo ? `<span class="item-motivo">${s.motivo}</span>` : ''}
+        </div>
+        ${s.observaciones ? `<div class="item-obs">${s.observaciones}</div>` : ''}
+        ${activa ? `
+        <div class="item-acciones">
+          ${waUrl ? `<button class="btn-acc btn-wa" onclick="accionSol('wa','${s.id}','${waUrl}',this)">💬 WhatsApp</button>` : ''}
+          ${s.paciente_email ? `<button class="btn-acc btn-mail" onclick="accionSol('email','${s.id}','${s.paciente_email}',this)">📧 Mail</button>` : ''}
+          <button class="btn-acc btn-notif" onclick="accionSol('notificado','${s.id}','',this)">✓ Notificado</button>
+          <button class="btn-acc btn-asignado" onclick="accionSol('asignado','${s.id}','',this)">✅ Turno asignado</button>
+          <button class="btn-acc btn-cerrar" onclick="accionSol('cerrar','${s.id}','',this)">✕ Cerrar</button>
+          <button class="btn-acc btn-cancelar" onclick="accionSol('cancelar','${s.id}','',this)">❌ Cancelar</button>
+        </div>` : ''}
+      </div>
+    </div>`;
+}
+
+async function accionSol(tipo, id, extra, btn) {
+  if (btn) btn.disabled = true;
+  try {
+    if (tipo === 'wa') {
+      window.open(extra, '_blank');
+      await fetch(`/api/solicitudes-turno/${id}/notificar`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: 'wa' })
+      });
+    } else if (tipo === 'email') {
+      const r = await fetch(`/api/solicitudes-turno/${id}/notificar`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: 'email' })
+      });
+      const d = await r.json();
+      alert(d.success ? '📧 Email enviado correctamente' : '⚠️ No se pudo enviar el email');
+    } else if (tipo === 'cerrar') {
+      const row = document.getElementById(`sol-${id}`);
+      if (row) { row.style.opacity = '0'; row.style.transition = 'opacity 0.3s'; setTimeout(() => row.remove(), 300); }
+      cargarTodo(); return;
+    } else {
+      const estadoMap = { notificado: 'Notificado', asignado: 'Turno asignado', cancelar: 'Cancelada' };
+      await fetch(`/api/solicitudes-turno/${id}/estado`, {
+        method: 'PUT', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: estadoMap[tipo] })
+      });
+    }
+    await cargarTodo();
+  } catch(e) {
+    if (btn) btn.disabled = false;
+    alert('Error al procesar la acción');
+  }
+}
+
+// ===================== INCIDENCIAS (PRÓXIMAS VISITAS) =====================
+function renderIncidencias() {
+  const txtPac = document.getElementById('filtroPaciente').value.toLowerCase();
+  const estado = document.getElementById('filtroEstado').value;
+
+  let lista = _incidencias.filter(i => {
+    const nombre = (i.paciente || '').toLowerCase();
+    return (!txtPac || nombre.includes(txtPac)) && (!estado || i.estado === estado);
+  });
+
+  const porPaciente = {};
+  for (const i of lista) {
+    const key = i.paciente_id;
+    if (!porPaciente[key]) porPaciente[key] = { info: i, items: [] };
+    porPaciente[key].items.push(i);
+  }
+
+  const grupos = Object.values(porPaciente);
+  const contenedor = document.getElementById('contenedor');
+  if (grupos.length === 0) {
+    contenedor.innerHTML = `<div class="empty-state"><i class="fas fa-check-circle"></i><p>No hay incidencias con esos filtros</p></div>`;
+    return;
+  }
+  contenedor.innerHTML = grupos.map(g => renderGrupoPacienteInc(g)).join('');
+}
+
+function renderGrupoPacienteInc(g) {
+  const { info, items } = g;
+  const pacId = info.paciente_id;
+  const nombre = info.paciente || '';
+  const dni = info.paciente_dni ? `DNI ${info.paciente_dni}` : '';
+  const tel = info.paciente_telefono ? `· Tel: ${info.paciente_telefono}` : '';
+  const email = info.paciente_email ? `· ${info.paciente_email}` : '';
+  const activos = items.filter(i => ['Pendiente','Notificada'].includes(i.estado)).length;
+
+  return `
+    <div class="paciente-card">
+      <div class="paciente-header" onclick="toggleCard('inc-${pacId}')">
+        <div class="paciente-info">
+          <div class="paciente-nombre">${nombre}</div>
+          <div class="paciente-datos">${[dni, tel, email].filter(Boolean).join(' ')}</div>
+        </div>
+        <div class="paciente-badge">
+          ${activos > 0 ? `<span class="sol-count">${activos}</span>` : ''}
+          <i class="fas fa-chevron-down" id="chev-inc-${pacId}" style="color:#94a3b8;transition:transform 0.2s;"></i>
+        </div>
+      </div>
+      <div class="items-lista" id="lista-inc-${pacId}">
+        ${items.map(i => renderItemIncidencia(i)).join('')}
+      </div>
+    </div>`;
+}
+
+function renderItemIncidencia(inc) {
+  const fecha = inc.fecha_sugerida ? new Date(inc.fecha_sugerida).toLocaleDateString('es-AR') : '-';
+  const estadoCls = inc.estado === 'Notificada' ? 'notificada' : inc.estado === 'Pendiente' ? 'pendiente' : '';
+  const prioCls = (inc.prioridad || '').toLowerCase();
+  const icon = inc.estado === 'Pendiente' ? '⚠️' : inc.estado === 'Notificada' ? '📨' : inc.estado === 'Turno asignado' ? '✅' : inc.estado === 'Cancelada' ? '❌' : '⌛';
+  const tel = (inc.paciente_telefono || '').replace(/\D/g,'');
+  const waMsg = encodeURIComponent(`Hola ${inc.paciente}! El Dr. le sugiere una visita de control para el ${fecha}. Motivo: ${inc.motivo || 'control'}. Comuníquese con el consultorio L&L.`);
+  const waUrl = tel ? `https://wa.me/549${tel}?text=${waMsg}` : '';
+  const activa = inc.estado === 'Pendiente' || inc.estado === 'Notificada';
+
+  return `
+    <div class="item-row" id="inc-${inc.id}">
+      <div class="item-icon">${icon}</div>
+      <div class="item-body">
+        <div class="item-meta">
+          <span class="item-fecha">📅 ${fecha}</span>
+          <span class="item-estado ${estadoCls}">${inc.estado}</span>
+          ${inc.prioridad && inc.prioridad !== 'Normal' ? `<span class="item-prioridad ${prioCls}">${inc.prioridad}</span>` : ''}
+          ${inc.motivo ? `<span class="item-motivo">${inc.motivo}</span>` : ''}
+        </div>
+        ${inc.observaciones ? `<div class="item-obs">${inc.observaciones}</div>` : ''}
+        ${inc.turno_fecha ? `<div class="item-obs">🗓 Turno: ${new Date(inc.turno_fecha).toLocaleDateString('es-AR')} ${inc.turno_hora || ''}</div>` : ''}
+        ${activa ? `
+        <div class="item-acciones">
+          ${waUrl ? `<button class="btn-acc btn-wa" onclick="accionInc('wa','${inc.id}','${waUrl}',this)">💬 WhatsApp</button>` : ''}
+          ${inc.paciente_email ? `<button class="btn-acc btn-mail" onclick="accionInc('email','${inc.id}','${inc.paciente_email}',this)">📧 Mail</button>` : ''}
+          <button class="btn-acc btn-notif" onclick="accionInc('notificada','${inc.id}','',this)">✓ Notificada</button>
+          <button class="btn-acc btn-asignado" onclick="accionInc('asignado','${inc.id}','',this)">✅ Turno asignado</button>
+          <button class="btn-acc btn-cancelar" onclick="accionInc('cancelar','${inc.id}','',this)">❌ Cancelar</button>
+        </div>` : ''}
+      </div>
+    </div>`;
+}
+
+async function accionInc(tipo, id, extra, btn) {
+  if (btn) btn.disabled = true;
+  try {
+    if (tipo === 'wa') {
+      window.open(extra, '_blank');
+      await fetch(`/api/incidencias/${id}/notificar`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canal: 'whatsapp' })
+      });
+    } else if (tipo === 'email') {
+      const r = await fetch(`/api/incidencias/${id}/notificar`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canal: 'email' })
+      });
+      const d = await r.json();
+      alert(d.success ? '📧 Email enviado correctamente' : '⚠️ No se pudo enviar el email');
+    } else if (tipo === 'cancelar') {
+      await fetch(`/api/incidencias/${id}`, { method: 'DELETE', credentials: 'include' });
+    } else {
+      const estadoMap = { notificada: 'Notificada', asignado: 'Turno asignado' };
+      await fetch(`/api/incidencias/${id}/estado`, {
+        method: 'PUT', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: estadoMap[tipo] })
+      });
+    }
+    await cargarTodo();
+  } catch(e) {
+    if (btn) btn.disabled = false;
+    alert('Error al procesar la acción');
+  }
+}
+
+// ===================== ALERTAS CLÍNICAS =====================
+function renderAlertas() {
+  const contenedor = document.getElementById('contenedor');
+  if (_alertas.length === 0) {
+    contenedor.innerHTML = `<div class="empty-state"><i class="fas fa-stethoscope"></i><p>No hay alertas clínicas para hoy</p></div>`;
+    return;
+  }
+  contenedor.innerHTML = _alertas.map(a => `
+    <div class="alerta-card ${a.prioridad || ''}">
+      <div class="alerta-icon">${
+        a.prioridad === 'importante' ? '⚠️' :
+        a.prioridad === 'solicitud_turno' ? '📅' : 'ℹ️'
+      }</div>
+      <div class="alerta-body">
+        <div class="alerta-titulo">${a.titulo}</div>
+        <div class="alerta-desc">${a.descripcion}</div>
+        <div class="alerta-paciente">👤 ${a.paciente}${a.turno_hora ? ' · 🕐 ' + a.turno_hora : ''}</div>
+        ${a.whatsapp_url ? `
+        <div style="margin-top:8px;">
+          <a href="${a.whatsapp_url}" target="_blank" class="btn-acc btn-wa" style="display:inline-flex;align-items:center;gap:4px;text-decoration:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;">
+            💬 WhatsApp
+          </a>
+        </div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===================== ADMINISTRATIVAS =====================
+function renderAdmin() {
+  const contenedor = document.getElementById('contenedor');
+  const { datos_incompletos, sin_hc } = _admin;
+
+  if (datos_incompletos.length === 0 && sin_hc.length === 0) {
+    contenedor.innerHTML = `<div class="empty-state"><i class="fas fa-check-circle"></i><p>No hay alertas administrativas pendientes</p></div>`;
+    return;
+  }
+
+  let html = '';
+
+  // Secretaria: primero datos incompletos, luego sin HC
+  // Doctor: primero sin HC (para crearla), luego datos incompletos
+  const primero = _esDoctor ? 'sin_hc' : 'datos_incompletos';
+
+  if (primero === 'datos_incompletos' && datos_incompletos.length > 0) {
+    html += `
+      <div style="font-size:0.85rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">
+        <i class="fas fa-exclamation-circle" style="color:#f59e0b;"></i> Datos incompletos (${datos_incompletos.length})
+      </div>`;
+    html += datos_incompletos.map(p => `
+      <div class="alerta-card" style="border-left-color:#f59e0b;">
+        <div class="alerta-icon">⚠️</div>
+        <div class="alerta-body">
+          <div class="alerta-titulo">${p.paciente}</div>
+          <div class="alerta-desc">Faltan: <strong>${p.faltantes.join(', ')}</strong></div>
+          <div class="alerta-paciente">${p.dni ? 'DNI ' + p.dni : 'Sin DNI'} ${p.telefono ? '· Tel: ' + p.telefono : ''} ${p.email ? '· ' + p.email : ''}</div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn-acc" onclick='abrirEditarPaciente(${JSON.stringify(p)})'
+              style="background:#f59e0b;color:white;display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;border:none;cursor:pointer;">
+              <i class="fas fa-pencil-alt"></i> Completar datos
+            </button>
+            ${_esDoctor
+              ? `<a href="${p.tiene_hc ? '/historia/' + p.paciente_id : '/doctor/historia-nueva?paciente_id=' + p.paciente_id}" class="btn-acc" style="background:#1a3a3a;color:white;display:inline-flex;align-items:center;gap:4px;text-decoration:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;">
+                  <i class="fas fa-notes-medical"></i> ${p.tiene_hc ? 'Ver Historia Clínica' : 'Crear Historia Clínica'}
+                 </a>`
+              : ''
+            }
+          </div>
+        </div>
+      </div>`).join('');
+    html += '<div style="margin-bottom:24px;"></div>';
+  }
+
+  if (sin_hc.length > 0) {
+    html += `
+      <div style="font-size:0.85rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">
+        <i class="fas fa-folder-open" style="color:#ef4444;"></i> Sin historia clínica (${sin_hc.length})
+      </div>`;
+    html += sin_hc.map(p => `
+      <div class="alerta-card importante">
+        <div class="alerta-icon">📂</div>
+        <div class="alerta-body">
+          <div class="alerta-titulo">${p.paciente}</div>
+          <div class="alerta-desc" style="color:#ef4444;font-weight:600;">No tiene historia clínica creada</div>
+          <div class="alerta-paciente">${p.dni ? 'DNI ' + p.dni : ''} ${p.telefono ? '· Tel: ' + p.telefono : ''} ${p.email ? '· ' + p.email : ''}</div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+            ${_esDoctor
+              ? `<a href="/doctor/historia-nueva?paciente_id=${p.paciente_id}" class="btn-acc" style="background:#ef4444;color:white;display:inline-flex;align-items:center;gap:4px;text-decoration:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;">
+                  <i class="fas fa-plus"></i> Crear Historia Clínica
+                 </a>`
+              : `<span style="font-size:11px;color:#94a3b8;font-style:italic;">Solo el médico puede crear la HC</span>`
+            }
+          </div>
+        </div>
+      </div>`).join('');
+    html += '<div style="margin-bottom:24px;"></div>';
+  }
+
+  // Solo mostrar "datos incompletos" aquí si no se mostró antes (doctor los ve primero = sin_hc primero)
+  if (primero !== 'datos_incompletos' && datos_incompletos.length > 0) {
+    html += `
+      <div style="font-size:0.85rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">
+        <i class="fas fa-exclamation-circle" style="color:#f59e0b;"></i> Datos incompletos (${datos_incompletos.length})
+      </div>`;
+    html += datos_incompletos.map(p => `
+      <div class="alerta-card" style="border-left-color:#f59e0b;">
+        <div class="alerta-icon">⚠️</div>
+        <div class="alerta-body">
+          <div class="alerta-titulo">${p.paciente}</div>
+          <div class="alerta-desc">Faltan: <strong>${p.faltantes.join(', ')}</strong></div>
+          <div class="alerta-paciente">${p.dni ? 'DNI ' + p.dni : 'Sin DNI'} ${p.telefono ? '· Tel: ' + p.telefono : ''} ${p.email ? '· ' + p.email : ''}</div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn-acc" onclick='abrirEditarPaciente(${JSON.stringify(p)})'
+              style="background:#f59e0b;color:white;display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;border:none;cursor:pointer;">
+              <i class="fas fa-pencil-alt"></i> Completar datos
+            </button>
+            ${_esDoctor
+              ? `<a href="${p.tiene_hc ? '/historia/' + p.paciente_id : '/doctor/historia-nueva?paciente_id=' + p.paciente_id}" class="btn-acc" style="background:#1a3a3a;color:white;display:inline-flex;align-items:center;gap:4px;text-decoration:none;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;">
+                  <i class="fas fa-notes-medical"></i> ${p.tiene_hc ? 'Ver Historia Clínica' : 'Crear Historia Clínica'}
+                 </a>`
+              : ''
+            }
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  // Si es doctor, al final muestra sin HC también (ya mostró datos incompletos primero arriba en este caso no aplica)
+  // Si es secretaria, sin_hc ya se mostró arriba y datos_incompletos acá
+
+  contenedor.innerHTML = html;
+}
+
+function abrirEditarPaciente(p) {
+  document.getElementById('edit-pac-id').value = p.paciente_id;
+  document.getElementById('edit-pac-nombre').value = p.nombre || '';
+  document.getElementById('edit-pac-apellido').value = p.apellido || '';
+  document.getElementById('edit-pac-email').value = p.email || '';
+  document.getElementById('edit-pac-telefono').value = p.telefono || '';
+  document.getElementById('edit-pac-fecha-nac').value = p.fecha_nacimiento || '';
+  document.getElementById('edit-pac-sexo').value = p.sexo || '';
+  document.getElementById('edit-pac-obra-social').value = p.obra_social || '';
+  document.getElementById('edit-pac-num-afiliado').value = p.numero_afiliado || '';
+  new bootstrap.Modal(document.getElementById('modalEditarPacienteNotif')).show();
+}
+
+async function guardarEdicionPacienteNotif() {
+  const id = document.getElementById('edit-pac-id').value;
+  const nombre = document.getElementById('edit-pac-nombre').value.trim();
+  const apellido = document.getElementById('edit-pac-apellido').value.trim();
+  if (!nombre || !apellido) { alert('Nombre y apellido son obligatorios'); return; }
+
+  const btnGuardar = document.getElementById('btn-guardar-edit');
+  btnGuardar.disabled = true;
+  try {
+    const resp = await fetch(`/api/pacientes/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        nombre,
+        apellido,
+        email:            document.getElementById('edit-pac-email').value.trim(),
+        telefono:         document.getElementById('edit-pac-telefono').value.trim(),
+        fecha_nacimiento: document.getElementById('edit-pac-fecha-nac').value || null,
+        sexo:             document.getElementById('edit-pac-sexo').value,
+        obra_social:      document.getElementById('edit-pac-obra-social').value.trim(),
+        numero_afiliado:  document.getElementById('edit-pac-num-afiliado').value.trim()
+      })
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      bootstrap.Modal.getInstance(document.getElementById('modalEditarPacienteNotif')).hide();
+      await cargarTodo();
+      cambiarTab('admin');
+    } else {
+      alert('Error: ' + (data.error || 'No se pudo guardar'));
+    }
+  } catch(e) {
+    alert('Error de red al guardar');
+  }
+  btnGuardar.disabled = false;
+}
+
+// Arrancar
+cargarTodo();
+</script>
+</body>
+</html>
