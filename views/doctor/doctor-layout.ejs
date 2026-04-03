@@ -273,6 +273,7 @@
           <li><a class="nav-link" href="/doctor/turnos"><i class="bi bi-calendar-check"></i> Turnos</a></li>
           <li><a class="nav-link" href="/doctor/turnos-hoy"><i class="bi bi-calendar"></i> Turnos Hoy</a></li>
           <li><a class="nav-link" href="/doctor/historial"><i class="bi bi-file-earmark-medical"></i> Historial</a></li>
+          <li><a class="nav-link" href="/notificaciones"><i class="bi bi-bell"></i> Notificaciones <span id="badge-notif-layout" class="badge bg-danger ms-1" style="display:none;font-size:10px;"></span></a></li>
           <li><hr class="my-2"></li>
           <li><h6 class="px-3 py-2 text-muted" style="font-weight: 700; font-size: 0.85rem;">MI CUENTA</h6></li>
           <li><a class="nav-link" href="/doctor/perfil"><i class="bi bi-person"></i> Mi Perfil</a></li>
@@ -292,5 +293,15 @@
   <script src="/js/doctor.js"></script>
 
 <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }</script>
+<script>
+  (async function cargarBadgeNotif() {
+    try {
+      const r = await fetch('/api/solicitudes-turno/count', { credentials: 'include' });
+      const d = await r.json();
+      const badge = document.getElementById('badge-notif-layout');
+      if (badge && d.count > 0) { badge.textContent = d.count; badge.style.display = 'inline'; }
+    } catch(e) {}
+  })();
+</script>
 </body>
 </html>

@@ -103,6 +103,11 @@
       <i class="bi bi-calendar-check"></i>
       <span>Turnos</span>
     </a>
+    <a href="/notificaciones" class="<%= (locals.page === 'notificaciones') ? 'active' : '' %>">
+      <i class="bi bi-bell"></i>
+      <span>Notificaciones</span>
+      <span id="badge-notif-shared" class="badge bg-danger ms-auto" style="display:none;font-size:10px;"></span>
+    </a>
   </nav>
 
   <hr class="sidebar-divider">
@@ -124,4 +129,12 @@
     document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('sidebarOverlay').classList.toggle('active');
   }
+  (async function() {
+    try {
+      const r = await fetch('/api/solicitudes-turno/count', { credentials: 'include' });
+      const d = await r.json();
+      const badge = document.getElementById('badge-notif-shared');
+      if (badge && d.count > 0) { badge.textContent = d.count; badge.style.display = 'inline'; }
+    } catch(e) {}
+  })();
 </script>
