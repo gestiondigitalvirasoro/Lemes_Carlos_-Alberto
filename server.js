@@ -160,13 +160,35 @@ const requireAuth = async (req, res, next) => {
 
   try {
     // 🔐 VALIDAR EL TOKEN DIRECTAMENTE CON SUPABASE AUTH
-    // Esto asegura que Supabase sea la única fuente de verdad para sesiones
-    const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser(token);
-    
+    let { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser(token);
+
+    // Si el token expiró, intentar renovarlo con el refresh_token
     if (authError || !supabaseUser) {
-      console.log(`⚠️  Token inválido o expirado en Supabase: ${authError?.message || 'Sin usuario'}`);
-      res.clearCookie('access_token');
-      return res.redirect('/login');
+      const refreshToken = req.cookies.refresh_token;
+      if (refreshToken) {
+        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+        if (!refreshError && refreshed?.session) {
+          const cookieOpts = {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 365 * 24 * 60 * 60 * 1000
+          };
+          res.cookie('access_token', refreshed.session.access_token, cookieOpts);
+          res.cookie('refresh_token', refreshed.session.refresh_token, cookieOpts);
+          supabaseUser = refreshed.session.user;
+          console.log(`🔄 Token renovado automáticamente para: ${supabaseUser?.email}`);
+        } else {
+          console.log(`⚠️  No se pudo renovar el token: ${refreshError?.message}`);
+          res.clearCookie('access_token');
+          res.clearCookie('refresh_token');
+          return res.redirect('/login');
+        }
+      } else {
+        console.log(`⚠️  Token inválido o expirado: ${authError?.message || 'Sin usuario'}`);
+        res.clearCookie('access_token');
+        return res.redirect('/login');
+      }
     }
 
     const supabaseId = supabaseUser.id; // UUID de Supabase

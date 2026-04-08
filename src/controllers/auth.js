@@ -73,13 +73,15 @@ export const signup = async (req, res) => {
         });
       }
 
-      // Guardar token en cookie httpOnly
-      res.cookie('access_token', signInData.session.access_token, {
+      // Guardar tokens en cookies httpOnly (365 días)
+      const cookieOpts = {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
-      });
+        maxAge: 365 * 24 * 60 * 60 * 1000
+      };
+      res.cookie('access_token', signInData.session.access_token, cookieOpts);
+      res.cookie('refresh_token', signInData.session.refresh_token, cookieOpts);
 
       return res.status(201).json({
         success: true,
@@ -252,13 +254,15 @@ export const login = async (req, res) => {
       data: { ultimo_login: new Date() }
     });
 
-    // 5. Guardar token en cookie httpOnly
-    res.cookie('access_token', authData.session.access_token, {
+    // 5. Guardar tokens en cookies httpOnly (365 días, se renueva automáticamente)
+    const cookieOpts = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
-    });
+      maxAge: 365 * 24 * 60 * 60 * 1000
+    };
+    res.cookie('access_token', authData.session.access_token, cookieOpts);
+    res.cookie('refresh_token', authData.session.refresh_token, cookieOpts);
 
     // 6. Responder con datos del médico y token de Supabase
     return res.status(200).json({
@@ -289,34 +293,15 @@ export const login = async (req, res) => {
 // CONTROLLER: LOGOUT
 // ============================================================================
 export const logout = async (req, res) => {
+  const clearOpts = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' };
   try {
-    // Limpiar las cookies
-    res.clearCookie('access_token', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/'
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: 'Logout exitoso'
-    });
-  } catch (error) {
-    console.error('Error en logout:', error);
-    // No fallar el logout si hay error, solo limpiar cookies
-    res.clearCookie('access_token', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/'
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: 'Logout exitoso'
-    });
-  }
+    // Revocar sesión en Supabase
+    const token = req.cookies.access_token;
+    if (token) await supabase.auth.admin.signOut(token).catch(() => {});
+  } catch (_) {}
+  res.clearCookie('access_token', clearOpts);
+  res.clearCookie('refresh_token', clearOpts);
+  return res.status(200).json({ success: true, message: 'Logout exitoso' });
 };
 
 // ============================================================================
