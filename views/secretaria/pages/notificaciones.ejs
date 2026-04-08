@@ -245,9 +245,14 @@
 
 <!-- Main -->
 <div class="main-content">
-  <div class="page-header">
-    <h1><i class="fas fa-bell"></i> Notificaciones</h1>
-    <p>Solicitudes de turno e incidencias pendientes</p>
+  <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <div>
+      <h1><i class="fas fa-bell"></i> Notificaciones</h1>
+      <p>Solicitudes de turno e incidencias pendientes</p>
+    </div>
+    <div id="notif-desktop-banner">
+      <div id="notif-status-box" style="padding:8px 14px;border-radius:8px;font-size:0.82rem;font-weight:600;display:flex;align-items:center;gap:8px;"></div>
+    </div>
   </div>
 
   <!-- Tabs -->
@@ -814,6 +819,96 @@ async function guardarEdicionPacienteNotif() {
 
 // Arrancar
 cargarTodo();
+
+// ============================================================
+// NOTIFICACIONES DE ESCRITORIO
+// ============================================================
+async function _mostrarNotificacionesDesktop(forzar) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    const url = forzar ? '/api/notificaciones-escritorio?forzar=1' : '/api/notificaciones-escritorio';
+    const r = await fetch(url, { credentials: 'include' });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d.items || d.items.length === 0) {
+      if (forzar) alert('No hay pendientes que requieran notificación en este momento.');
+      return;
+    }
+
+    for (const item of d.items) {
+      const key = `dnotif_${item.tipo}_${item.id}`;
+      if (!forzar && sessionStorage.getItem(key)) continue;
+
+      const fechaStr = item.fecha_sugerida
+        ? new Date(item.fecha_sugerida).toLocaleDateString('es-AR')
+        : 'Sin fecha';
+      const vencida = item.fecha_sugerida && new Date(item.fecha_sugerida) < new Date();
+      const tipoLabel = item.tipo === 'solicitud' ? 'Solicitud de turno' : 'Próxima visita';
+
+      try {
+        const notif = new Notification(
+          vencida ? `⚠️ ${tipoLabel} VENCIDA` : `🔔 ${tipoLabel} pendiente`,
+          {
+            body: `${item.paciente_nombre}\n${item.motivo || 'Sin motivo'} — ${fechaStr}`,
+            icon: '/icons/icon-192.png',
+            tag: key,
+            requireInteraction: vencida
+          }
+        );
+        notif.onclick = () => { window.focus(); window.location.href = '/notificaciones'; notif.close(); };
+      } catch(e) { console.warn('Notification API error:', e); }
+
+      fetch(`/api/notificaciones-escritorio/${item.tipo}/${item.id}/aviso`, {
+        method: 'POST', credentials: 'include'
+      }).catch(() => {});
+      sessionStorage.setItem(key, '1');
+
+      await new Promise(res => setTimeout(res, 2000));
+    }
+  } catch(e) { console.warn('notif escritorio:', e); }
+}
+
+async function probarNotificaciones() {
+  // Limpiar sessionStorage para forzar el reenvío
+  Object.keys(sessionStorage).filter(k => k.startsWith('dnotif_')).forEach(k => sessionStorage.removeItem(k));
+  await _mostrarNotificacionesDesktop(true);
+}
+
+async function activarNotificacionesDesktop() {
+  if (!('Notification' in window)) { alert('Tu navegador no soporta notificaciones de escritorio.'); return; }
+  const permiso = await Notification.requestPermission();
+  actualizarEstadoNotif();
+  if (permiso === 'granted') await _mostrarNotificacionesDesktop();
+}
+
+function actualizarEstadoNotif() {
+  const box = document.getElementById('notif-status-box');
+  if (!box) return;
+  if (!('Notification' in window)) {
+    box.innerHTML = '❌ Navegador no compatible con notificaciones';
+    box.style.background = '#fee2e2'; box.style.color = '#991b1b';
+    return;
+  }
+  const p = Notification.permission;
+  if (p === 'granted') {
+    box.innerHTML = '✅ Notificaciones activas &nbsp;<button onclick="probarNotificaciones()" style="padding:4px 10px;background:#1a3a3a;color:white;border:none;border-radius:6px;font-size:11px;cursor:pointer;">Probar ahora</button>';
+    box.style.background = '#dcfce7'; box.style.color = '#166534';
+  } else if (p === 'denied') {
+    box.innerHTML = '🚫 Notificaciones bloqueadas — Hacé clic en el 🔒 de la barra de direcciones → Notificaciones → Permitir, y recargá la página.';
+    box.style.background = '#fee2e2'; box.style.color = '#991b1b';
+  } else {
+    box.innerHTML = '<button onclick="activarNotificacionesDesktop()" style="padding:6px 14px;background:linear-gradient(135deg,#D97F7F,#5CAEA3);color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.82rem;"><i class=\'fas fa-bell\'></i> Activar alertas de escritorio</button>';
+    box.style.background = 'transparent';
+  }
+}
+
+// Al cargar — siempre usa forzar=1, el sessionStorage evita duplicados en la misma sesión
+(function() {
+  actualizarEstadoNotif();
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  setTimeout(() => _mostrarNotificacionesDesktop(true), 1000);
+  setInterval(() => _mostrarNotificacionesDesktop(true), 30 * 60 * 1000);
+})();
 </script>
 </body>
 </html>

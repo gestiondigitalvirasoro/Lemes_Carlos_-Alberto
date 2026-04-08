@@ -844,8 +844,8 @@
                                 <textarea id="trat-indicaciones" placeholder="ej: Tomar con las comidas, evitar alcohol, no discontinuar..." rows="3" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
                             </div>
                             <div style="display:flex;gap:8px;">
-                                <button onclick="guardarTratamiento()" style="background:#1D9E75;color:white;border:none;border-radius:6px;padding:8px 20px;font-size:13px;cursor:pointer;font-weight:500;">Guardar medicamento</button>
-                                <button onclick="document.getElementById('formTratamiento').style.display='none'" style="background:none;border:1px solid #ddd;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;color:#666;">Cancelar</button>
+                                <button onclick="agregarTratamientoLocal()" style="background:#1D9E75;color:white;border:none;border-radius:6px;padding:8px 20px;font-size:13px;cursor:pointer;font-weight:500;">Agregar</button>
+                                <button onclick="document.getElementById('formTratamiento').style.display='none';document.getElementById('btnNuevoTratamiento').style.display='inline-block';" style="background:none;border:1px solid #ddd;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;color:#666;">Cancelar</button>
                             </div>
                         </div>
 
@@ -2063,14 +2063,30 @@ M.P. 6306 · M.N. 158.838
                 
                 if (result.success) {
                     console.log('✅ Consulta guardada correctamente');
+
+                    // Guardar tratamientos pendientes
+                    if (pendingTratamientos.length > 0) {
+                        for (const trat of pendingTratamientos) {
+                            try {
+                                await fetch('/api/tratamientos', {
+                                    method: 'POST',
+                                    credentials: 'include',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ ...trat, consulta_id })
+                                });
+                            } catch(e) { console.error('Error guardando tratamiento:', e); }
+                        }
+                        pendingTratamientos = [];
+                    }
+
                     alert('Consulta médica guardada exitosamente');
-                    
+
                     // Ocultar loading overlay
                     const loadingOverlay = document.getElementById('loadingOverlay');
                     if (loadingOverlay) {
                         loadingOverlay.classList.remove('active');
                     }
-                    
+
                     location.reload();
                 } else {
                     alert('Error: ' + result.message);
@@ -2764,7 +2780,10 @@ M.P. 6306 · M.N. 158.838
             document.getElementById('btnNuevoTratamiento').style.display = 'none';
         }
 
-        async function guardarTratamiento() {
+        // Tratamientos pendientes de guardar junto con la HC
+        let pendingTratamientos = [];
+
+        function agregarTratamientoLocal() {
             const hiddenMed = document.getElementById('trat-med-select');
             const searchInput = document.getElementById('med-search-input');
             const nombre = (hiddenMed && hiddenMed.value) ? hiddenMed.value.trim()
@@ -2780,60 +2799,48 @@ M.P. 6306 · M.N. 158.838
             if (!frecuencia) { alert('Ingresá la frecuencia'); return; }
             if (!fechaInicio) { alert('Ingresá la fecha de inicio'); return; }
 
-            const consulta = historiaData.consultas?.[consultaActualIdx];
-            if (!consulta?.id) { alert('No hay consulta activa'); return; }
+            // Guardar en array local (se enviará al guardar la HC)
+            const tempId = 'pending-' + Date.now();
+            pendingTratamientos.push({ tempId, medicamento: nombre, dosis, frecuencia, fecha_inicio: fechaInicio, duracion_dias: duracion ? parseInt(duracion) : null, indicaciones: indicaciones || null });
 
-            try {
-                const response = await fetch('/api/tratamientos', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        consulta_id: consulta.id,
-                        medicamento: nombre,
-                        dosis: dosis,
-                        frecuencia: frecuencia,
-                        fecha_inicio: fechaInicio,
-                        duracion_dias: duracion ? parseInt(duracion) : null,
-                        indicaciones: indicaciones || null
-                    })
-                });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.message || 'Error al guardar');
+            // Mostrar card en UI
+            const grid = document.getElementById('tratamientosGrid');
+            const vacio = document.getElementById('tratamientosVacio');
+            if (vacio) vacio.style.display = 'none';
 
-                // Agregar card al grid
-                const grid = document.getElementById('tratamientosGrid');
+            const card = document.createElement('div');
+            card.className = 'med-card-item';
+            card.dataset.tempId = tempId;
+            card.style.cssText = 'background:#fff;border:0.5px solid #e9ecef;border-radius:10px;padding:1rem 1rem 1rem 1.25rem;position:relative;border-left:4px solid #1D9E75;';
+            card.innerHTML = `
+                <button onclick="eliminarTratamientoPending('${tempId}', this)" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;line-height:1;">×</button>
+                <div style="font-size:15px;font-weight:600;color:#1a1a1a;margin-bottom:3px;padding-right:20px;">${nombre}</div>
+                <div style="font-size:13px;font-weight:500;color:#1D9E75;margin-bottom:2px;">${dosis}</div>
+                <div style="font-size:12px;color:#666;margin-bottom:8px;">${frecuencia}${duracion ? ' · ' + duracion + ' días' : ''}</div>
+                ${indicaciones ? `<div style="font-size:11px;color:#888;margin-bottom:8px;font-style:italic;">${indicaciones}</div>` : ''}
+                <span style="background:#E1F5EE;color:#085041;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">✓ Activo</span>
+            `;
+            grid.appendChild(card);
+
+            // Limpiar y contraer formulario
+            document.getElementById('trat-med-select').value = '';
+            document.getElementById('med-search-input').value = '';
+            document.getElementById('trat-dosis').value = '';
+            document.getElementById('trat-frecuencia').value = '';
+            document.getElementById('trat-fecha-inicio').value = '';
+            document.getElementById('trat-duracion').value = '';
+            document.getElementById('trat-indicaciones').value = '';
+            document.getElementById('formTratamiento').style.display = 'none';
+            document.getElementById('btnNuevoTratamiento').style.display = 'inline-block';
+        }
+
+        function eliminarTratamientoPending(tempId, btn) {
+            pendingTratamientos = pendingTratamientos.filter(t => t.tempId !== tempId);
+            const card = btn.closest('[data-temp-id]');
+            if (card) card.remove();
+            if (!document.querySelectorAll('#tratamientosGrid .med-card-item').length) {
                 const vacio = document.getElementById('tratamientosVacio');
-                if (vacio) vacio.style.display = 'none';
-
-                const card = document.createElement('div');
-                card.className = 'med-card-item';
-                card.dataset.tratId = result.data.id;
-                card.style.cssText = 'background:#fff;border:0.5px solid #e9ecef;border-radius:10px;padding:1rem 1rem 1rem 1.25rem;position:relative;border-left:4px solid #1D9E75;';
-                card.innerHTML = `
-                    <button onclick="eliminarTratamiento('${result.data.id}')" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;line-height:1;">×</button>
-                    <div style="font-size:15px;font-weight:600;color:#1a1a1a;margin-bottom:3px;padding-right:20px;">${nombre}</div>
-                    <div style="font-size:13px;font-weight:500;color:#1D9E75;margin-bottom:2px;">${dosis}</div>
-                    <div style="font-size:12px;color:#666;margin-bottom:8px;">${frecuencia}${duracion ? ' · ' + duracion + ' días' : ''}</div>
-                    ${indicaciones ? `<div style="font-size:11px;color:#888;margin-bottom:8px;font-style:italic;">${indicaciones}</div>` : ''}
-                    <span style="background:#E1F5EE;color:#085041;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">✓ Activo</span>
-                `;
-                grid.appendChild(card);
-
-                // Limpiar formulario
-                document.getElementById('trat-med-select').value = '';
-                document.getElementById('med-search-input').value = '';
-                document.getElementById('trat-dosis').value = '';
-                document.getElementById('trat-frecuencia').value = '';
-                document.getElementById('trat-fecha-inicio').value = '';
-                document.getElementById('trat-duracion').value = '';
-                document.getElementById('trat-indicaciones').value = '';
-                document.getElementById('formTratamiento').style.display = 'none';
-                document.getElementById('btnNuevoTratamiento').style.display = 'inline-block';
-
-                mostrarToast('✅ Medicamento agregado');
-            } catch (err) {
-                alert('Error: ' + err.message);
+                if (vacio) vacio.style.display = '';
             }
         }
 

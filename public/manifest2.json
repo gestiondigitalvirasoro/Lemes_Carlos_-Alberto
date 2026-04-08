@@ -1,6 +1,6 @@
 {
   "name": "L & L Consultorio Privado",
-  "short_name": "L&L",
+  "short_name": "",
   "description": "Sistema de gestión del consultorio privado L & L",
   "start_url": "/doctor/dashboard",
   "display": "standalone",
@@ -17,7 +17,7 @@
     },
     {
       "src": "/icons/icon-512.png",
-      "sizes": "512x512",
+      "sizes": "250x250",
       "type": "image/png",
       "purpose": "any maskable"
     }

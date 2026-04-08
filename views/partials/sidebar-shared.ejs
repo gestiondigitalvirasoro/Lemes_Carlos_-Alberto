@@ -129,6 +129,8 @@
     document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('sidebarOverlay').classList.toggle('active');
   }
+
+  // Badge contador sidebar
   (async function() {
     try {
       const r = await fetch('/api/solicitudes-turno/count', { credentials: 'include' });
@@ -136,5 +138,66 @@
       const badge = document.getElementById('badge-notif-shared');
       if (badge && d.count > 0) { badge.textContent = d.count; badge.style.display = 'inline'; }
     } catch(e) {}
+  })();
+
+  // ============================================================
+  // NOTIFICACIONES DE ESCRITORIO (Web Notifications API)
+  // Solo dispara si el permiso ya fue concedido.
+  // Para activar por primera vez: ir a /notificaciones y hacer clic en el botón.
+  // ============================================================
+  (function() {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    async function mostrarNotificaciones() {
+      try {
+        const r = await fetch('/api/notificaciones-escritorio', { credentials: 'include' });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (!d.items || d.items.length === 0) return;
+        for (const item of d.items) {
+          const key = `dnotif_${item.tipo}_${item.id}`;
+          if (sessionStorage.getItem(key)) continue;
+          const fechaStr = item.fecha_sugerida ? new Date(item.fecha_sugerida).toLocaleDateString('es-AR') : 'Sin fecha';
+          const vencida = item.fecha_sugerida && new Date(item.fecha_sugerida) < new Date();
+          const tipoLabel = item.tipo === 'solicitud' ? 'Solicitud de turno' : 'Próxima visita';
+          const notif = new Notification(
+            vencida ? `⚠️ ${tipoLabel} VENCIDA` : `🔔 ${tipoLabel} pendiente`,
+            { body: `${item.paciente_nombre}\n${item.motivo || 'Sin motivo'} — ${fechaStr}`,
+              icon: '/icons/icon-192.png', tag: key, requireInteraction: vencida }
+          );
+          notif.onclick = () => { window.focus(); window.location.href = '/notificaciones'; notif.close(); };
+          fetch(`/api/notificaciones-escritorio/${item.tipo}/${item.id}/aviso`, { method: 'POST', credentials: 'include' }).catch(() => {});
+          sessionStorage.setItem(key, '1');
+          await new Promise(res => setTimeout(res, 2000));
+        }
+      } catch(e) {}
+    }
+
+    async function mostrarConForzar() {
+      try {
+        const r = await fetch('/api/notificaciones-escritorio?forzar=1', { credentials: 'include' });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (!d.items || d.items.length === 0) return;
+        for (const item of d.items) {
+          const key = `dnotif_${item.tipo}_${item.id}`;
+          if (sessionStorage.getItem(key)) continue;
+          const fechaStr = item.fecha_sugerida ? new Date(item.fecha_sugerida).toLocaleDateString('es-AR') : 'Sin fecha';
+          const vencida = item.fecha_sugerida && new Date(item.fecha_sugerida) < new Date();
+          const tipoLabel = item.tipo === 'solicitud' ? 'Solicitud de turno' : 'Próxima visita';
+          const notif = new Notification(
+            vencida ? `⚠️ ${tipoLabel} VENCIDA` : `🔔 ${tipoLabel} pendiente`,
+            { body: `${item.paciente_nombre}\n${item.motivo || 'Sin motivo'} — ${fechaStr}`,
+              icon: '/icons/icon-192.png', tag: key, requireInteraction: vencida }
+          );
+          notif.onclick = () => { window.focus(); window.location.href = '/notificaciones'; notif.close(); };
+          fetch(`/api/notificaciones-escritorio/${item.tipo}/${item.id}/aviso`, { method: 'POST', credentials: 'include' }).catch(() => {});
+          sessionStorage.setItem(key, '1');
+          await new Promise(res => setTimeout(res, 2000));
+        }
+      } catch(e) {}
+    }
+    setTimeout(mostrarConForzar, 1000);
+    setInterval(mostrarConForzar, 30 * 60 * 1000);
   })();
 </script>

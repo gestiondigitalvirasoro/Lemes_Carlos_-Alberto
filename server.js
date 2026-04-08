@@ -3652,6 +3652,92 @@ app.get('/api/solicitudes-turno/count', requireAuth, async (req, res) => {
   }
 });
 
+// ============================================================
+// GET /api/notificaciones-escritorio
+// Devuelve solicitudes e incidencias pendientes que no recibieron
+// aviso en las últimas 12 horas (= máx 2 veces por día)
+// ============================================================
+app.get('/api/notificaciones-escritorio', requireAuth, async (req, res) => {
+  try {
+    const esSecretaria = ['secretaria', 'admin'].includes(req.user.role);
+    const medicoId = req.user.medicoId ? Number(req.user.medicoId) : null;
+    // ?forzar=1 ignora el filtro de 12hs (usado por el botón "Probar ahora")
+    const forzar = req.query.forzar === '1';
+
+    let solicitudes = [];
+    let incidencias = [];
+
+    if (esSecretaria) {
+      solicitudes = await prisma.$queryRaw`
+        SELECT s.id, 'solicitud' AS tipo, s.fecha_sugerida, s.motivo, s.estado,
+               p.nombre || ' ' || p.apellido AS paciente_nombre
+        FROM solicitudes_turno s
+        JOIN pacientes pac ON pac.id = s.paciente_id
+        JOIN personas p ON p.id = pac.persona_id
+        WHERE s.estado IN ('Pendiente','Notificado')
+          AND (${forzar} OR s.ultimo_aviso IS NULL OR s.ultimo_aviso < NOW() - INTERVAL '12 hours')
+        ORDER BY s.fecha_sugerida ASC
+      `;
+      incidencias = await prisma.$queryRaw`
+        SELECT i.id, 'incidencia' AS tipo, i.fecha_sugerida, i.motivo, i.estado,
+               p.nombre || ' ' || p.apellido AS paciente_nombre
+        FROM incidencias_proxima_visita i
+        JOIN pacientes pac ON pac.id = i.paciente_id
+        JOIN personas p ON p.id = pac.persona_id
+        WHERE i.estado = 'Pendiente'
+          AND (${forzar} OR i.ultimo_aviso IS NULL OR i.ultimo_aviso < NOW() - INTERVAL '12 hours')
+        ORDER BY i.fecha_sugerida ASC
+      `;
+    } else if (medicoId) {
+      solicitudes = await prisma.$queryRaw`
+        SELECT s.id, 'solicitud' AS tipo, s.fecha_sugerida, s.motivo, s.estado,
+               p.nombre || ' ' || p.apellido AS paciente_nombre
+        FROM solicitudes_turno s
+        JOIN pacientes pac ON pac.id = s.paciente_id
+        JOIN personas p ON p.id = pac.persona_id
+        WHERE s.estado IN ('Pendiente','Notificado')
+          AND s.medico_id = ${medicoId}
+          AND (${forzar} OR s.ultimo_aviso IS NULL OR s.ultimo_aviso < NOW() - INTERVAL '12 hours')
+        ORDER BY s.fecha_sugerida ASC
+      `;
+      incidencias = await prisma.$queryRaw`
+        SELECT i.id, 'incidencia' AS tipo, i.fecha_sugerida, i.motivo, i.estado,
+               p.nombre || ' ' || p.apellido AS paciente_nombre
+        FROM incidencias_proxima_visita i
+        JOIN pacientes pac ON pac.id = i.paciente_id
+        JOIN personas p ON p.id = pac.persona_id
+        WHERE i.estado = 'Pendiente'
+          AND i.medico_id = ${medicoId}
+          AND (${forzar} OR i.ultimo_aviso IS NULL OR i.ultimo_aviso < NOW() - INTERVAL '12 hours')
+        ORDER BY i.fecha_sugerida ASC
+      `;
+    }
+
+    res.json({ items: [...solicitudes, ...incidencias] });
+  } catch (e) {
+    console.error('❌ notificaciones-escritorio GET:', e.message);
+    res.json({ items: [] });
+  }
+});
+
+// POST /api/notificaciones-escritorio/:tipo/:id/aviso
+// El frontend llama esto después de mostrar la notificación de escritorio
+// para actualizar ultimo_aviso y evitar repetición antes de 12 horas
+app.post('/api/notificaciones-escritorio/:tipo/:id/aviso', requireAuth, async (req, res) => {
+  try {
+    const numId = Number(req.params.id);
+    if (req.params.tipo === 'solicitud') {
+      await prisma.$executeRaw`UPDATE solicitudes_turno SET ultimo_aviso = NOW() WHERE id = ${numId}`;
+    } else {
+      await prisma.$executeRaw`UPDATE incidencias_proxima_visita SET ultimo_aviso = NOW() WHERE id = ${numId}`;
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('❌ notificaciones-escritorio POST:', e.message);
+    res.json({ ok: false });
+  }
+});
+
 // GET /api/solicitudes-turno — listar (activas por defecto; ?todos=1 para ver todas)
 app.get('/api/solicitudes-turno', requireAuth, async (req, res) => {
   try {
@@ -5555,6 +5641,15 @@ async function startServer() {
       console.log('✅ Tabla solicitudes_turno verificada');
     } catch (e) {
       console.warn('⚠️ solicitudes_turno:', e.message);
+    }
+
+    // Agregar columna ultimo_aviso si no existe (control de frecuencia notificaciones desktop)
+    try {
+      await prisma.$executeRaw`ALTER TABLE solicitudes_turno ADD COLUMN IF NOT EXISTS ultimo_aviso TIMESTAMPTZ`;
+      await prisma.$executeRaw`ALTER TABLE incidencias_proxima_visita ADD COLUMN IF NOT EXISTS ultimo_aviso TIMESTAMPTZ`;
+      console.log('✅ Columna ultimo_aviso verificada');
+    } catch (e) {
+      console.warn('⚠️ ultimo_aviso:', e.message);
     }
 
     // ============================================================
