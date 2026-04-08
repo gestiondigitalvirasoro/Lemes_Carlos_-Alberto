@@ -442,7 +442,7 @@ function renderItemSolicitud(s) {
   const estadoCls = s.estado === 'Notificado' ? 'notificado' : s.estado === 'Pendiente' ? 'pendiente' : '';
   const icon = s.estado === 'Pendiente' ? '🔔' : s.estado === 'Notificado' ? '📨' : s.estado === 'Turno asignado' ? '✅' : s.estado === 'Cancelada' ? '❌' : '⌛';
   const tel = (s.paciente_telefono || '').replace(/\D/g,'');
-  const waMsg = encodeURIComponent(`Hola! Le recordamos que el médico le sugirió una consulta para el ${fecha}. Motivo: ${s.motivo || 'control'}. Por favor comuníquese con el consultorio. L&L.`);
+  const waMsg = encodeURIComponent(`Hola ${s.paciente_nombre || ''}! Le recordamos que el Dr. Carlos Alberto Lemes le sugirió una consulta para el ${fecha}. Motivo: ${s.motivo || 'control'}. Por favor comuníquese con el consultorio. L&L.`);
   const waUrl = tel ? `https://wa.me/549${tel}?text=${waMsg}` : '';
   const activa = s.estado === 'Pendiente' || s.estado === 'Notificado';
 
@@ -565,7 +565,7 @@ function renderItemIncidencia(inc) {
   const prioCls = (inc.prioridad || '').toLowerCase();
   const icon = inc.estado === 'Pendiente' ? '⚠️' : inc.estado === 'Notificada' ? '📨' : inc.estado === 'Turno asignado' ? '✅' : inc.estado === 'Cancelada' ? '❌' : '⌛';
   const tel = (inc.paciente_telefono || '').replace(/\D/g,'');
-  const waMsg = encodeURIComponent(`Hola ${inc.paciente}! El Dr. le sugiere una visita de control para el ${fecha}. Motivo: ${inc.motivo || 'control'}. Comuníquese con el consultorio L&L.`);
+  const waMsg = encodeURIComponent(`Hola ${inc.paciente}! El Dr. Carlos Alberto Lemes le sugiere una visita para el ${fecha}. Motivo: ${inc.motivo || 'control'}. Comuníquese con el consultorio L&L.`);
   const waUrl = tel ? `https://wa.me/549${tel}?text=${waMsg}` : '';
   const activa = inc.estado === 'Pendiente' || inc.estado === 'Notificada';
 

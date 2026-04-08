@@ -1806,7 +1806,7 @@ app.get('/api/alertas-clinicas', requireAuth, async (req, res) => {
         for (const sol of solicitudes) {
           const fechaStr = sol.fecha_sugerida ? new Date(sol.fecha_sugerida).toLocaleDateString('es-AR') : '-';
           const tel = (sol.ptel || '').replace(/\D/g, '');
-          const msg = encodeURIComponent(`Hola ${sol.pnombre}! Le recordamos que el médico le ha sugerido una consulta para el ${fechaStr}. Motivo: ${sol.motivo || 'control médico'}. Por favor comuníquese con el consultorio. Consultorio L & L.`);
+          const msg = encodeURIComponent(`Hola ${sol.pnombre}! Le recordamos que el Dr. Carlos Alberto Lemes le ha sugerido una consulta para el ${fechaStr}. Motivo: ${sol.motivo || 'control médico'}. Por favor comuníquese con el consultorio. Consultorio L & L.`);
           alertas.push({
             prioridad: 'solicitud_turno',
             titulo: `Solicitud de turno: ${fechaStr}`,
@@ -3533,11 +3533,11 @@ app.post('/api/incidencias/:id/notificar', requireAuth, async (req, res) => {
         to: emailDest,
         subject: `Recordatorio de próxima visita — Consultorio L&L`,
         html: `<h2>Estimado/a ${inc.pnom} ${inc.pape},</h2>
-          <p>Le recordamos que tiene una visita médica sugerida para el <strong>${fechaStr}</strong>.</p>
+          <p>Le recordamos que el <strong>Dr. Carlos Alberto Lemes</strong> le ha sugerido una visita para el <strong>${fechaStr}</strong>.</p>
           <p><strong>Motivo:</strong> ${inc.motivo || 'Control médico'}</p>
           ${inc.observaciones ? `<p><strong>Observaciones:</strong> ${inc.observaciones}</p>` : ''}
           <p>Por favor comuníquese con el consultorio para confirmar su turno.</p>
-          <p>Dr/Dra. ${inc.mnom} ${inc.mape}<br>Consultorio L &amp; L</p>`
+          <p><em>Dr. Carlos Alberto Lemes — Consultorio L &amp; L</em></p>`
       });
     }
 
@@ -3549,7 +3549,7 @@ app.post('/api/incidencias/:id/notificar', requireAuth, async (req, res) => {
 
     if (canal === 'whatsapp') {
       const tel = (telefono || inc.ptel || '').replace(/\D/g,'');
-      const msg = encodeURIComponent(`Hola ${inc.pnom}! Le recordamos que tiene una visita médica sugerida para el ${fechaStr}. Motivo: ${inc.motivo || 'control médico'}. Comuníquese al consultorio para confirmar su turno. Consultorio L & L.`);
+      const msg = encodeURIComponent(`Hola ${inc.pnom}! Le recordamos que el Dr. Carlos Alberto Lemes le ha sugerido una visita para el ${fechaStr}. Motivo: ${inc.motivo || 'control médico'}. Comuníquese al consultorio para confirmar su turno. Consultorio L & L.`);
       return res.json({ success: true, whatsapp_url: `https://wa.me/549${tel}?text=${msg}` });
     }
     res.json({ success: true });
@@ -3783,7 +3783,7 @@ app.post('/api/solicitudes-turno/:id/notificar', requireAuth, async (req, res) =
     if (canal === 'whatsapp') {
       const tel = (telefono || sol.ptel || '').replace(/\D/g, '');
       if (!tel) return res.status(400).json({ error: 'Sin teléfono' });
-      const msg = encodeURIComponent(`Hola ${sol.pnom}! Le recordamos que el médico le ha sugerido una consulta de seguimiento para el ${fechaStr}. Motivo: ${sol.motivo || 'control médico'}. Por favor comuníquese con el consultorio para reservar su turno. Consultorio L & L.`);
+      const msg = encodeURIComponent(`Hola ${sol.pnom}! Le recordamos que el Dr. Carlos Alberto Lemes le ha sugerido una consulta para el ${fechaStr}. Motivo: ${sol.motivo || 'control médico'}. Por favor comuníquese con el consultorio para reservar su turno. Consultorio L & L.`);
       await prisma.$executeRaw`UPDATE solicitudes_turno SET estado = 'Notificado', fecha_notificacion = NOW() WHERE id = ${Number(req.params.id)}`;
       return res.json({ success: true, url: `https://wa.me/549${tel}?text=${msg}` });
     } else {
@@ -3793,14 +3793,14 @@ app.post('/api/solicitudes-turno/:id/notificar', requireAuth, async (req, res) =
         to: emailDest,
         subject: `Recordatorio de consulta médica — Consultorio L&L`,
         html: `<p>Estimado/a <strong>${nombrePaciente}</strong>,</p>
-               <p>Le recordamos que su médico le ha sugerido una consulta de seguimiento.</p>
+               <p>Le recordamos que el <strong>Dr. Carlos Alberto Lemes</strong> le ha sugerido una consulta.</p>
                <ul>
                  <li><strong>Fecha sugerida:</strong> ${fechaStr}</li>
                  <li><strong>Motivo:</strong> ${sol.motivo || 'Control médico'}</li>
                  ${sol.observaciones ? `<li><strong>Observaciones:</strong> ${sol.observaciones}</li>` : ''}
                </ul>
                <p>Por favor comuníquese con el consultorio para reservar su turno.</p>
-               <p><em>Consultorio L & L</em></p>`
+               <p><em>Dr. Carlos Alberto Lemes — Consultorio L & L</em></p>`
       });
       await prisma.$executeRaw`UPDATE solicitudes_turno SET estado = 'Notificado', fecha_notificacion = NOW() WHERE id = ${Number(req.params.id)}`;
       return res.json({ success: true });
