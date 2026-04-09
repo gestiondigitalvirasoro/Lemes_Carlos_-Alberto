@@ -299,7 +299,11 @@
                     <td style="text-align: center;">
                       <% if (user.rol === 'secretaria') { %>
                         <% if (p.historia_id) { %>
-                          <button class="btn btn-sm btn-adjuntar" onclick="abrirModalAdjunto('<%= p.historia_id %>', '<%= p.nombre %>', <%- JSON.stringify(p.documentos) %>)"
+                          <button class="btn btn-sm btn-adjuntar"
+                            data-historia-id="<%= p.historia_id %>"
+                            data-nombre="<%= p.nombre %>"
+                            data-docs="<%- encodeURIComponent(JSON.stringify(p.documentos || [])) %>"
+                            onclick="abrirModalAdjuntoBtn(this)"
                             style="background:#5CAEA3;color:white;border:none;border-radius:6px;padding:5px 12px;font-size:0.8rem;font-weight:600;">
                             <i class="bi bi-paperclip"></i> Docs <% if (p.documentos && p.documentos.length > 0) { %>(<%= p.documentos.length %>)<% } %>
                           </button>
@@ -1164,6 +1168,13 @@
 </div>
 
 <script>
+  function abrirModalAdjuntoBtn(btn) {
+    const historiaId = btn.getAttribute('data-historia-id');
+    const nombrePaciente = btn.getAttribute('data-nombre');
+    const documentos = JSON.parse(decodeURIComponent(btn.getAttribute('data-docs') || '[]'));
+    abrirModalAdjunto(historiaId, nombrePaciente, documentos);
+  }
+
   function abrirModalAdjunto(historiaId, nombrePaciente, documentos) {
     document.getElementById('adjunto-historia-id').value = historiaId;
     document.getElementById('adjunto-paciente-nombre').textContent = nombrePaciente;

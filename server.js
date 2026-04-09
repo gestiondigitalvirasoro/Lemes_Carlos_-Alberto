@@ -4436,6 +4436,7 @@ app.get('/doctor/pacientes', requireAuth, requireRole(['doctor', 'admin', 'secre
     res.render('doctor/pages/pacientes', {
       title: 'Mis Pacientes',
       pacientes: [],
+      stats: { total: 0, activos: 0, inactivos: 0, sin_obra_social: 0 },
       user: {
         nombre: req.user.nombre,
         apellido: req.user.apellido,
