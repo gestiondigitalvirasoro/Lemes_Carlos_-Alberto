@@ -847,8 +847,8 @@
                                     <input type="date" id="trat-fecha-inicio" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
                                 </div>
                                 <div>
-                                    <label style="font-size:12px;color:#666;display:block;margin-bottom:3px;">Duración (días)</label>
-                                    <input type="number" id="trat-duracion" placeholder="ej: 30" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+                                    <label style="font-size:12px;color:#666;display:block;margin-bottom:3px;">Duración</label>
+                                    <input type="text" id="trat-duracion" placeholder="ej: 30 días, 1 mes" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
                                 </div>
                             </div>
                             <div style="margin-bottom:12px;">
@@ -2959,13 +2959,10 @@ M.P. 6306 · M.N. 158.838
             const indicaciones = document.getElementById('trat-indicaciones').value.trim();
 
             if (!nombre) { alert('Seleccioná o escribí un medicamento'); return; }
-            if (!dosis)   { alert('Ingresá la dosis'); return; }
-            if (!frecuencia) { alert('Ingresá la frecuencia'); return; }
-            if (!fechaInicio) { alert('Ingresá la fecha de inicio'); return; }
 
             // Guardar en array local (se enviará al guardar la HC)
             const tempId = 'pending-' + Date.now();
-            pendingTratamientos.push({ tempId, medicamento: nombre, dosis, frecuencia, fecha_inicio: fechaInicio, duracion_dias: duracion ? parseInt(duracion) : null, indicaciones: indicaciones || null });
+            pendingTratamientos.push({ tempId, medicamento: nombre, dosis: dosis || null, frecuencia: frecuencia || null, fecha_inicio: fechaInicio || null, duracion_dias: duracion || null, indicaciones: indicaciones || null });
 
             // Mostrar card en UI
             const grid = document.getElementById('tratamientosGrid');

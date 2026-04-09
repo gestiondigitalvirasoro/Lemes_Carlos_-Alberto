@@ -296,11 +296,11 @@ model Tratamiento {
   id                    BigInt      @id @default(autoincrement())
   consulta_id           BigInt
   medicamento           String      @db.VarChar(255)
-  dosis                 String      @db.VarChar(100)
-  frecuencia            String      @db.VarChar(100)
-  duracion_dias         Int?
+  dosis                 String?     @db.VarChar(100)
+  frecuencia            String?     @db.VarChar(100)
+  duracion_dias         String?     @db.VarChar(50)
   indicaciones          String?
-  fecha_inicio          DateTime    @db.Date
+  fecha_inicio          DateTime?   @db.Date
   fecha_fin             DateTime?   @db.Date
   creado_en             DateTime    @default(now()) @db.Timestamptz(6)
   actualizado_en        DateTime    @updatedAt @db.Timestamptz(6)
