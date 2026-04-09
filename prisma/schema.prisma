@@ -162,6 +162,7 @@ model ConsultaMedica {
   fecha                 DateTime    @db.Timestamptz(6)
   motivo_consulta       String
   resumen               String?
+  otros_tratamientos    String?     @db.Text // Área de texto para otros tratamientos
   creado_en             DateTime    @default(now()) @db.Timestamptz(6)
   actualizado_en        DateTime    @updatedAt @db.Timestamptz(6)
   

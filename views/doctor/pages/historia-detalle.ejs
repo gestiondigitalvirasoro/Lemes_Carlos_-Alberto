@@ -550,6 +550,7 @@
                     <li style="margin-bottom: 8px;"><a href="#antecedentes" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-book"></i> Antecedentes</a></li>
                     <li style="margin-bottom: 8px;"><a href="#diagnosticos" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-search"></i> Diagnósticos <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;" id="diagnosticosCountSidebar"><%= diagsSidebar.length %></span></a></li>
                     <li style="margin-bottom: 8px;"><a href="#tratamiento" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-capsule"></i> Tratamiento</a></li>
+                    <li style="margin-bottom: 8px;"><a href="#otros-tratamientos" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-prescription"></i> Otros Tratamientos</a></li>
                     <li style="margin-bottom: 8px;"><a href="#impresion" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-stethoscope"></i> Impresión</a></li>
                     <li style="margin-bottom: 8px;"><a href="#estudios" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-flask"></i> Estudios <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;" id="estudiosCountSidebar"><%= (historia?.consultas?.[0]?.estudios?.length || 0) %></span></a></li>
                     <li><a href="#adjuntos" class="section-link" style="color: #b0b7c4; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 4px; transition: background 0.3s; cursor: pointer;"><i class="bi bi-file-image"></i> Adjuntos <span style="margin-left: auto; background: rgba(0,123,255,0.2); color: #007bff; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;" id="adjuntosCountSidebar">0</span></a></li>
@@ -862,6 +863,21 @@
                             <i class="bi bi-plus"></i> Agregar medicamento
                         </button>
 
+                    </div>
+                </section>
+
+                <!-- OTROS TRATAMIENTOS -->
+                <section class="section" id="otros-tratamientos">
+                    <div class="section-header">
+                        <i class="bi bi-prescription"></i>
+                        <h3>Otros Tratamientos</h3>
+                    </div>
+                    <div class="section-body">
+                        <div class="form-group">
+                            <label for="otrosTratamientos" style="display:block; font-size:13px; font-weight:600; margin-bottom:8px; color:#333;">Indicaciones adicionales, recomendaciones o tratamientos complementarios</label>
+                            <textarea id="otrosTratamientos" placeholder="Ej: Fisioterapia, medidas higiénicas, cambios de estilo de vida, control complementario en 15 días, etc." rows="6" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical;font-family:inherit;"><%= historia?.consultas?.[0]?.otros_tratamientos || '' %></textarea>
+                            <small style="color:#999;display:block;margin-top:8px;">💡 Aquí podés anotar cualquier otro tratamiento, recomendación o indicación que no sea medicamentosa</small>
+                        </div>
                     </div>
                 </section>
 
@@ -1384,6 +1400,13 @@
               console.log('✅ Impresión Diagnóstica cargada:', consulta.resumen);
             } else if (impresionElem) {
               impresionElem.value = '';
+            }
+
+            // Actualizar Otros Tratamientos
+            const otrosTratamientosElem = document.getElementById('otrosTratamientos');
+            if (otrosTratamientosElem) {
+              otrosTratamientosElem.value = consulta?.otros_tratamientos || '';
+              console.log('✅ Otros Tratamientos cargados:', consulta?.otros_tratamientos || '(vacío)');
             }
             
             // Actualizar Archivos Adjuntos (viene como array directo del backend)
@@ -2156,6 +2179,7 @@ M.P. 6306 · M.N. 158.838
                 anamnesis: document.getElementById('anamnesis')?.value || '',
                 antecedentes: document.getElementById('antecedentes')?.value || '',
                 resumen: document.getElementById('impresion')?.value || '',
+                otros_tratamientos: document.getElementById('otrosTratamientos')?.value || '',
                 presion_sistolica: svPSist  ? parseInt(svPSist)   : null,
                 presion_diastolica: svPDias ? parseInt(svPDias)   : null,
                 frecuencia_cardiaca: svFC   ? parseInt(svFC)      : null,
