@@ -4339,6 +4339,17 @@ app.get('/doctor/pacientes', requireAuth, requireRole(['doctor', 'admin', 'secre
               select: { fecha: true },
               orderBy: { fecha: 'desc' },
               take: 1
+            },
+            documentos: {
+              where: { eliminado: false },
+              select: {
+                id: true,
+                nombre_archivo: true,
+                url_storage: true,
+                tipo_mime: true,
+                creado_en: true
+              },
+              orderBy: { creado_en: 'desc' }
             }
           },
           take: 1
@@ -4387,7 +4398,16 @@ app.get('/doctor/pacientes', requireAuth, requireRole(['doctor', 'admin', 'secre
           ultima_consulta: ultimaConsulta ? new Date(ultimaConsulta).toISOString().split('T')[0] : '',
           tiene_historia: p.historias_clinicas && p.historias_clinicas.length > 0,
           historia_activa: p.historias_clinicas && p.historias_clinicas.length > 0 ? p.historias_clinicas[0].activa : false,
-          historia_id: p.historias_clinicas && p.historias_clinicas.length > 0 ? p.historias_clinicas[0].id.toString() : null
+          historia_id: p.historias_clinicas && p.historias_clinicas.length > 0 ? p.historias_clinicas[0].id.toString() : null,
+          documentos: p.historias_clinicas && p.historias_clinicas.length > 0
+            ? (p.historias_clinicas[0].documentos || []).map(d => ({
+                id: d.id.toString(),
+                nombre: d.nombre_archivo,
+                url: d.url_storage,
+                tipo: d.tipo_mime,
+                fecha: d.creado_en ? new Date(d.creado_en).toLocaleDateString('es-AR') : ''
+              }))
+            : []
         };
       });
 

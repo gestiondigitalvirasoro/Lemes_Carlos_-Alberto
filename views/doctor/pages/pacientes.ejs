@@ -299,9 +299,9 @@
                     <td style="text-align: center;">
                       <% if (user.rol === 'secretaria') { %>
                         <% if (p.historia_id) { %>
-                          <button class="btn btn-sm btn-adjuntar" onclick="abrirModalAdjunto('<%= p.historia_id %>', '<%= p.nombre %>')"
+                          <button class="btn btn-sm btn-adjuntar" onclick="abrirModalAdjunto('<%= p.historia_id %>', '<%= p.nombre %>', <%- JSON.stringify(p.documentos) %>)"
                             style="background:#5CAEA3;color:white;border:none;border-radius:6px;padding:5px 12px;font-size:0.8rem;font-weight:600;">
-                            <i class="bi bi-paperclip"></i> Adjuntar
+                            <i class="bi bi-paperclip"></i> Docs <% if (p.documentos && p.documentos.length > 0) { %>(<%= p.documentos.length %>)<% } %>
                           </button>
                         <% } else { %>
                           <span class="text-muted" style="font-size:0.8rem;">Sin HC</span>
@@ -1126,46 +1126,72 @@
 
 <!-- MODAL: ADJUNTAR DOCUMENTO (secretaria) -->
 <div class="modal fade" id="modalAdjuntarDoc" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content" style="border-radius:12px;overflow:hidden;">
       <div class="modal-header" style="background:linear-gradient(135deg,#1a3a3a,#2d6a6a);color:white;border:none;">
-        <h5 class="modal-title"><i class="bi bi-paperclip"></i> Adjuntar documento</h5>
+        <h5 class="modal-title"><i class="bi bi-paperclip"></i> Documentos del paciente</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter:brightness(0) invert(1);"></button>
       </div>
       <div class="modal-body">
-        <p id="adjunto-paciente-nombre" class="text-muted mb-3" style="font-size:0.9rem;"></p>
+        <p id="adjunto-paciente-nombre" class="fw-semibold mb-3" style="font-size:1rem;color:#1a3a3a;"></p>
         <input type="hidden" id="adjunto-historia-id">
-        <div class="mb-3">
-          <label class="form-label" style="font-weight:600;">Archivo</label>
-          <input type="file" class="form-control" id="adjunto-file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
-          <div class="form-text">PDF, imagen o documento Word. Máx. 10 MB.</div>
-        </div>
-        <div id="adjunto-progress" style="display:none;">
-          <div class="progress" style="height:8px;border-radius:4px;">
-            <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width:100%;"></div>
+
+        <!-- Lista de documentos existentes -->
+        <div id="adjunto-lista-docs" class="mb-4"></div>
+
+        <!-- Subir nuevo -->
+        <div style="border-top:1px solid #eee;padding-top:16px;">
+          <p class="fw-semibold mb-2" style="font-size:0.9rem;">Subir nuevo documento</p>
+          <div class="mb-3">
+            <input type="file" class="form-control" id="adjunto-file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+            <div class="form-text">PDF, imagen o documento Word. Máx. 10 MB.</div>
           </div>
-          <p class="text-muted mt-2" style="font-size:0.85rem;">Subiendo archivo...</p>
+          <div id="adjunto-progress" style="display:none;">
+            <div class="progress" style="height:8px;border-radius:4px;">
+              <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width:100%;"></div>
+            </div>
+            <p class="text-muted mt-2" style="font-size:0.85rem;">Subiendo archivo...</p>
+          </div>
+          <div id="adjunto-resultado" style="display:none;"></div>
+          <button type="button" class="btn" id="btnSubirAdjunto" onclick="subirDocumentoSecretaria()"
+            style="background:#1D9E75;color:white;font-weight:600;border-radius:8px;">
+            <i class="bi bi-cloud-upload"></i> Subir
+          </button>
         </div>
-        <div id="adjunto-resultado" style="display:none;"></div>
-      </div>
-      <div class="modal-footer" style="border:none;">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn" id="btnSubirAdjunto" onclick="subirDocumentoSecretaria()"
-          style="background:#1D9E75;color:white;font-weight:600;border-radius:8px;">
-          <i class="bi bi-cloud-upload"></i> Subir
-        </button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  function abrirModalAdjunto(historiaId, nombrePaciente) {
+  function abrirModalAdjunto(historiaId, nombrePaciente, documentos) {
     document.getElementById('adjunto-historia-id').value = historiaId;
-    document.getElementById('adjunto-paciente-nombre').textContent = 'Paciente: ' + nombrePaciente;
+    document.getElementById('adjunto-paciente-nombre').textContent = nombrePaciente;
     document.getElementById('adjunto-file').value = '';
     document.getElementById('adjunto-progress').style.display = 'none';
     document.getElementById('adjunto-resultado').style.display = 'none';
+
+    // Mostrar documentos existentes
+    const lista = document.getElementById('adjunto-lista-docs');
+    if (documentos && documentos.length > 0) {
+      lista.innerHTML = '<p class="fw-semibold mb-2" style="font-size:0.9rem;">Documentos adjuntos (' + documentos.length + ')</p>' +
+        documentos.map(function(d) {
+          const icono = d.tipo && d.tipo.startsWith('image/') ? 'bi-image' : 'bi-file-earmark-pdf';
+          return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid #e9ecef;border-radius:8px;margin-bottom:6px;">' +
+            '<i class="bi ' + icono + '" style="font-size:1.3rem;color:#5CAEA3;"></i>' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + d.nombre + '</div>' +
+              '<div style="font-size:0.75rem;color:#999;">' + d.fecha + '</div>' +
+            '</div>' +
+            '<a href="' + d.url + '" target="_blank" class="btn btn-sm" style="background:#eef9f5;color:#1D9E75;border:1px solid #1D9E75;border-radius:6px;font-size:0.78rem;padding:3px 10px;white-space:nowrap;">' +
+              '<i class="bi bi-eye"></i> Ver' +
+            '</a>' +
+          '</div>';
+        }).join('');
+    } else {
+      lista.innerHTML = '<p class="text-muted" style="font-size:0.85rem;"><i class="bi bi-inbox"></i> Sin documentos adjuntos todavía.</p>';
+    }
+
     new bootstrap.Modal(document.getElementById('modalAdjuntarDoc')).show();
   }
 
@@ -1197,9 +1223,26 @@
       res.style.display = 'block';
 
       if (resp.ok && data.success) {
-        res.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle"></i> Documento adjuntado correctamente.</div>';
+        res.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle"></i> Documento subido correctamente.</div>';
         fileInput.value = '';
-        setTimeout(() => { bootstrap.Modal.getInstance(document.getElementById('modalAdjuntarDoc')).hide(); }, 1800);
+        // Agregar el nuevo doc a la lista sin recargar
+        const doc = data.documento;
+        const lista = document.getElementById('adjunto-lista-docs');
+        const icono = doc.nombre_archivo && doc.nombre_archivo.match(/\.(jpg|jpeg|png|gif)$/i) ? 'bi-image' : 'bi-file-earmark-pdf';
+        const hoy = new Date().toLocaleDateString('es-AR');
+        const nuevo = '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid #e9ecef;border-radius:8px;margin-bottom:6px;">' +
+          '<i class="bi ' + icono + '" style="font-size:1.3rem;color:#5CAEA3;"></i>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:0.85rem;font-weight:600;">' + doc.nombre_archivo + '</div>' +
+            '<div style="font-size:0.75rem;color:#999;">' + hoy + '</div>' +
+          '</div>' +
+          '<a href="' + doc.url_storage + '" target="_blank" class="btn btn-sm" style="background:#eef9f5;color:#1D9E75;border:1px solid #1D9E75;border-radius:6px;font-size:0.78rem;padding:3px 10px;">' +
+            '<i class="bi bi-eye"></i> Ver' +
+          '</a>' +
+        '</div>';
+        // Quitar mensaje "sin documentos" si existe
+        if (lista.querySelector('p.text-muted')) lista.innerHTML = '<p class="fw-semibold mb-2" style="font-size:0.9rem;">Documentos adjuntos</p>';
+        lista.insertAdjacentHTML('beforeend', nuevo);
       } else {
         res.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-exclamation-triangle"></i> ' + (data.message || 'Error al subir') + '</div>';
       }
