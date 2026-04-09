@@ -1081,12 +1081,26 @@
         // ========== CREAR NUEVA CONSULTA ==========
         async function crearNuevaConsultaUI() {
             if (!historiaId || !pacienteId) {
-                alert('Error: Datos de histoia o paciente no disponibles');
+                alert('Error: Datos de historia o paciente no disponibles');
+                return;
+            }
+
+            // Pedir motivo de consulta
+            const motivo = prompt('📋 Ingresá el motivo de la consulta:', '');
+            
+            if (motivo === null) {
+                console.log('❌ Creación de consulta cancelada');
+                return; // Usuario presionó Cancelar
+            }
+
+            const motivoTrim = motivo.trim();
+            if (motivoTrim === '') {
+                alert('⚠️ El motivo no puede estar vacío');
                 return;
             }
 
             try {
-                console.log('📝 Creando nueva consulta vacía...');
+                console.log('📝 Creando nueva consulta con motivo:', motivoTrim);
                 
                 const response = await fetch('/api/consultas/crear', {
                     method: 'POST',
@@ -1099,7 +1113,7 @@
                         paciente_id: pacienteId,
                         historia_id: historiaId,
                         turno_id: null,
-                        motivo_consulta: 'Por especificar'
+                        motivo_consulta: motivoTrim
                     })
                 });
 
@@ -1111,13 +1125,16 @@
                 const result = await response.json();
                 console.log('✅ Consulta creada:', result.data);
 
+                // Usar el motivo ingresado (no confiar en result.data que puede estar undefined)
+                const motivoFinal = result.data.motivo_consulta || motivoTrim;
+
                 // Agregar la nueva consulta al objeto de datos
                 const nuevaConsulta = {
                     id: result.data.id,
                     historia_clinica_id: result.data.historia_clinica_id,
                     medico_id: result.data.medico_id,
                     fecha: result.data.fecha,
-                    motivo_consulta: result.data.motivo_consulta,
+                    motivo_consulta: motivoFinal,
                     estado_id: result.data.estado_id,
                     resumen: null,
                     signos_vitales: [],
@@ -1133,33 +1150,40 @@
                 }
                 historiaData.consultas.unshift(nuevaConsulta); // Agregar al inicio
 
-                // Actualizar selector
+                // Actualizar selector con el motivo correcto
                 const selector = document.getElementById('consultaSelector');
                 if (selector) {
                     const newOption = document.createElement('option');
                     const fecha = new Date(nuevaConsulta.fecha);
                     const fechaStr = fecha.toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'});
                     newOption.value = '0';
-                    newOption.textContent = `${fechaStr} — ${nuevaConsulta.motivo_consulta}`;
+                    newOption.textContent = `${fechaStr} — ${motivoFinal}`;
                     selector.insertBefore(newOption, selector.firstChild);
                     selector.value = '0';
+                    console.log('✅ Selector actualizado con motivo:', motivoFinal);
                 }
 
                 // Cambiar a la nueva consulta
                 consultaActualIdx = 0;
                 cambiarConsulta(0);
-                limpiarCamposConsulta();
+
+                // Llenar el campo de motivo con el valor ingresado
+                const motivoConsultaElem = document.getElementById('motivoConsulta');
+                if (motivoConsultaElem) {
+                    motivoConsultaElem.value = motivoFinal;
+                    console.log('✅ Campo de motivo en Anamnesis completado:', motivoFinal);
+                }
 
                 // Habilitar automáticamente modo edición
                 if (!modoEdicion) {
                     habilitarEdicion();
                 }
 
-                alert('✅ Nueva consulta creada. Podés completar los datos en modo edición.');
+                alert('✅ Nueva consulta creada con motivo: ' + motivoFinal);
                 console.log('✅ Nueva consulta lista para editar');
             } catch (error) {
                 console.error('❌ Error al crear consulta:', error);
-                alert('Error al crear la consulta: ' + error.message);
+                alert('❌ Error al crear la consulta: ' + error.message);
             }
         }
 
