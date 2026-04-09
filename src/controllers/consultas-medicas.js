@@ -358,12 +358,48 @@ export const actualizarConsultaMedicaCompleta = async (req, res) => {
 
     console.log('✅ Consulta actualizada:', consulta_id);
 
-    // Actualizar Anamnesis
+    // Upsert Anamnesis (crear si no existe, actualizar si existe)
     if (anamnesis !== undefined) {
-      await prisma.anamnesis.updateMany({
-        where: { consulta_id: BigInt(consulta_id) },
-        data: { enfermedad_actual: anamnesis }
-      }).catch(() => null);
+      const anamnesisExistente = await prisma.anamnesis.findUnique({
+        where: { consulta_id: BigInt(consulta_id) }
+      });
+      if (anamnesisExistente) {
+        await prisma.anamnesis.update({
+          where: { consulta_id: BigInt(consulta_id) },
+          data: { enfermedad_actual: anamnesis }
+        });
+      } else if (anamnesis.trim()) {
+        await prisma.anamnesis.create({
+          data: { consulta_id: BigInt(consulta_id), enfermedad_actual: anamnesis }
+        });
+      }
+      console.log('✅ Anamnesis guardada');
+    }
+
+    // Guardar Antecedentes (en la historia clínica)
+    if (antecedentes !== undefined && antecedentes.trim()) {
+      // Obtener historia_id de la consulta
+      const consulta = await prisma.consultaMedica.findUnique({
+        where: { id: BigInt(consulta_id) },
+        select: { historia_clinica_id: true }
+      });
+      if (consulta) {
+        // Buscar antecedente PERSONAL existente para esta historia
+        const antExistente = await prisma.antecedente.findFirst({
+          where: { historia_clinica_id: consulta.historia_clinica_id, tipo: 'PERSONAL' }
+        });
+        if (antExistente) {
+          await prisma.antecedente.update({
+            where: { id: antExistente.id },
+            data: { descripcion: antecedentes }
+          });
+        } else {
+          await prisma.antecedente.create({
+            data: { historia_clinica_id: consulta.historia_clinica_id, tipo: 'PERSONAL', descripcion: antecedentes }
+          });
+        }
+        console.log('✅ Antecedentes guardados');
+      }
     }
 
     // Actualizar Signos Vitales
