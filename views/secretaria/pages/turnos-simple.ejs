@@ -323,6 +323,29 @@
       </div>
     </div>
     
+    <!-- Pendientes de días anteriores -->
+    <div class="turnos-section" id="seccionPendientesAnteriores" style="display:none; margin-top:24px; border-left: 4px solid #dc3545;">
+      <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <span style="color:#dc3545;"><i class="fas fa-exclamation-triangle"></i> Pendientes de Días Anteriores</span>
+        <span id="contadorPendientesAnt" style="background:#dc3545;color:#fff;padding:3px 12px;border-radius:20px;font-size:0.8rem;font-weight:700;"></span>
+      </div>
+      <p style="color:#888;font-size:0.85rem;margin:0 0 12px 0;">Turnos PENDIENTE de fechas pasadas que no fueron iniciados ni cancelados.</p>
+      <div class="table-responsive">
+        <table class="table" id="tablaPendientesAnt">
+          <thead>
+            <tr>
+              <th>Persona</th>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Motivo</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="bodyPendientesAnt"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Contenedores para modales -->
     <div id="detalleModalContainer"></div>
     <div id="modalConfirmarContainer"></div>
@@ -433,6 +456,53 @@
       } finally {
         cargando.style.display = 'none';
       }
+    }
+
+    function mostrarPendientesAnteriores(turnos) {
+      const hoy = new Date(); hoy.setHours(0,0,0,0);
+      const anteriores = turnos.filter(t => {
+        if (t.estado?.nombre !== 'PENDIENTE') return false;
+        const f = t.fecha; // formato DD/MM/YYYY
+        if (!f) return false;
+        const p = f.split('/');
+        if (p.length < 3) return false;
+        const d = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+        return d < hoy;
+      });
+
+      const seccion = document.getElementById('seccionPendientesAnteriores');
+      const body = document.getElementById('bodyPendientesAnt');
+      const contador = document.getElementById('contadorPendientesAnt');
+
+      if (anteriores.length === 0) {
+        seccion.style.display = 'none';
+        return;
+      }
+
+      seccion.style.display = '';
+      contador.textContent = `${anteriores.length} sin resolver`;
+
+      body.innerHTML = anteriores.map(turno => {
+        const persona = turno.persona;
+        const motivo = turno.motivo || turno.observaciones || '—';
+        return `<tr>
+          <td>
+            <strong>${persona?.nombre || ''} ${persona?.apellido || ''}</strong>
+            ${persona?.dni ? `<br><small class="text-muted">DNI: ${persona.dni}</small>` : ''}
+          </td>
+          <td><span style="color:#dc3545;font-weight:600;">${turno.fecha || '-'}</span></td>
+          <td>${turno.hora || '-'}</td>
+          <td><small>${motivo}</small></td>
+          <td>
+            <button class="btn btn-sm btn-primary" style="margin:2px;" onclick="iniciarConsultaConAlta('${turno.id}')" title="Iniciar consulta">
+              <i class="fas fa-play"></i> Iniciar
+            </button>
+            <button class="btn btn-sm btn-outline-danger" style="margin:2px;" onclick="cambiarEstado('${turno.id}', 'CANCELADA')" title="Cancelar">
+              <i class="fas fa-times"></i> Cancelar
+            </button>
+          </td>
+        </tr>`;
+      }).join('');
     }
 
     function esFechaHoyOFutura(fechaStr) {
@@ -575,6 +645,9 @@
           <td style="white-space:nowrap;">${acciones}</td>
         </tr>`;
       }).join('');
+
+      // Mostrar pendientes de días anteriores usando TODOS los turnos cargados
+      mostrarPendientesAnteriores(turnosGlobales);
     }
 
     function mostrarModalSinHC(turnoId, turno) {

@@ -423,13 +423,21 @@
       const vacio = document.getElementById('vacio');
       const pills = document.getElementById('turnos-pills');
 
+      // 🔄 FILTRAR: Solo turnos de HOY
+      const hoy = new Date();
+      const fechaHoyStr = `${hoy.getDate()}/${(hoy.getMonth() + 1).toString().padStart(2, '0')}/${hoy.getFullYear()}`;
+      
+      const turnosDeHoy = turnos.filter(t => {
+        return t.fecha === fechaHoyStr;
+      });
+
       // Contador pills
-      if (pills && turnos) {
-        const total = turnos.length;
-        const enConsulta = turnos.filter(t => t.estado?.nombre === 'EN_CONSULTA').length;
-        const pendientes = turnos.filter(t => ['PENDIENTE','CONFIRMADO'].includes(t.estado?.nombre)).length;
-        const finalizados = turnos.filter(t => ['FINALIZADA','ATENDIDA'].includes(t.estado?.nombre)).length;
-        const cancelados = turnos.filter(t => t.estado?.nombre === 'CANCELADA').length;
+      if (pills && turnosDeHoy) {
+        const total = turnosDeHoy.length;
+        const enConsulta = turnosDeHoy.filter(t => t.estado?.nombre === 'EN_CONSULTA').length;
+        const pendientes = turnosDeHoy.filter(t => ['PENDIENTE','CONFIRMADO'].includes(t.estado?.nombre)).length;
+        const finalizados = turnosDeHoy.filter(t => ['FINALIZADA','ATENDIDA'].includes(t.estado?.nombre)).length;
+        const cancelados = turnosDeHoy.filter(t => t.estado?.nombre === 'CANCELADA').length;
         pills.innerHTML = `
           <span style="font-size:0.85rem; font-weight:600; color:#555; padding:4px 12px; background:#f0f0f0; border-radius:20px;">${total} turno${total!==1?'s':''}</span>
           ${enConsulta > 0 ? `<span style="font-size:0.85rem; font-weight:600; color:#fff; padding:4px 12px; background:#17A2B8; border-radius:20px;">${enConsulta} en consulta</span>` : ''}
@@ -439,7 +447,7 @@
         `;
       }
 
-      if (!turnos || turnos.length === 0) {
+      if (!turnosDeHoy || turnosDeHoy.length === 0) {
         vacio.style.display = 'block';
         tabla.innerHTML = '';
         return;
@@ -447,7 +455,7 @@
 
       // Ordenar: EN_CONSULTA primero, luego PENDIENTE/CONFIRMADO, luego el resto por hora
       const prioridad = { 'EN_CONSULTA': 0, 'PENDIENTE': 1, 'CONFIRMADO': 1, 'FINALIZADA': 2, 'ATENDIDA': 2, 'CANCELADA': 3 };
-      const turnosOrdenados = [...turnos].sort((a, b) => {
+      const turnosOrdenados = [...turnosDeHoy].sort((a, b) => {
         const pa = prioridad[a.estado?.nombre] ?? 9;
         const pb = prioridad[b.estado?.nombre] ?? 9;
         if (pa !== pb) return pa - pb;

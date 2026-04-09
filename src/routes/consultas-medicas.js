@@ -60,11 +60,12 @@ router.put(
   '/actualizar-completa/:historia_id',
   roleMiddleware(['doctor', 'admin']),
   [
-    param('historia_id').isNumeric().withMessage('historia_id debe ser un número válido'),
+    param('historia_id').notEmpty().withMessage('historia_id es requerido'),
     body('consulta_id').isNumeric().withMessage('consulta_id debe ser un número válido'),
     body('motivo_consulta').optional().isString().trim(),
     body('anamnesis').optional().isString().trim(),
     body('antecedentes').optional().isString().trim(),
+    body('turno_id').optional(),
     body('resumen').optional().isString().trim(),
     body('otros_tratamientos').optional().isString().trim(),
     body('presion_sistolica').optional().isNumeric(),

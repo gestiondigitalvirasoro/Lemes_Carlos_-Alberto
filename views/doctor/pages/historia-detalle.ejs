@@ -647,11 +647,14 @@
 
                                 <!-- SIGNOS VITALES -->
                 <section class="section" id="signos-vitales">
-                    <div class="section-header">
-                        <i class="bi bi-heart-pulse"></i>
-                        <h3>Signos Vitales</h3>
+                    <div class="section-header" onclick="toggleSignosVitales()" style="cursor:pointer; user-select:none; display:flex; align-items:center; justify-content:space-between;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <i class="bi bi-heart-pulse"></i>
+                            <h3 style="margin:0;">Signos Vitales</h3>
+                        </div>
+                        <i class="bi bi-chevron-up" id="signosVitalesChevron" style="font-size:14px; color:#666; transition:transform 0.25s; transform:rotate(180deg);"></i>
                     </div>
-                    <div class="section-body">
+                    <div class="section-body" id="signosVitalesBody" style="display:none;">
                         <div class="vitals-grid">
                             <div class="vital-card">
                                 <label>Presión Sistólica</label>
@@ -1092,6 +1095,14 @@
 
         function limpiarCamposConsulta() {
             cambiarConsulta(99999); // índice inválido → limpia campos
+        }
+
+        function toggleSignosVitales() {
+            const body = document.getElementById('signosVitalesBody');
+            const chevron = document.getElementById('signosVitalesChevron');
+            const isHidden = body.style.display === 'none';
+            body.style.display = isHidden ? '' : 'none';
+            chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
         }
 
         // ========== CREAR NUEVA CONSULTA ==========
@@ -2176,6 +2187,7 @@ M.P. 6306 · M.N. 158.838
             const datos = {
                 consulta_id: consulta_id,
                 motivo_consulta: document.getElementById('motivoConsulta')?.value || '',
+                turno_id: '<%= turno_id || "" %>',
                 anamnesis: document.getElementById('anamnesis')?.value || '',
                 antecedentes: document.getElementById('antecedentes')?.value || '',
                 resumen: document.getElementById('impresion')?.value || '',
@@ -2220,15 +2232,26 @@ M.P. 6306 · M.N. 158.838
                         pendingTratamientos = [];
                     }
 
-                    alert('Consulta médica guardada exitosamente');
+                    if (result.turno_finalizado) {
+                        // Mostrar loading y redirigir al dashboard
+                        const loadingOverlay = document.getElementById('loadingOverlay');
+                        if (loadingOverlay) {
+                            const loadingText = loadingOverlay.querySelector('.loading-text');
+                            if (loadingText) loadingText.textContent = 'Consulta finalizada. Volviendo al inicio...';
+                            loadingOverlay.classList.add('active');
+                        }
+                        setTimeout(() => { window.location.href = '/doctor/dashboard'; }, 1500);
+                    } else {
+                        alert('Consulta médica guardada exitosamente');
 
-                    // Ocultar loading overlay
-                    const loadingOverlay = document.getElementById('loadingOverlay');
-                    if (loadingOverlay) {
-                        loadingOverlay.classList.remove('active');
+                        // Ocultar loading overlay
+                        const loadingOverlay = document.getElementById('loadingOverlay');
+                        if (loadingOverlay) {
+                            loadingOverlay.classList.remove('active');
+                        }
+
+                        location.reload();
                     }
-
-                    location.reload();
                 } else {
                     alert('Error: ' + result.message);
                     

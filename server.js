@@ -787,16 +787,35 @@ app.get('/doctor/historia-nueva', requireAuth, async (req, res) => {
   try {
     const { paciente_id, turno_id } = req.query;
 
-    if (!paciente_id) {
-      return res.status(404).render('pages/404', {
-        title: 'Paciente no encontrado',
-        message: 'El paciente que buscas no existe'
+    // Si no hay paciente_id pero hay turno_id, buscar o crear paciente por turno
+    let resolvedPacienteId = paciente_id;
+    if (!resolvedPacienteId && turno_id) {
+      const turno = await prisma.turno.findUnique({
+        where: { id: BigInt(turno_id) },
+        include: { persona: { include: { paciente: true } } }
       });
+      if (turno?.persona) {
+        if (turno.persona.paciente) {
+          // Ya tiene registro de paciente
+          resolvedPacienteId = turno.persona.paciente.id.toString();
+        } else {
+          // Crear registro de paciente vinculado a la persona existente
+          const nuevoPaciente = await prisma.paciente.create({
+            data: { persona_id: turno.persona.id }
+          });
+          resolvedPacienteId = nuevoPaciente.id.toString();
+          console.log(`✅ Paciente creado automáticamente para persona ${turno.persona.id}`);
+        }
+      }
+    }
+
+    if (!resolvedPacienteId) {
+      return res.status(400).send('<h2 style="font-family:sans-serif;padding:20px">Error: no se pudo determinar el paciente. Volvé al dashboard e intentá de nuevo.</h2>');
     }
 
     // Obtener datos del paciente
     const paciente = await prisma.paciente.findUnique({
-      where: { id: BigInt(paciente_id) },
+      where: { id: BigInt(resolvedPacienteId) },
       include: {
         persona: {
           select: {
@@ -815,10 +834,7 @@ app.get('/doctor/historia-nueva', requireAuth, async (req, res) => {
     });
 
     if (!paciente) {
-      return res.status(404).render('pages/404', {
-        title: 'Paciente no encontrado',
-        message: 'El paciente que buscas no existe'
-      });
+      return res.status(404).send('<h2 style="font-family:sans-serif;padding:20px">Paciente no encontrado.</h2>');
     }
 
     // Calcular edad
@@ -838,7 +854,7 @@ app.get('/doctor/historia-nueva', requireAuth, async (req, res) => {
 
     // Obtener HC existente para mostrar consultas anteriores
     let historia = await prisma.historiaClinica.findFirst({
-      where: { paciente_id: BigInt(paciente_id) },
+      where: { paciente_id: BigInt(resolvedPacienteId) },
       orderBy: { fecha_apertura: 'desc' },
       include: {
         consultas: {
@@ -1500,6 +1516,36 @@ app.get('/api/dashboard-turnos', requireAuth, async (req, res) => {
 
     console.log('📅 Buscando turnos entre:', hoy.toISOString(), 'y', mañana.toISOString());
 
+    // 🔄 RESETEAR: Cambiar turnos EN_CONSULTA de días anteriores a PENDIENTE
+    const estadoEnConsulta = await prisma.estadoTurno.findFirst({
+      where: { nombre: 'EN_CONSULTA' }
+    });
+    const estadoPendiente = await prisma.estadoTurno.findFirst({
+      where: { nombre: 'PENDIENTE' }
+    });
+
+    if (estadoEnConsulta && estadoPendiente) {
+      const turnosAnterioresEnConsulta = await prisma.turno.findMany({
+        where: {
+          estado_id: estadoEnConsulta.id,
+          fecha: { lt: hoy }
+        }
+      });
+
+      if (turnosAnterioresEnConsulta.length > 0) {
+        console.log(`⚠️ Reseteando ${turnosAnterioresEnConsulta.length} turnos EN_CONSULTA de días anteriores a PENDIENTE`);
+        await prisma.turno.updateMany({
+          where: {
+            estado_id: estadoEnConsulta.id,
+            fecha: { lt: hoy }
+          },
+          data: {
+            estado_id: estadoPendiente.id
+          }
+        });
+      }
+    }
+
     // Obtener turnos de hoy + cualquier EN_CONSULTA abierto de días anteriores
     const turnos = await prisma.turno.findMany({
       where: {
@@ -2060,7 +2106,8 @@ app.get('/api/doctor-todos-turnos', requireAuth, async (req, res) => {
         },
         observaciones: turno.observaciones || '',
         motivo: turno.consulta?.motivo_consulta || '',
-        duracion_minutos: turno.duracion_minutos || 30
+        duracion_minutos: turno.duracion_minutos || 30,
+        tiene_consulta: !!turno.consulta
       };
     });
 

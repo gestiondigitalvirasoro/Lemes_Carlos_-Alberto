@@ -9,24 +9,22 @@ const prisma = new PrismaClient();
 export const crearConsultaNueva = async (req, res) => {
   try {
     const { paciente_id, historia_id, turno_id, motivo_consulta } = req.body;
-    const medico_id_jwt = req.user?.id; // Del JWT
+    const medico_id_jwt = req.user?.medicoId || req.user?.id;
 
-    // Validar que exista la historia clínica
-    const historia = await prisma.historiaClinica.findUnique({
-      where: { id: BigInt(historia_id) },
-      include: {
-        paciente: {
-          include: {
-            persona: true
-          }
-        }
-      }
+    if (!paciente_id) {
+      return res.status(400).json({ error: 'Bad request', message: 'paciente_id es requerido' });
+    }
+
+    // Buscar la historia por paciente_id para evitar problemas de tipo (UUID vs BigInt)
+    const historia = await prisma.historiaClinica.findFirst({
+      where: { paciente_id: BigInt(paciente_id) },
+      orderBy: { fecha_apertura: 'desc' }
     });
 
     if (!historia) {
       return res.status(404).json({
         error: 'Not found',
-        message: 'Historia clínica no encontrada'
+        message: 'Historia clínica no encontrada para este paciente'
       });
     }
 
@@ -35,35 +33,24 @@ export const crearConsultaNueva = async (req, res) => {
       where: { nombre: 'EN_CONSULTA' }
     });
 
-    // Crear la consulta nueva
+    // Crear la consulta nueva usando el id real de la historia (sea BigInt o UUID)
     const consulta = await prisma.consultaMedica.create({
       data: {
-        historia_clinica_id: BigInt(historia_id),
+        historia_clinica_id: historia.id,
         medico_id: BigInt(medico_id_jwt),
         turno_id: turno_id ? BigInt(turno_id) : null,
         fecha: new Date(),
         motivo_consulta: motivo_consulta || 'Por especificar',
-        estado_id: estadoEnConsulta?.id || 3n, // EN_CONSULTA es el estado 3
+        estado_id: estadoEnConsulta?.id || 3n,
         resumen: null
       },
-      include: {
-        historia: {
-          include: {
-            paciente: {
-              include: {
-                persona: true
-              }
-            }
-          }
-        },
-        medico: {
-          select: {
-            id: true,
-            nombre: true,
-            apellido: true,
-            especialidad: true
-          }
-        }
+      select: {
+        id: true,
+        historia_clinica_id: true,
+        medico_id: true,
+        fecha: true,
+        motivo_consulta: true,
+        estado_id: true
       }
     });
 
@@ -76,15 +63,7 @@ export const crearConsultaNueva = async (req, res) => {
         medico_id: consulta.medico_id.toString(),
         fecha: consulta.fecha,
         motivo_consulta: consulta.motivo_consulta,
-        estado_id: consulta.estado_id.toString(),
-        medico: consulta.medico,
-        historia: {
-          id: consulta.historia.id.toString(),
-          paciente: {
-            id: consulta.historia.paciente.id.toString(),
-            persona: consulta.historia.paciente.persona
-          }
-        }
+        estado_id: consulta.estado_id.toString()
       }
     });
   } catch (error) {
@@ -103,7 +82,7 @@ export const iniciarConsultaDesdeTurno = async (req, res) => {
   try {
     const { turno_id } = req.params;
     const { motivo_consulta, resumen, observaciones } = req.body;
-    const medico_id_jwt = req.user?.id; // Del JWT
+    const medico_id_jwt = req.user?.medicoId || req.user?.id;
 
     // Obtener Turno
     const turno = await prisma.turno.findUnique({
@@ -357,7 +336,7 @@ export const obtenerConsultaMedica = async (req, res) => {
 // ============================================================================
 export const actualizarConsultaMedicaCompleta = async (req, res) => {
   try {
-    const { consulta_id, motivo_consulta, anamnesis, antecedentes, resumen, otros_tratamientos, presion_sistolica, presion_diastolica, frecuencia_cardiaca, temperatura, peso, talla } = req.body;
+    const { consulta_id, turno_id, motivo_consulta, anamnesis, antecedentes, resumen, otros_tratamientos, presion_sistolica, presion_diastolica, frecuencia_cardiaca, temperatura, peso, talla } = req.body;
 
     if (!consulta_id) {
       return res.status(400).json({
@@ -372,33 +351,19 @@ export const actualizarConsultaMedicaCompleta = async (req, res) => {
     if (resumen !== undefined) updateData.resumen = resumen;
     if (otros_tratamientos !== undefined) updateData.otros_tratamientos = otros_tratamientos;
 
-    const consulta = await prisma.consultaMedica.update({
+    await prisma.consultaMedica.update({
       where: { id: BigInt(consulta_id) },
-      data: updateData,
-      include: {
-        historia: {
-          include: {
-            paciente: {
-              include: {
-                persona: true
-              }
-            }
-          }
-        }
-      }
+      data: updateData
     });
 
-    console.log('✅ Consulta actualizada:', consulta.id);
+    console.log('✅ Consulta actualizada:', consulta_id);
 
     // Actualizar Anamnesis
     if (anamnesis !== undefined) {
       await prisma.anamnesis.updateMany({
         where: { consulta_id: BigInt(consulta_id) },
         data: { enfermedad_actual: anamnesis }
-      }).catch(() => {
-        // Si no existe, no hacer nada (puede no tener anamnesis)
-        return null;
-      });
+      }).catch(() => null);
     }
 
     // Actualizar Signos Vitales
@@ -411,7 +376,6 @@ export const actualizarConsultaMedicaCompleta = async (req, res) => {
       if (peso) signoVitalData.peso_kg = parseFloat(peso);
       if (talla) signoVitalData.talla_cm = parseFloat(talla);
 
-      // Buscar si ya existen signos vitales
       const signosExistentes = await prisma.signoVital.findFirst({
         where: { consulta_id: BigInt(consulta_id) }
       });
@@ -423,19 +387,43 @@ export const actualizarConsultaMedicaCompleta = async (req, res) => {
         });
       } else {
         await prisma.signoVital.create({
-          data: {
-            consulta_id: BigInt(consulta_id),
-            ...signoVitalData
-          }
+          data: { consulta_id: BigInt(consulta_id), ...signoVitalData }
         });
       }
       console.log('✅ Signos vitales actualizados');
     }
 
+    // Finalizar turno automáticamente si está EN_CONSULTA
+    let turnoFinalizado = false;
+    if (turno_id) {
+      try {
+        const estadoEnConsulta = await prisma.estadoTurno.findFirst({ where: { nombre: 'EN_CONSULTA' } });
+        const estadoFinalizada = await prisma.estadoTurno.findFirst({ where: { nombre: 'FINALIZADA' } });
+
+        if (estadoEnConsulta && estadoFinalizada) {
+          const turno = await prisma.turno.findUnique({
+            where: { id: BigInt(turno_id) },
+            select: { id: true, estado_id: true }
+          });
+
+          if (turno && turno.estado_id === estadoEnConsulta.id) {
+            await prisma.turno.update({
+              where: { id: BigInt(turno_id) },
+              data: { estado_id: estadoFinalizada.id }
+            });
+            turnoFinalizado = true;
+            console.log(`✅ Turno ${turno_id} finalizado automáticamente`);
+          }
+        }
+      } catch (err) {
+        console.error('⚠️ Error al finalizar turno:', err.message);
+      }
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Consulta actualizada correctamente',
-      data: consulta
+      turno_finalizado: turnoFinalizado
     });
   } catch (error) {
     console.error('Error en actualizarConsultaMedicaCompleta:', error);
