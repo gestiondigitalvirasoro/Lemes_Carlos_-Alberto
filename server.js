@@ -4914,15 +4914,15 @@ app.get('/api/historia/:historiaId/documentos', requireAuth, async (req, res) =>
     const historiaId = BigInt(req.params.historiaId);
     const documentos = await prisma.documentoAdjunto.findMany({
       where: { historia_clinica_id: historiaId, eliminado: false },
-      select: { id: true, nombre_archivo: true, url_storage: true, tipo_mime: true, creado_en: true },
-      orderBy: { creado_en: 'desc' }
+      select: { id: true, nombre_archivo: true, url_storage: true, tipo_mime: true, fecha_subida: true },
+      orderBy: { fecha_subida: 'desc' }
     });
     res.json({ success: true, documentos: documentos.map(d => ({
       id: d.id.toString(),
       nombre: d.nombre_archivo,
       url: d.url_storage,
       tipo: d.tipo_mime,
-      fecha: d.creado_en ? new Date(d.creado_en).toLocaleDateString('es-AR') : ''
+      fecha: d.fecha_subida ? new Date(d.fecha_subida).toLocaleDateString('es-AR') : ''
     }))});
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
