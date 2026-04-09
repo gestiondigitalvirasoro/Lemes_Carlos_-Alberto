@@ -55,26 +55,7 @@ router.get(
   obtenerConsultasMedicas
 );
 
-// GET - Obtener una consulta específica
-router.get(
-  '/:id',
-  [param('id').isNumeric().withMessage('ID debe ser un número válido')],
-  obtenerConsultaMedica
-);
-
-// PUT - Actualizar consulta
-router.put(
-  '/:id',
-  roleMiddleware(['doctor', 'admin']),
-  [
-    param('id').isNumeric().withMessage('ID debe ser un número válido'),
-    body('resumen').optional().isString().trim(),
-    body('estado').optional().isString().isIn(['PROGRAMADA', 'ATENDIDA', 'CANCELADA', 'NO_PRESENTADO'])
-  ],
-  actualizarConsultaMedica
-);
-
-// PUT - Actualizar consulta (versión completa con todos los campos)
+// PUT - Actualizar consulta (versión completa con todos los campos) - DEBE IR ANTES DE /:id
 router.put(
   '/actualizar-completa/:historia_id',
   roleMiddleware(['doctor', 'admin']),
@@ -94,6 +75,25 @@ router.put(
     body('talla').optional().isNumeric()
   ],
   actualizarConsultaMedicaCompleta
+);
+
+// GET - Obtener una consulta específica
+router.get(
+  '/:id',
+  [param('id').isNumeric().withMessage('ID debe ser un número válido')],
+  obtenerConsultaMedica
+);
+
+// PUT - Actualizar consulta
+router.put(
+  '/:id',
+  roleMiddleware(['doctor', 'admin']),
+  [
+    param('id').isNumeric().withMessage('ID debe ser un número válido'),
+    body('resumen').optional().isString().trim(),
+    body('estado').optional().isString().isIn(['PROGRAMADA', 'ATENDIDA', 'CANCELADA', 'NO_PRESENTADO'])
+  ],
+  actualizarConsultaMedica
 );
 
 export default router;
