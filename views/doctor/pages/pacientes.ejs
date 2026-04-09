@@ -181,10 +181,10 @@
         </button>
       </div>
 
-      <!-- Botón cargar paciente existente -->
+      <!-- Botón cargar / nuevo paciente -->
       <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
         <button class="btn" data-bs-toggle="modal" data-bs-target="#modalMigracion" onclick="resetMigracion()" style="background:linear-gradient(135deg,#1a3a3a,#2d6a6a);color:white;border:none;border-radius:8px;padding:9px 20px;font-weight:600;font-size:0.88rem;">
-          <i class="bi bi-person-plus"></i> Cargar paciente existente
+          <i class="bi bi-person-plus"></i> <%= user.rol === 'secretaria' ? 'Nuevo paciente' : 'Cargar paciente existente' %>
         </button>
       </div>
 
@@ -279,6 +279,7 @@
               <% if (pacientes && pacientes.length > 0) { %>
                 <% pacientes.forEach(function(p) { %>
                   <tr
+                    data-paciente-id="<%= p.id %>"
                     data-estado="<%= p.estado %>"
                     data-edad="<%= p.edad %>"
                     data-sexo="<%= p.sexo %>"
@@ -316,18 +317,26 @@
                       <% } %>
                     </td>
                     <td style="text-align: center;">
-                      <button class="btn btn-sm btn-outline-secondary btn-editar-paciente" style="border-radius:6px;padding:5px 12px;font-size:0.8rem;"
-                        data-id="<%= p.id %>"
-                        data-nombre="<%= p.nombre_solo %>"
-                        data-apellido="<%= p.apellido %>"
-                        data-email="<%= p.email %>"
-                        data-telefono="<%= p.telefono %>"
-                        data-fecha-nacimiento="<%= p.fecha_nacimiento %>"
-                        data-sexo="<%= p.sexo %>"
-                        data-obra-social="<%= p.obra_social %>"
-                        data-numero-afiliado="<%= p.numero_afiliado %>">
-                        <i class="bi bi-pencil"></i> Editar
-                      </button>
+                      <div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;">
+                        <button class="btn btn-sm btn-outline-secondary btn-editar-paciente" style="border-radius:6px;padding:5px 12px;font-size:0.8rem;"
+                          data-id="<%= p.id %>"
+                          data-nombre="<%= p.nombre_solo %>"
+                          data-apellido="<%= p.apellido %>"
+                          data-email="<%= p.email %>"
+                          data-telefono="<%= p.telefono %>"
+                          data-fecha-nacimiento="<%= p.fecha_nacimiento %>"
+                          data-sexo="<%= p.sexo %>"
+                          data-obra-social="<%= p.obra_social %>"
+                          data-numero-afiliado="<%= p.numero_afiliado %>">
+                          <i class="bi bi-pencil"></i> Editar
+                        </button>
+                        <% if (p.puede_eliminar) { %>
+                          <button class="btn btn-sm btn-outline-danger" style="border-radius:6px;padding:5px 10px;font-size:0.8rem;"
+                            onclick="eliminarPaciente('<%= p.id %>', '<%= p.nombre %>')">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        <% } %>
+                      </div>
                     </td>
                   </tr>
                 <% }); %>
@@ -404,14 +413,14 @@
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header" style="background:linear-gradient(135deg,#1a3a3a,#2d6a6a);color:white;border:none;">
-          <h5 class="modal-title"><i class="bi bi-person-plus"></i> Cargar paciente existente</h5>
+          <h5 class="modal-title"><i class="bi bi-person-plus"></i> <%= user.rol === 'secretaria' ? 'Nuevo paciente' : 'Cargar paciente existente' %></h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter:brightness(0) invert(1);"></button>
         </div>
         <div class="modal-body">
 
           <!-- PASO 1: Buscar por DNI -->
           <div id="mig-paso1">
-            <p class="text-muted mb-3" style="font-size:0.88rem;"><i class="bi bi-info-circle"></i> Ingresá el DNI del paciente. Si ya existe en el sistema se precargan los datos.</p>
+            <p class="text-muted mb-3" style="font-size:0.88rem;"><i class="bi bi-info-circle"></i> Ingresá el DNI del paciente. Si ya existe se precargan los datos; si no, completá el formulario para crearlo.</p>
             <div class="input-group">
               <input type="number" id="mig-dni" class="form-control" placeholder="Ingresá el DNI..." style="font-size:1.1rem;">
               <button class="btn btn-primary" onclick="buscarPorDni()" style="background:linear-gradient(135deg,#1a3a3a,#2d6a6a);border:none;font-weight:600;">
@@ -1088,6 +1097,24 @@
     function aplicarFiltrosAvanzados() {
       aplicarFiltros();
       cerrarFiltrosAvanzados();
+    }
+
+    async function eliminarPaciente(id, nombre) {
+      if (!confirm('¿Eliminar a ' + nombre + ' del sistema?\nEsta acción no se puede deshacer.')) return;
+      try {
+        const resp = await fetch('/api/pacientes/' + id, { method: 'DELETE', credentials: 'include' });
+        const data = await resp.json();
+        if (data.success) {
+          // Quitar fila de la tabla
+          const fila = document.querySelector('tr[data-paciente-id="' + id + '"]');
+          if (fila) fila.remove();
+          else location.reload();
+        } else {
+          alert('No se puede eliminar: ' + data.message);
+        }
+      } catch(e) {
+        alert('Error: ' + e.message);
+      }
     }
 
     function aplicarFiltros() {

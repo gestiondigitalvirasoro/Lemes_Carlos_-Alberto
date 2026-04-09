@@ -3278,7 +3278,7 @@ app.post('/api/pacientes/alta', requireAuth, async (req, res) => {
 // ============================================================================
 // ENDPOINT: BUSCAR PERSONA POR DNI (para migración)
 // ============================================================================
-app.get('/api/personas/buscar-dni/:dni', requireAuth, requireRole(['doctor', 'admin']), async (req, res) => {
+app.get('/api/personas/buscar-dni/:dni', requireAuth, requireRole(['doctor', 'admin', 'secretaria']), async (req, res) => {
   try {
     const dni = parseInt(req.params.dni);
     if (!dni) return res.status(400).json({ error: 'DNI inválido' });
@@ -3319,7 +3319,7 @@ app.get('/api/personas/buscar-dni/:dni', requireAuth, requireRole(['doctor', 'ad
 // ============================================================================
 // ENDPOINT: ALTA MANUAL DE PACIENTE EXISTENTE (migración)
 // ============================================================================
-app.post('/api/pacientes/migracion', requireAuth, requireRole(['doctor', 'admin']), async (req, res) => {
+app.post('/api/pacientes/migracion', requireAuth, requireRole(['doctor', 'admin', 'secretaria']), async (req, res) => {
   try {
     const { nombre, apellido, dni, fecha_nacimiento, sexo, telefono, email,
             obra_social, numero_afiliado, consultas } = req.body;
@@ -3965,6 +3965,41 @@ app.put('/api/pacientes/:id', requireAuth, requireRole(['doctor', 'admin', 'secr
 });
 
 // ============================================================================
+// ELIMINAR PACIENTE (solo si no tiene HC o no tiene consultas)
+// ============================================================================
+app.delete('/api/pacientes/:id', requireAuth, requireRole(['doctor', 'admin', 'secretaria']), async (req, res) => {
+  try {
+    const pacienteId = BigInt(req.params.id);
+
+    // Verificar que no tenga consultas
+    const paciente = await prisma.paciente.findUnique({
+      where: { id: pacienteId },
+      include: {
+        historias_clinicas: {
+          include: { _count: { select: { consultas: true } } }
+        }
+      }
+    });
+
+    if (!paciente) return res.status(404).json({ success: false, message: 'Paciente no encontrado' });
+
+    const tieneConsultas = paciente.historias_clinicas.some(h => h._count.consultas > 0);
+    if (tieneConsultas) {
+      return res.status(400).json({ success: false, message: 'No se puede eliminar: el paciente tiene consultas registradas' });
+    }
+
+    // Eliminar paciente (cascade elimina HC y docs si los hay)
+    await prisma.paciente.delete({ where: { id: pacienteId } });
+
+    console.log(`🗑️ Paciente ${pacienteId} eliminado`);
+    res.json({ success: true, message: 'Paciente eliminado correctamente' });
+  } catch (e) {
+    console.error('❌ Error eliminando paciente:', e.message);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// ============================================================================
 // ENDPOINT: ALTA DE HISTORIA CLÍNICA
 // ============================================================================
 app.post('/api/historia-clinica/crear', requireAuth, async (req, res) => {
@@ -4316,18 +4351,9 @@ app.get('/doctor/agendar-turno', requireAuth, requireRole(['doctor', 'secretaria
 // Pacientes del Doctor
 app.get('/doctor/pacientes', requireAuth, requireRole(['doctor', 'admin', 'secretaria']), async (req, res) => {
   try {
-    // Obtener solo pacientes ACTIVOS que tengan Historia Clínica
+    // Obtener pacientes activos (con o sin HC)
     const pacientes = await prisma.paciente.findMany({
-      where: {
-        AND: [
-          { activo: true },
-          {
-            historias_clinicas: {
-              some: {} // Debe tener al menos una Historia Clínica
-            }
-          }
-        ]
-      },
+      where: { activo: true },
       include: {
         persona: true,
         historias_clinicas: {
@@ -4339,7 +4365,8 @@ app.get('/doctor/pacientes', requireAuth, requireRole(['doctor', 'admin', 'secre
               select: { fecha: true },
               orderBy: { fecha: 'desc' },
               take: 1
-            }
+            },
+            _count: { select: { consultas: true } }
           },
           take: 1
         }
@@ -4387,7 +4414,9 @@ app.get('/doctor/pacientes', requireAuth, requireRole(['doctor', 'admin', 'secre
           ultima_consulta: ultimaConsulta ? new Date(ultimaConsulta).toISOString().split('T')[0] : '',
           tiene_historia: p.historias_clinicas && p.historias_clinicas.length > 0,
           historia_activa: p.historias_clinicas && p.historias_clinicas.length > 0 ? p.historias_clinicas[0].activa : false,
-          historia_id: p.historias_clinicas && p.historias_clinicas.length > 0 ? p.historias_clinicas[0].id.toString() : null
+          historia_id: p.historias_clinicas && p.historias_clinicas.length > 0 ? p.historias_clinicas[0].id.toString() : null,
+          tiene_consultas: p.historias_clinicas?.[0]?._count?.consultas > 0,
+          puede_eliminar: !p.historias_clinicas?.length || p.historias_clinicas[0]._count?.consultas === 0
         };
       });
 
