@@ -1118,7 +1118,7 @@
             try {
                 console.log('📝 Creando nueva consulta con motivo:', motivoTrim);
                 
-                const response = await fetch('/api/consultas/crear', {
+                const response = await fetch('/api/consultas-medicas/crear', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2046,7 +2046,7 @@ M.P. 6306 · M.N. 158.838
                 } else {
                     // Crear nueva consulta
                     console.log('📝 Creando nueva consulta...');
-                    const createResponse = await fetch('/api/consultas/crear', {
+                    const createResponse = await fetch('/api/consultas-medicas/crear', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -2193,7 +2193,7 @@ M.P. 6306 · M.N. 158.838
 
                 console.log('📤 PASO 2: Guardando consulta #' + consultaActualIdx);
                 console.log('   - Datos a guardar:', datos);
-                const response = await fetch(`/api/consultas/actualizar-completa/${historiaId}`, {
+                const response = await fetch(`/api/consultas-medicas/actualizar-completa/${historiaId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',  // Enviar cookies con autenticación
