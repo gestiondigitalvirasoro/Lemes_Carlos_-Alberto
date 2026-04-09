@@ -7,7 +7,8 @@ import {
   iniciarConsultaDesdeTurno,
   obtenerConsultasMedicas,
   obtenerConsultaMedica,
-  actualizarConsultaMedica
+  actualizarConsultaMedica,
+  actualizarConsultaMedicaCompleta
 } from '../controllers/consultas-medicas.js';
 
 const router = express.Router();
@@ -71,6 +72,28 @@ router.put(
     body('estado').optional().isString().isIn(['PROGRAMADA', 'ATENDIDA', 'CANCELADA', 'NO_PRESENTADO'])
   ],
   actualizarConsultaMedica
+);
+
+// PUT - Actualizar consulta (versión completa con todos los campos)
+router.put(
+  '/actualizar-completa/:historia_id',
+  roleMiddleware(['doctor', 'admin']),
+  [
+    param('historia_id').isNumeric().withMessage('historia_id debe ser un número válido'),
+    body('consulta_id').isNumeric().withMessage('consulta_id debe ser un número válido'),
+    body('motivo_consulta').optional().isString().trim(),
+    body('anamnesis').optional().isString().trim(),
+    body('antecedentes').optional().isString().trim(),
+    body('resumen').optional().isString().trim(),
+    body('otros_tratamientos').optional().isString().trim(),
+    body('presion_sistolica').optional().isNumeric(),
+    body('presion_diastolica').optional().isNumeric(),
+    body('frecuencia_cardiaca').optional().isNumeric(),
+    body('temperatura').optional().isNumeric(),
+    body('peso').optional().isNumeric(),
+    body('talla').optional().isNumeric()
+  ],
+  actualizarConsultaMedicaCompleta
 );
 
 export default router;

@@ -2193,7 +2193,7 @@ M.P. 6306 · M.N. 158.838
 
                 console.log('📤 PASO 2: Guardando consulta #' + consultaActualIdx);
                 console.log('   - Datos a guardar:', datos);
-                const response = await fetch(`/api/historia/${historiaId}`, {
+                const response = await fetch(`/api/consultas/actualizar-completa/${historiaId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',  // Enviar cookies con autenticación

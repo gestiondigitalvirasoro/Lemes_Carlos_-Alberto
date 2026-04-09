@@ -353,7 +353,102 @@ export const obtenerConsultaMedica = async (req, res) => {
 };
 
 // ============================================================================
-// ACTUALIZAR CONSULTA MEDICA
+// ACTUALIZAR CONSULTA MEDICA - Versión completa con todos los campos
+// ============================================================================
+export const actualizarConsultaMedicaCompleta = async (req, res) => {
+  try {
+    const { consulta_id, motivo_consulta, anamnesis, antecedentes, resumen, otros_tratamientos, presion_sistolica, presion_diastolica, frecuencia_cardiaca, temperatura, peso, talla } = req.body;
+
+    if (!consulta_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'consulta_id es requerido'
+      });
+    }
+
+    // Actualizar la consulta con los campos disponibles
+    const updateData = {};
+    if (motivo_consulta !== undefined) updateData.motivo_consulta = motivo_consulta;
+    if (resumen !== undefined) updateData.resumen = resumen;
+    if (otros_tratamientos !== undefined) updateData.otros_tratamientos = otros_tratamientos;
+
+    const consulta = await prisma.consultaMedica.update({
+      where: { id: BigInt(consulta_id) },
+      data: updateData,
+      include: {
+        historia: {
+          include: {
+            paciente: {
+              include: {
+                persona: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    console.log('✅ Consulta actualizada:', consulta.id);
+
+    // Actualizar Anamnesis
+    if (anamnesis !== undefined) {
+      await prisma.anamnesis.updateMany({
+        where: { consulta_id: BigInt(consulta_id) },
+        data: { enfermedad_actual: anamnesis }
+      }).catch(() => {
+        // Si no existe, no hacer nada (puede no tener anamnesis)
+        return null;
+      });
+    }
+
+    // Actualizar Signos Vitales
+    if (presion_sistolica || presion_diastolica || frecuencia_cardiaca || temperatura || peso || talla) {
+      const signoVitalData = {};
+      if (presion_sistolica) signoVitalData.presion_sistolica = parseInt(presion_sistolica);
+      if (presion_diastolica) signoVitalData.presion_diastolica = parseInt(presion_diastolica);
+      if (frecuencia_cardiaca) signoVitalData.frecuencia_cardiaca = parseInt(frecuencia_cardiaca);
+      if (temperatura) signoVitalData.temperatura_c = parseFloat(temperatura);
+      if (peso) signoVitalData.peso_kg = parseFloat(peso);
+      if (talla) signoVitalData.talla_cm = parseFloat(talla);
+
+      // Buscar si ya existen signos vitales
+      const signosExistentes = await prisma.signoVital.findFirst({
+        where: { consulta_id: BigInt(consulta_id) }
+      });
+
+      if (signosExistentes) {
+        await prisma.signoVital.update({
+          where: { id: signosExistentes.id },
+          data: signoVitalData
+        });
+      } else {
+        await prisma.signoVital.create({
+          data: {
+            consulta_id: BigInt(consulta_id),
+            ...signoVitalData
+          }
+        });
+      }
+      console.log('✅ Signos vitales actualizados');
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Consulta actualizada correctamente',
+      data: consulta
+    });
+  } catch (error) {
+    console.error('Error en actualizarConsultaMedicaCompleta:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al actualizar consulta',
+      error: error.message
+    });
+  }
+};
+
+// ============================================================================
+// ACTUALIZAR CONSULTA MEDICA - Versión original
 // ============================================================================
 export const actualizarConsultaMedica = async (req, res) => {
   try {
