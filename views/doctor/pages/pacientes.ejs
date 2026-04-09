@@ -271,7 +271,7 @@
                 <th>Edad</th>
                 <th>Obra Social</th>
                 <th>Estado</th>
-                <th>Historia Clínica</th>
+                <th><%= user.rol === 'secretaria' ? 'Documentos' : 'Historia Clínica' %></th>
                 <th>Editar</th>
               </tr>
             </thead>
@@ -297,9 +297,20 @@
                       </span>
                     </td>
                     <td style="text-align: center;">
-                      <a href="/doctor/pacientes/<%= p.id %>" class="btn btn-sm" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; border: none; border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; font-weight: 600; text-decoration: none;">
-                        <i class="bi bi-file-earmark-medical"></i> Ver
-                      </a>
+                      <% if (user.rol === 'secretaria') { %>
+                        <% if (p.historia_id) { %>
+                          <button class="btn btn-sm btn-adjuntar" onclick="abrirModalAdjunto('<%= p.historia_id %>', '<%= p.nombre %>')"
+                            style="background:#5CAEA3;color:white;border:none;border-radius:6px;padding:5px 12px;font-size:0.8rem;font-weight:600;">
+                            <i class="bi bi-paperclip"></i> Adjuntar
+                          </button>
+                        <% } else { %>
+                          <span class="text-muted" style="font-size:0.8rem;">Sin HC</span>
+                        <% } %>
+                      <% } else { %>
+                        <a href="/doctor/pacientes/<%= p.id %>" class="btn btn-sm" style="background: linear-gradient(135deg, #D97F7F 0%, #5CAEA3 100%); color: white; border: none; border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; font-weight: 600; text-decoration: none;">
+                          <i class="bi bi-file-earmark-medical"></i> Ver
+                        </a>
+                      <% } %>
                     </td>
                     <td style="text-align: center;">
                       <button class="btn btn-sm btn-outline-secondary btn-editar-paciente" style="border-radius:6px;padding:5px 12px;font-size:0.8rem;"
@@ -1112,6 +1123,94 @@
       }
     }
   </script>
+
+<!-- MODAL: ADJUNTAR DOCUMENTO (secretaria) -->
+<div class="modal fade" id="modalAdjuntarDoc" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:12px;overflow:hidden;">
+      <div class="modal-header" style="background:linear-gradient(135deg,#1a3a3a,#2d6a6a);color:white;border:none;">
+        <h5 class="modal-title"><i class="bi bi-paperclip"></i> Adjuntar documento</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter:brightness(0) invert(1);"></button>
+      </div>
+      <div class="modal-body">
+        <p id="adjunto-paciente-nombre" class="text-muted mb-3" style="font-size:0.9rem;"></p>
+        <input type="hidden" id="adjunto-historia-id">
+        <div class="mb-3">
+          <label class="form-label" style="font-weight:600;">Archivo</label>
+          <input type="file" class="form-control" id="adjunto-file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+          <div class="form-text">PDF, imagen o documento Word. Máx. 10 MB.</div>
+        </div>
+        <div id="adjunto-progress" style="display:none;">
+          <div class="progress" style="height:8px;border-radius:4px;">
+            <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width:100%;"></div>
+          </div>
+          <p class="text-muted mt-2" style="font-size:0.85rem;">Subiendo archivo...</p>
+        </div>
+        <div id="adjunto-resultado" style="display:none;"></div>
+      </div>
+      <div class="modal-footer" style="border:none;">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn" id="btnSubirAdjunto" onclick="subirDocumentoSecretaria()"
+          style="background:#1D9E75;color:white;font-weight:600;border-radius:8px;">
+          <i class="bi bi-cloud-upload"></i> Subir
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function abrirModalAdjunto(historiaId, nombrePaciente) {
+    document.getElementById('adjunto-historia-id').value = historiaId;
+    document.getElementById('adjunto-paciente-nombre').textContent = 'Paciente: ' + nombrePaciente;
+    document.getElementById('adjunto-file').value = '';
+    document.getElementById('adjunto-progress').style.display = 'none';
+    document.getElementById('adjunto-resultado').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('modalAdjuntarDoc')).show();
+  }
+
+  async function subirDocumentoSecretaria() {
+    const historiaId = document.getElementById('adjunto-historia-id').value;
+    const fileInput = document.getElementById('adjunto-file');
+    const file = fileInput.files[0];
+    if (!file) { alert('Seleccioná un archivo'); return; }
+
+    const btn = document.getElementById('btnSubirAdjunto');
+    btn.disabled = true;
+    document.getElementById('adjunto-progress').style.display = 'block';
+    document.getElementById('adjunto-resultado').style.display = 'none';
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('historia_id', historiaId);
+
+      const resp = await fetch('/api/upload-documento', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      const data = await resp.json();
+
+      document.getElementById('adjunto-progress').style.display = 'none';
+      const res = document.getElementById('adjunto-resultado');
+      res.style.display = 'block';
+
+      if (resp.ok && data.success) {
+        res.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle"></i> Documento adjuntado correctamente.</div>';
+        fileInput.value = '';
+        setTimeout(() => { bootstrap.Modal.getInstance(document.getElementById('modalAdjuntarDoc')).hide(); }, 1800);
+      } else {
+        res.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-exclamation-triangle"></i> ' + (data.message || 'Error al subir') + '</div>';
+      }
+    } catch (e) {
+      document.getElementById('adjunto-progress').style.display = 'none';
+      document.getElementById('adjunto-resultado').style.display = 'block';
+      document.getElementById('adjunto-resultado').innerHTML = '<div class="alert alert-danger mb-0">Error: ' + e.message + '</div>';
+    }
+    btn.disabled = false;
+  }
+</script>
 
 <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }</script>
 </body>
