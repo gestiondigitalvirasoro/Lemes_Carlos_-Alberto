@@ -626,12 +626,20 @@
                                         </option>
                                     <% }); %>
                                 </select>
+                                <button id="btnNuevaConsulta" onclick="crearNuevaConsultaUI()" style="padding:10px 16px; background:#28a745; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px; font-weight:500; display:flex; align-items:center; gap:6px; transition:background 0.2s;" onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745';" title="Crear nueva consulta">
+                                    <i class="bi bi-plus-circle"></i> Nueva Consulta
+                                </button>
                                 <span style="font-size:13px; color:#666;">
                                     <i class="bi bi-person-circle me-1"></i><span id="consultaMedico"></span>
                                 </span>
                             </div>
                         <% } else { %>
-                            <p style="color:#999; margin:0;">Sin consultas registradas</p>
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <p style="color:#999; margin:0;">Sin consultas registradas</p>
+                                <button id="btnNuevaConsultaSinRegistros" onclick="crearNuevaConsultaUI()" style="padding:10px 16px; background:#28a745; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px; font-weight:500; display:flex; align-items:center; gap:6px; transition:background 0.2s;" onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745';" title="Crear nueva consulta">
+                                    <i class="bi bi-plus-circle"></i> Nueva Consulta
+                                </button>
+                            </div>
                         <% } %>
                     </div>
                 </section>
@@ -1068,6 +1076,91 @@
 
         function limpiarCamposConsulta() {
             cambiarConsulta(99999); // índice inválido → limpia campos
+        }
+
+        // ========== CREAR NUEVA CONSULTA ==========
+        async function crearNuevaConsultaUI() {
+            if (!historiaId || !pacienteId) {
+                alert('Error: Datos de histoia o paciente no disponibles');
+                return;
+            }
+
+            try {
+                console.log('📝 Creando nueva consulta vacía...');
+                
+                const response = await fetch('/api/consultas/crear', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        paciente_id: pacienteId,
+                        historia_id: historiaId,
+                        turno_id: null,
+                        motivo_consulta: 'Por especificar'
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error al crear consulta');
+                }
+
+                const result = await response.json();
+                console.log('✅ Consulta creada:', result.data);
+
+                // Agregar la nueva consulta al objeto de datos
+                const nuevaConsulta = {
+                    id: result.data.id,
+                    historia_clinica_id: result.data.historia_clinica_id,
+                    medico_id: result.data.medico_id,
+                    fecha: result.data.fecha,
+                    motivo_consulta: result.data.motivo_consulta,
+                    estado_id: result.data.estado_id,
+                    resumen: null,
+                    signos_vitales: [],
+                    diagnosticos: [],
+                    estudios: [],
+                    tratamientos: [],
+                    anamnesis: null,
+                    medico: result.data.medico
+                };
+
+                if (!historiaData.consultas) {
+                    historiaData.consultas = [];
+                }
+                historiaData.consultas.unshift(nuevaConsulta); // Agregar al inicio
+
+                // Actualizar selector
+                const selector = document.getElementById('consultaSelector');
+                if (selector) {
+                    const newOption = document.createElement('option');
+                    const fecha = new Date(nuevaConsulta.fecha);
+                    const fechaStr = fecha.toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'});
+                    newOption.value = '0';
+                    newOption.textContent = `${fechaStr} — ${nuevaConsulta.motivo_consulta}`;
+                    selector.insertBefore(newOption, selector.firstChild);
+                    selector.value = '0';
+                }
+
+                // Cambiar a la nueva consulta
+                consultaActualIdx = 0;
+                cambiarConsulta(0);
+                limpiarCamposConsulta();
+
+                // Habilitar automáticamente modo edición
+                if (!modoEdicion) {
+                    habilitarEdicion();
+                }
+
+                alert('✅ Nueva consulta creada. Podés completar los datos en modo edición.');
+                console.log('✅ Nueva consulta lista para editar');
+            } catch (error) {
+                console.error('❌ Error al crear consulta:', error);
+                alert('Error al crear la consulta: ' + error.message);
+            }
         }
 
         // Confirmar cambio de consulta si hay cambios pendientes

@@ -4,6 +4,99 @@ import { validationResult } from 'express-validator';
 const prisma = new PrismaClient();
 
 // ============================================================================
+// CREAR CONSULTA NUEVA (vacía, sin turno)
+// ============================================================================
+export const crearConsultaNueva = async (req, res) => {
+  try {
+    const { paciente_id, historia_id, turno_id, motivo_consulta } = req.body;
+    const medico_id_jwt = req.user?.id; // Del JWT
+
+    // Validar que exista la historia clínica
+    const historia = await prisma.historiaClinica.findUnique({
+      where: { id: BigInt(historia_id) },
+      include: {
+        paciente: {
+          include: {
+            persona: true
+          }
+        }
+      }
+    });
+
+    if (!historia) {
+      return res.status(404).json({
+        error: 'Not found',
+        message: 'Historia clínica no encontrada'
+      });
+    }
+
+    // Obtener estado EN_CONSULTA
+    const estadoEnConsulta = await prisma.estadoConsulta.findFirst({
+      where: { nombre: 'EN_CONSULTA' }
+    });
+
+    // Crear la consulta nueva
+    const consulta = await prisma.consultaMedica.create({
+      data: {
+        historia_clinica_id: BigInt(historia_id),
+        medico_id: BigInt(medico_id_jwt),
+        turno_id: turno_id ? BigInt(turno_id) : null,
+        fecha: new Date(),
+        motivo_consulta: motivo_consulta || 'Por especificar',
+        estado_id: estadoEnConsulta?.id || 3n, // EN_CONSULTA es el estado 3
+        resumen: null
+      },
+      include: {
+        historia: {
+          include: {
+            paciente: {
+              include: {
+                persona: true
+              }
+            }
+          }
+        },
+        medico: {
+          select: {
+            id: true,
+            nombre: true,
+            apellido: true,
+            especialidad: true
+          }
+        }
+      }
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Consulta nueva creada correctamente',
+      data: {
+        id: consulta.id.toString(),
+        historia_clinica_id: consulta.historia_clinica_id.toString(),
+        medico_id: consulta.medico_id.toString(),
+        fecha: consulta.fecha,
+        motivo_consulta: consulta.motivo_consulta,
+        estado_id: consulta.estado_id.toString(),
+        medico: consulta.medico,
+        historia: {
+          id: consulta.historia.id.toString(),
+          paciente: {
+            id: consulta.historia.paciente.id.toString(),
+            persona: consulta.historia.paciente.persona
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error en crearConsultaNueva:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+};
+
+// ============================================================================
 // INICIAR CONSULTA DESDE TURNO (Crea automáticamente Paciente + Historia)
 // ============================================================================
 export const iniciarConsultaDesdeTurno = async (req, res) => {

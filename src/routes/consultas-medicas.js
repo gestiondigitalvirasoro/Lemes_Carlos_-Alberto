@@ -3,6 +3,7 @@ import { body, param, query } from 'express-validator';
 import { authMiddleware } from '../middlewares/auth.js';
 import roleMiddleware from '../middlewares/role.js';
 import {
+  crearConsultaNueva,
   iniciarConsultaDesdeTurno,
   obtenerConsultasMedicas,
   obtenerConsultaMedica,
@@ -13,6 +14,19 @@ const router = express.Router();
 
 // Proteger todas las rutas
 router.use(authMiddleware);
+
+// POST - CREAR CONSULTA NUEVA (vacía, sin turno necesariamente)
+router.post(
+  '/crear',
+  roleMiddleware(['doctor', 'admin']),
+  [
+    body('paciente_id').isNumeric().withMessage('paciente_id debe ser un número válido'),
+    body('historia_id').isNumeric().withMessage('historia_id debe ser un número válido'),
+    body('turno_id').optional().isNumeric().withMessage('turno_id debe ser un número válido'),
+    body('motivo_consulta').optional().isString().trim()
+  ],
+  crearConsultaNueva
+);
 
 // POST - INICIAR CONSULTA DESDE TURNO (crea automáticamente Paciente + Historia)
 router.post(
