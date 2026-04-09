@@ -179,15 +179,26 @@ const requireAuth = async (req, res, next) => {
           supabaseUser = refreshed.session.user;
           console.log(`🔄 Token renovado automáticamente para: ${supabaseUser?.email}`);
         } else {
-          console.log(`⚠️  No se pudo renovar el token: ${refreshError?.message}`);
-          res.clearCookie('access_token');
-          res.clearCookie('refresh_token');
-          return res.redirect('/login');
+          // No se pudo renovar: decodificar el token localmente para mantener la sesión activa
+          // La sesión solo se cierra cuando el usuario hace click en "Cerrar sesión"
+          console.log(`⚠️  No se pudo renovar el token: ${refreshError?.message}. Usando sesión local.`);
+          const decoded = jwt.decode(token);
+          if (!decoded?.sub) {
+            res.clearCookie('access_token');
+            res.clearCookie('refresh_token');
+            return res.redirect('/login');
+          }
+          supabaseUser = { id: decoded.sub, email: decoded.email };
         }
       } else {
-        console.log(`⚠️  Token inválido o expirado: ${authError?.message || 'Sin usuario'}`);
-        res.clearCookie('access_token');
-        return res.redirect('/login');
+        // Sin refresh_token: decodificar el token localmente para mantener la sesión activa
+        console.log(`⚠️  Token inválido/expirado sin refresh_token. Usando sesión local.`);
+        const decoded = jwt.decode(token);
+        if (!decoded?.sub) {
+          res.clearCookie('access_token');
+          return res.redirect('/login');
+        }
+        supabaseUser = { id: decoded.sub, email: decoded.email };
       }
     }
 
@@ -246,7 +257,30 @@ const requireAuth = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('❌ Auth middleware error:', error.message);
-    // Token inválido, expirado o error de conexión con Supabase
+    // Si hay error de conexión con Supabase, intentar continuar con el token decodificado
+    const token = req.cookies.access_token;
+    if (token) {
+      try {
+        const decoded = jwt.decode(token);
+        if (decoded?.sub) {
+          const medico = await prisma.medico.findUnique({ where: { supabase_id: decoded.sub } });
+          if (medico && medico.activo) {
+            req.user = {
+              id: medico.id.toString(),
+              medicoId: medico.id.toString(),
+              supabaseId: medico.supabase_id,
+              email: medico.email,
+              nombre: medico.nombre,
+              apellido: medico.apellido,
+              role: (medico.role || 'user').toLowerCase()
+            };
+            return next();
+          }
+        }
+      } catch (fallbackError) {
+        console.error('❌ Error en fallback auth:', fallbackError.message);
+      }
+    }
     res.clearCookie('access_token');
     return res.redirect('/login');
   }
@@ -4643,6 +4677,7 @@ app.get('/doctor/pacientes/:paciente_id', requireAuth, requireRole(['doctor', 'a
           fecha: c.fecha ? new Date(c.fecha).toLocaleDateString('es-AR') : '-',
           motivo_consulta: c.motivo_consulta || '-',
           resumen: c.resumen || '-',
+          otros_tratamientos: c.otros_tratamientos || '',
           anamnesis: c.anamnesis?.enfermedad_actual || '',
           medico: c.medico ? `Dr/Dra. ${c.medico.nombre} ${c.medico.apellido}` : '-',
           signos_vitales: (c.signos_vitales || []).map(sv => ({
