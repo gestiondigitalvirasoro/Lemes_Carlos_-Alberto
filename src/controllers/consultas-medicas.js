@@ -28,6 +28,29 @@ export const crearConsultaNueva = async (req, res) => {
       });
     }
 
+    // Si hay turno_id, verificar si ya tiene consulta creada y reutilizarla
+    if (turno_id) {
+      const consultaExistente = await prisma.consultaMedica.findFirst({
+        where: { turno_id: BigInt(turno_id) },
+        select: { id: true, historia_clinica_id: true, medico_id: true, fecha: true, motivo_consulta: true, estado_id: true }
+      });
+      if (consultaExistente) {
+        console.log(`♻️ Reutilizando consulta existente para turno ${turno_id}`);
+        return res.status(200).json({
+          success: true,
+          message: 'Consulta ya existente',
+          data: {
+            id: consultaExistente.id.toString(),
+            historia_clinica_id: consultaExistente.historia_clinica_id.toString(),
+            medico_id: consultaExistente.medico_id.toString(),
+            fecha: consultaExistente.fecha,
+            motivo_consulta: consultaExistente.motivo_consulta,
+            estado_id: consultaExistente.estado_id.toString()
+          }
+        });
+      }
+    }
+
     // Obtener estado EN_CONSULTA
     const estadoEnConsulta = await prisma.estadoConsulta.findFirst({
       where: { nombre: 'EN_CONSULTA' }
