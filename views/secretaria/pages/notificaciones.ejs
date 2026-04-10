@@ -277,7 +277,8 @@
 
   <!-- Filtros (solo para solicitudes e incidencias) -->
   <div class="filtros-bar" id="filtros-bar">
-    <input type="text" id="filtroPaciente" placeholder="Buscar paciente..." oninput="renderTab()">
+    <input type="text" id="filtroPaciente" placeholder="Buscar paciente o DNI..." oninput="renderTab()" style="min-width:200px;">
+    <input type="date" id="filtroFecha" onchange="renderTab()" title="Filtrar por fecha">
     <select id="filtroEstado" onchange="renderTab()">
       <option value="">Todos los estados</option>
       <option value="Pendiente">Pendiente</option>
@@ -382,10 +383,15 @@ function renderTab() {
 function renderSolicitudes() {
   const txtPac = document.getElementById('filtroPaciente').value.toLowerCase();
   const estado = document.getElementById('filtroEstado').value;
+  const filtroFecha = document.getElementById('filtroFecha')?.value || '';
 
   let lista = _solicitudes.filter(s => {
     const nombre = `${s.paciente_nombre || ''} ${s.paciente_apellido || ''}`.toLowerCase();
-    return (!txtPac || nombre.includes(txtPac)) && (!estado || s.estado === estado);
+    const dni = (s.paciente_dni || '').toString();
+    const matchPac = !txtPac || nombre.includes(txtPac) || dni.includes(txtPac);
+    const matchEstado = !estado || s.estado === estado;
+    const matchFecha = !filtroFecha || (s.fecha_sugerida && s.fecha_sugerida.startsWith(filtroFecha));
+    return matchPac && matchEstado && matchFecha;
   });
 
   const porPaciente = {};
@@ -465,9 +471,6 @@ function renderItemSolicitud(s) {
         <div class="item-acciones">
           ${waUrl ? `<button class="btn-acc btn-wa" onclick="accionSol('wa','${s.id}','${waUrl}',this)">💬 WhatsApp</button>` : ''}
           ${s.paciente_email ? `<button class="btn-acc btn-mail" onclick="accionSol('email','${s.id}','${s.paciente_email}',this)">📧 Mail</button>` : ''}
-          <button class="btn-acc btn-notif" onclick="accionSol('notificado','${s.id}','',this)">✓ Notificado</button>
-          <button class="btn-acc btn-asignado" onclick="accionSol('asignado','${s.id}','',this)">✅ Turno asignado</button>
-          <button class="btn-acc btn-cerrar" onclick="accionSol('cerrar','${s.id}','',this)">✕ Cerrar</button>
           <button class="btn-acc btn-cancelar" onclick="accionSol('cancelar','${s.id}','',this)">❌ Cancelar</button>
         </div>` : ''}
       </div>
@@ -496,8 +499,19 @@ async function accionSol(tipo, id, extra, btn) {
       const row = document.getElementById(`sol-${id}`);
       if (row) { row.style.opacity = '0'; row.style.transition = 'opacity 0.3s'; setTimeout(() => row.remove(), 300); }
       cargarTodo(); return;
+    } else if (tipo === 'cancelar') {
+      await fetch(`/api/solicitudes-turno/${id}/estado`, {
+        method: 'PUT', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'Cancelada' })
+      });
+      // Eliminar de la lista en memoria y del DOM inmediatamente
+      _solicitudes = _solicitudes.filter(s => s.id != id);
+      const row = document.getElementById(`sol-${id}`);
+      if (row) { row.style.opacity = '0'; row.style.transition = 'opacity 0.3s'; setTimeout(() => { row.remove(); renderSolicitudes(); }, 300); }
+      return;
     } else {
-      const estadoMap = { notificado: 'Notificado', asignado: 'Turno asignado', cancelar: 'Cancelada' };
+      const estadoMap = { notificado: 'Notificado', asignado: 'Turno asignado' };
       await fetch(`/api/solicitudes-turno/${id}/estado`, {
         method: 'PUT', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -515,10 +529,15 @@ async function accionSol(tipo, id, extra, btn) {
 function renderIncidencias() {
   const txtPac = document.getElementById('filtroPaciente').value.toLowerCase();
   const estado = document.getElementById('filtroEstado').value;
+  const filtroFecha = document.getElementById('filtroFecha')?.value || '';
 
   let lista = _incidencias.filter(i => {
     const nombre = (i.paciente || '').toLowerCase();
-    return (!txtPac || nombre.includes(txtPac)) && (!estado || i.estado === estado);
+    const dni = (i.paciente_dni || '').toString();
+    const matchPac = !txtPac || nombre.includes(txtPac) || dni.includes(txtPac);
+    const matchEstado = !estado || i.estado === estado;
+    const matchFecha = !filtroFecha || (i.fecha_sugerida && i.fecha_sugerida.startsWith(filtroFecha));
+    return matchPac && matchEstado && matchFecha;
   });
 
   const porPaciente = {};
@@ -590,8 +609,6 @@ function renderItemIncidencia(inc) {
         <div class="item-acciones">
           ${waUrl ? `<button class="btn-acc btn-wa" onclick="accionInc('wa','${inc.id}','${waUrl}',this)">💬 WhatsApp</button>` : ''}
           ${inc.paciente_email ? `<button class="btn-acc btn-mail" onclick="accionInc('email','${inc.id}','${inc.paciente_email}',this)">📧 Mail</button>` : ''}
-          <button class="btn-acc btn-notif" onclick="accionInc('notificada','${inc.id}','',this)">✓ Notificada</button>
-          <button class="btn-acc btn-asignado" onclick="accionInc('asignado','${inc.id}','',this)">✅ Turno asignado</button>
           <button class="btn-acc btn-cancelar" onclick="accionInc('cancelar','${inc.id}','',this)">❌ Cancelar</button>
         </div>` : ''}
       </div>
@@ -618,6 +635,10 @@ async function accionInc(tipo, id, extra, btn) {
       alert(d.success ? '📧 Email enviado correctamente' : '⚠️ No se pudo enviar el email');
     } else if (tipo === 'cancelar') {
       await fetch(`/api/incidencias/${id}`, { method: 'DELETE', credentials: 'include' });
+      _incidencias = _incidencias.filter(i => i.id != id);
+      const row = document.getElementById(`inc-${id}`);
+      if (row) { row.style.opacity = '0'; row.style.transition = 'opacity 0.3s'; setTimeout(() => { row.remove(); renderIncidencias(); }, 300); }
+      return;
     } else {
       const estadoMap = { notificada: 'Notificada', asignado: 'Turno asignado' };
       await fetch(`/api/incidencias/${id}/estado`, {
