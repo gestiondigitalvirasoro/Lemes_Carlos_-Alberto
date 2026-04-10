@@ -2891,15 +2891,69 @@ M.P. 6306 · M.N. 158.838
             } catch(e) { console.error('Error cargando medicamentos:', e); }
         })();
 
+        // Mapa de sinónimos/alias → nombre del medicamento (o parte del nombre)
+        const _sinonimos = {
+            't4': 'levotiroxina', 'eutirox': 'levotiroxina', 'tirosint': 'levotiroxina', 'eltroxin': 'levotiroxina',
+            't3': 'liotironina', 'cytomel': 'liotironina',
+            'tsh': 'levotiroxina',
+            'metfo': 'metformina', 'glucofage': 'metformina', 'siofor': 'metformina', 'glafornil': 'metformina', 'glucaminol': 'metformina',
+            'ozempic': 'semaglutida', 'wegovy': 'semaglutida',
+            'victoza': 'liraglutida', 'saxenda': 'liraglutida',
+            'trulicity': 'dulaglutida',
+            'jardiance': 'empagliflozina',
+            'forxiga': 'dapagliflozina', 'farxiga': 'dapagliflozina',
+            'invokana': 'canagliflozina',
+            'januvia': 'sitagliptina', 'xelevia': 'sitagliptina',
+            'galvus': 'vildagliptina',
+            'onglyza': 'saxagliptina',
+            'lantus': 'insulina glargina', 'toujeo': 'insulina glargina', 'basaglar': 'insulina glargina',
+            'levemir': 'insulina detemir',
+            'tresiba': 'insulina degludec',
+            'novorapid': 'insulina aspart', 'fiasp': 'insulina aspart',
+            'humalog': 'insulina lispro', 'admelog': 'insulina lispro',
+            'apidra': 'insulina glulisina',
+            'humulin': 'insulina nph', 'insulatard': 'insulina nph',
+            'amaryl': 'glimepirida', 'glimepiride': 'glimepirida',
+            'diamicron': 'gliclazida',
+            'glucobay': 'acarbosa',
+            'aas': 'aspirina', 'asa': 'aspirina', 'acido acetilsalicilico': 'aspirina',
+            'hctz': 'hidroclorotiazida', 'diurex': 'hidroclorotiazida',
+            'crestor': 'rosuvastatina',
+            'lipitor': 'atorvastatina', 'zarator': 'atorvastatina',
+            'zocor': 'simvastatina',
+            'lescol': 'fluvastatina',
+            'omepra': 'omeprazol', 'losec': 'omeprazol',
+            'nexium': 'esomeprazol',
+            'lansox': 'lansoprazol', 'ogastro': 'lansoprazol',
+            'pantopra': 'pantoprazol', 'pantozol': 'pantoprazol',
+            'norvas': 'amlodipina', 'amloc': 'amlodipina',
+            'enalapril': 'enalapril', 'renitec': 'enalapril',
+            'zestril': 'lisinopril', 'prinivil': 'lisinopril',
+            'cozaar': 'losartan', 'lortaan': 'losartan',
+            'diovan': 'valsartan',
+            'aprovel': 'irbesartan',
+            'micardis': 'telmisartan',
+            'glucocorticoide': 'prednisona', 'corticoides': 'prednisona',
+            'calcio': 'carbonato de calcio', 'calci': 'carbonato de calcio',
+            'vit d': 'vitamina d', 'vitamina d3': 'colecalciferol', 'vit d3': 'colecalciferol',
+            'hierro': 'sulfato ferroso', 'ferro': 'sulfato ferroso',
+            'ac folico': 'acido folico', 'folico': 'acido folico',
+            'b12': 'cianocobalamina', 'cobalamina': 'cianocobalamina',
+        };
+
         function filtrarMedicamentos(q) {
             const drop = document.getElementById('med-dropdown');
             const term = q.trim().toLowerCase();
+            // Resolver sinónimo
+            const termResuelto = _sinonimos[term] || term;
             const resultados = term.length === 0
                 ? _medicamentosLista.slice(0, 60)
-                : _medicamentosLista.filter(m =>
-                    m.nombre.toLowerCase().includes(term) ||
-                    m.categoria.toLowerCase().includes(term)
-                  ).slice(0, 80);
+                : _medicamentosLista.filter(m => {
+                    const nom = m.nombre.toLowerCase();
+                    const cat = m.categoria.toLowerCase();
+                    return nom.includes(term) || cat.includes(term) ||
+                           nom.includes(termResuelto) || cat.includes(termResuelto);
+                  }).slice(0, 80);
 
             if (resultados.length === 0) {
                 drop.innerHTML = '<div style="padding:10px;color:#999;font-size:12px;">Sin resultados</div>';
