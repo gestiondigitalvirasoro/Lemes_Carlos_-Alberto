@@ -2114,12 +2114,12 @@ M.P. 6306 · M.N. 158.838
                     const obs = (obsInput?.value || obsInput?.textContent || '').trim();
                     const fecha = (fechaInput?.value || fechaInput?.textContent || '').trim();
                     
-                    // Fila no vacía - validar TODOS los campos
+                    // Fila no vacía - validar campos mínimos
                     if (tipo || resultado || obs || fecha) {
-                        // VALIDACIÓN 1: TODOS los campos requeridos (NO opcionales)
-                        if (!tipo || !resultado || !obs || !fecha) {
+                        // VALIDACIÓN 1: tipo y fecha son requeridos
+                        if (!tipo || !fecha) {
                             tieneErrorEstudios = true;
-                            mensajeError = `⚠️ Fila ${idx + 1}: Todos los campos son OBLIGATORIOS (Tipo, Resultado, Observaciones, Fecha)`;
+                            mensajeError = `⚠️ Fila ${idx + 1}: Tipo de estudio y Fecha son OBLIGATORIOS`;
                             return; // Salir de esta iteración del forEach
                         }
                         
@@ -2184,6 +2184,17 @@ M.P. 6306 · M.N. 158.838
                 return;
             }
 
+            // Combinar tratamientos existentes + nuevos pendientes
+            const consultaActualData = historiaData.consultas?.[consultaActualIdx];
+            const tratamientosExistentes = (consultaActualData?.tratamientos || []).map(t => ({
+                medicamento: t.medicamento,
+                dosis: t.dosis || null,
+                frecuencia: t.frecuencia || null,
+                duracion_dias: t.duracion_dias || null,
+                indicaciones: t.indicaciones || null
+            }));
+            const todosLosTratamientos = [...tratamientosExistentes, ...pendingTratamientos];
+
             const datos = {
                 consulta_id: consulta_id,
                 motivo_consulta: document.getElementById('motivoConsulta')?.value || '',
@@ -2200,6 +2211,7 @@ M.P. 6306 · M.N. 158.838
                 talla: svTalla              ? parseFloat(svTalla) : null,
                 diagnosticos: diagnosticosSeleccionados,
                 estudios: estudiosActualizados,
+                tratamientos: todosLosTratamientos,
                 adjuntos: adjuntosSubidos
             };
 
@@ -2216,21 +2228,7 @@ M.P. 6306 · M.N. 158.838
                 
                 if (result.success) {
                     console.log('✅ Consulta guardada correctamente');
-
-                    // Guardar tratamientos pendientes
-                    if (pendingTratamientos.length > 0) {
-                        for (const trat of pendingTratamientos) {
-                            try {
-                                await fetch('/api/tratamientos', {
-                                    method: 'POST',
-                                    credentials: 'include',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ ...trat, consulta_id })
-                                });
-                            } catch(e) { console.error('Error guardando tratamiento:', e); }
-                        }
-                        pendingTratamientos = [];
-                    }
+                    pendingTratamientos = [];
 
                     if (result.turno_finalizado) {
                         // Mostrar loading y redirigir al dashboard

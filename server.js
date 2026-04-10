@@ -4742,9 +4742,8 @@ app.get('/doctor/pacientes/:paciente_id', requireAuth, requireRole(['doctor', 'a
           })),
           diagnosticos: (c.diagnosticos || []).map(d => ({
             id: String(d.id || ''),
-            codigo: d.codigo || '',
+            codigo: d.codigo_cie10 || d.codigo || '',
             descripcion: d.descripcion || '',
-            tipo: d.tipo || '',
             principal: d.principal || false
           })),
           tratamientos: (c.tratamientos || []).map(t => ({

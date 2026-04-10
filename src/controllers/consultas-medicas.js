@@ -359,7 +359,8 @@ export const obtenerConsultaMedica = async (req, res) => {
 // ============================================================================
 export const actualizarConsultaMedicaCompleta = async (req, res) => {
   try {
-    const { consulta_id, turno_id, motivo_consulta, anamnesis, antecedentes, resumen, otros_tratamientos, presion_sistolica, presion_diastolica, frecuencia_cardiaca, temperatura, peso, talla } = req.body;
+    const { consulta_id, turno_id, motivo_consulta, anamnesis, antecedentes, resumen, otros_tratamientos, presion_sistolica, presion_diastolica, frecuencia_cardiaca, temperatura, peso, talla, diagnosticos, estudios, tratamientos } = req.body;
+    const medico_id_jwt = req.user?.medicoId || req.user?.id;
 
     if (!consulta_id) {
       return res.status(400).json({
@@ -450,6 +451,58 @@ export const actualizarConsultaMedicaCompleta = async (req, res) => {
         });
       }
       console.log('✅ Signos vitales actualizados');
+    }
+
+    // Guardar Diagnósticos (reemplazar todos los actuales)
+    if (Array.isArray(diagnosticos)) {
+      // Borrar diagnósticos existentes de esta consulta
+      await prisma.diagnostico.deleteMany({ where: { consulta_id: BigInt(consulta_id) } });
+      // Insertar nuevos
+      if (diagnosticos.length > 0) {
+        await prisma.diagnostico.createMany({
+          data: diagnosticos.map((d, idx) => ({
+            consulta_id: BigInt(consulta_id),
+            codigo_cie10: d.codigo || null,
+            descripcion: d.descripcion || '',
+            principal: idx === 0 // El primero es el principal
+          }))
+        });
+      }
+      console.log(`✅ Diagnósticos guardados: ${diagnosticos.length}`);
+    }
+
+    // Guardar Estudios Complementarios (reemplazar todos los actuales)
+    if (Array.isArray(estudios)) {
+      await prisma.estudioComplementario.deleteMany({ where: { consulta_id: BigInt(consulta_id) } });
+      if (estudios.length > 0) {
+        await prisma.estudioComplementario.createMany({
+          data: estudios.map(e => ({
+            consulta_id: BigInt(consulta_id),
+            tipo_estudio: e.tipo_estudio || '',
+            resultado: e.resultado || null,
+            observaciones: e.observaciones || null,
+            medico_id: BigInt(medico_id_jwt),
+            fecha_estudio: e.fecha_estudio ? new Date(e.fecha_estudio) : new Date()
+          }))
+        });
+      }
+      console.log(`✅ Estudios guardados: ${estudios.length}`);
+    }
+
+    // Guardar Tratamientos (reemplazar todos los actuales)
+    if (Array.isArray(tratamientos) && tratamientos.length > 0) {
+      await prisma.tratamiento.deleteMany({ where: { consulta_id: BigInt(consulta_id) } });
+      await prisma.tratamiento.createMany({
+        data: tratamientos.map(t => ({
+          consulta_id: BigInt(consulta_id),
+          medicamento: t.medicamento || '',
+          dosis: t.dosis || null,
+          frecuencia: t.frecuencia || null,
+          duracion_dias: t.duracion_dias || null,
+          indicaciones: t.indicaciones || null
+        }))
+      });
+      console.log(`✅ Tratamientos guardados: ${tratamientos.length}`);
     }
 
     // Finalizar turno automáticamente si está EN_CONSULTA
