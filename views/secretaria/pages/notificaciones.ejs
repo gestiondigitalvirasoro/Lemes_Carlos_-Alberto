@@ -320,8 +320,11 @@ function cambiarTab(tab) {
   _tabActual = tab;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
-  // Ocultar filtros en alertas clínicas y administrativas
-  document.getElementById('filtros-bar').style.display = (tab === 'alertas' || tab === 'admin') ? 'none' : 'flex';
+  // Ocultar selector de estado y fecha en tabs que no los usan
+  const filtroEstado = document.getElementById('filtroEstado');
+  const filtroFecha = document.getElementById('filtroFecha');
+  if (filtroEstado) filtroEstado.style.display = (tab === 'alertas' || tab === 'admin') ? 'none' : '';
+  if (filtroFecha) filtroFecha.style.display = (tab === 'alertas' || tab === 'admin') ? 'none' : '';
   renderTab();
 }
 
@@ -657,11 +660,13 @@ async function accionInc(tipo, id, extra, btn) {
 // ===================== ALERTAS CLÍNICAS =====================
 function renderAlertas() {
   const contenedor = document.getElementById('contenedor');
-  if (_alertas.length === 0) {
-    contenedor.innerHTML = `<div class="empty-state"><i class="fas fa-stethoscope"></i><p>No hay alertas clínicas para hoy</p></div>`;
+  const txtPac = (document.getElementById('filtroPaciente')?.value || '').toLowerCase();
+  const lista = txtPac ? _alertas.filter(a => (a.paciente || '').toLowerCase().includes(txtPac)) : _alertas;
+  if (lista.length === 0) {
+    contenedor.innerHTML = `<div class="empty-state"><i class="fas fa-stethoscope"></i><p>No hay alertas clínicas${txtPac ? ' con ese filtro' : ' para hoy'}</p></div>`;
     return;
   }
-  contenedor.innerHTML = _alertas.map(a => `
+  contenedor.innerHTML = lista.map(a => `
     <div class="alerta-card ${a.prioridad || ''}">
       <div class="alerta-icon">${
         a.prioridad === 'importante' ? '⚠️' :
@@ -685,7 +690,13 @@ function renderAlertas() {
 // ===================== ADMINISTRATIVAS =====================
 function renderAdmin() {
   const contenedor = document.getElementById('contenedor');
-  const { datos_incompletos, sin_hc } = _admin;
+  const txtPac = (document.getElementById('filtroPaciente')?.value || '').toLowerCase();
+  const datos_incompletos = txtPac
+    ? _admin.datos_incompletos.filter(p => (p.paciente || '').toLowerCase().includes(txtPac) || (p.dni || '').includes(txtPac))
+    : _admin.datos_incompletos;
+  const sin_hc = txtPac
+    ? _admin.sin_hc.filter(p => (p.paciente || '').toLowerCase().includes(txtPac) || (p.dni || '').includes(txtPac))
+    : _admin.sin_hc;
 
   if (datos_incompletos.length === 0 && sin_hc.length === 0) {
     contenedor.innerHTML = `<div class="empty-state"><i class="fas fa-check-circle"></i><p>No hay alertas administrativas pendientes</p></div>`;
