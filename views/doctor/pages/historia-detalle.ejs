@@ -2327,9 +2327,49 @@ M.P. 6306 · M.N. 158.838
             document.getElementById('cie10Dropdown').innerHTML = '';
             document.getElementById('cie10Dropdown').style.display = 'none';
             document.getElementById('btnAgregarDiag').style.display = 'none';
-            
+
             // Actualizar contador
             document.getElementById('diagnosticosCount').textContent = diagnosticosSeleccionados.length;
+
+            // Si es texto libre, preguntar si guardarlo en el catálogo
+            if (!codigo) {
+                setTimeout(async () => {
+                    const guardar = confirm(`¿Querés guardar "${descripcion}" en el catálogo de diagnósticos para poder buscarlo en el futuro?`);
+                    if (guardar) {
+                        try {
+                            const r = await fetch('/api/cie10/agregar-personalizado', {
+                                method: 'POST',
+                                credentials: 'include',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ descripcion })
+                            });
+                            const data = await r.json();
+                            if (data.success) {
+                                const msg = data.yaExistia
+                                    ? `Ya existía en el catálogo con código ${data.codigo}`
+                                    : `✅ Guardado con código ${data.codigo}`;
+                                // Actualizar el diagnóstico en la lista con el código asignado
+                                const idx = diagnosticosSeleccionados.findIndex(d => d.descripcion === descripcion && !d.codigo);
+                                if (idx !== -1) {
+                                    diagnosticosSeleccionados[idx].codigo = data.codigo;
+                                    // Actualizar la card en el DOM
+                                    const card = document.querySelector(`[data-codigo="${uid}"]`);
+                                    if (card) {
+                                        card.dataset.codigo = data.codigo;
+                                        const strong = card.querySelector('span');
+                                        if (strong) strong.outerHTML = `<strong>${data.codigo}</strong>`;
+                                        const btn = card.querySelector('.btn-remove');
+                                        if (btn) btn.setAttribute('onclick', `removeDiagnostico('${data.codigo}', this)`);
+                                    }
+                                }
+                                alert(msg);
+                            }
+                        } catch(e) {
+                            console.error('Error guardando en catálogo:', e);
+                        }
+                    }
+                }, 100);
+            }
         }
 
         function removeDiagnostico(uid, btn) {

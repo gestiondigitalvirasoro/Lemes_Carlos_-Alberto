@@ -2573,6 +2573,54 @@ app.get('/api/cie10/search', async (req, res) => {
 });
 
 // ============================================================================
+// ENDPOINT: AGREGAR DIAGNÓSTICO PERSONALIZADO AL CATÁLOGO CIE-10
+// ============================================================================
+app.post('/api/cie10/agregar-personalizado', requireAuth, async (req, res) => {
+  try {
+    const { descripcion } = req.body;
+    if (!descripcion || !descripcion.trim()) {
+      return res.status(400).json({ success: false, message: 'Descripción requerida' });
+    }
+
+    // Ver si ya existe uno con esa descripción (case insensitive)
+    const existente = await prisma.cIE10.findFirst({
+      where: { descripcion: { equals: descripcion.trim(), mode: 'insensitive' } }
+    });
+    if (existente) {
+      return res.json({ success: true, codigo: existente.codigo, descripcion: existente.descripcion, yaExistia: true });
+    }
+
+    // Generar código correlativo "Z-NNNNN" (usando la cantidad de registros con ese prefijo)
+    const ultimo = await prisma.cIE10.findFirst({
+      where: { codigo: { startsWith: 'Z-' } },
+      orderBy: { codigo: 'desc' }
+    });
+    let siguiente = 1;
+    if (ultimo) {
+      const num = parseInt(ultimo.codigo.replace('Z-', ''), 10);
+      if (!isNaN(num)) siguiente = num + 1;
+    }
+    const nuevoCodigo = 'Z-' + String(siguiente).padStart(5, '0');
+
+    const nuevo = await prisma.cIE10.create({
+      data: {
+        codigo: nuevoCodigo,
+        descripcion: descripcion.trim(),
+        capitulo: 'Diagnósticos personalizados',
+        activo: true,
+        frecuencia_uso: 0
+      }
+    });
+
+    console.log(`✅ Diagnóstico personalizado agregado al catálogo: ${nuevo.codigo} - ${nuevo.descripcion}`);
+    res.json({ success: true, codigo: nuevo.codigo, descripcion: nuevo.descripcion, yaExistia: false });
+  } catch (error) {
+    console.error('❌ Error agregando diagnóstico personalizado:', error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ============================================================================
 // ENDPOINT: ACTUALIZAR ESTADO DEL TURNO (PUT)
 // ============================================================================
 app.put('/api/turno/:id/estado', requireAuth, async (req, res) => {
