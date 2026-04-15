@@ -746,9 +746,9 @@
                         <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 20px;">
                             <div>
                                 <label for="cie10Input">Buscar Diagnóstico CIE-10</label>
-                                <input type="text" id="cie10Input" class="form-control" 
-                                    placeholder="Busca por código (I10) o nombre (Hipertensión)" 
-                                    autocomplete="off" readonly>
+                                <input type="text" id="cie10Input" class="form-control"
+                                    placeholder="Busca por código (I10), nombre (Hipertensión) o escribí el diagnóstico"
+                                    autocomplete="off">
                                 <div class="cie10-dropdown" id="cie10Dropdown"
                                     style="position: absolute; width: 100%; max-width: 400px; max-height: 300px; 
                                     overflow-y: auto; background: white; border: 1px solid #ddd; 
@@ -2276,17 +2276,21 @@ M.P. 6306 · M.N. 158.838
 
         function agregarDiagnostico() {
             const cie10Input = document.getElementById('cie10Input');
-            const codigo = cie10Input.dataset.codigo;
-            const descripcion = cie10Input.dataset.descripcion;
-            const capitulo = cie10Input.dataset.capitulo;
-            
-            if (!codigo || !descripcion) {
-                alert('Por favor selecciona un diagnóstico de la lista');
+            const codigo = cie10Input.dataset.codigo || '';
+            // Si hay dataset.descripcion usarlo, sino usar el texto del input directamente
+            const descripcion = cie10Input.dataset.descripcion || cie10Input.value.trim();
+            const capitulo = cie10Input.dataset.capitulo || '';
+
+            if (!descripcion) {
+                alert('Escribí un diagnóstico para agregar');
                 return;
             }
 
-            // Verificar si ya existe
-            if (diagnosticosSeleccionados.some(d => d.codigo === codigo)) {
+            // Verificar si ya existe (por código si tiene, por descripción si es texto libre)
+            const yaExiste = codigo
+                ? diagnosticosSeleccionados.some(d => d.codigo === codigo)
+                : diagnosticosSeleccionados.some(d => d.descripcion.toLowerCase() === descripcion.toLowerCase());
+            if (yaExiste) {
                 alert('Este diagnóstico ya está agregado');
                 return;
             }
@@ -2296,15 +2300,20 @@ M.P. 6306 · M.N. 158.838
 
             // Actualizar UI - agregar card
             const container = document.getElementById('diagnosticosContainer');
+            // Quitar mensaje "no hay diagnósticos" si existe
+            const emptyMsg = container.querySelector('.empty-diag-msg');
+            if (emptyMsg) emptyMsg.remove();
+
+            const uid = codigo || ('libre_' + Date.now());
             const div = document.createElement('div');
             div.className = 'diagnostic-card';
-            div.dataset.codigo = codigo;
+            div.dataset.codigo = uid;
             div.innerHTML = `
                 <div>
-                    <strong>${codigo}</strong>
+                    ${codigo ? `<strong>${codigo}</strong>` : '<span style="font-size:11px;color:#888;">Texto libre</span>'}
                     <p>${descripcion}</p>
                 </div>
-                <button class="btn-remove" onclick="removeDiagnostico('${codigo}')" style="display: inline-block;">
+                <button class="btn-remove" onclick="removeDiagnostico('${uid.replace(/'/g,"\\'")}', this)" style="display: inline-block;">
                     <i class="bi bi-trash"></i>
                 </button>
             `;
@@ -2323,9 +2332,15 @@ M.P. 6306 · M.N. 158.838
             document.getElementById('diagnosticosCount').textContent = diagnosticosSeleccionados.length;
         }
 
-        function removeDiagnostico(codigo) {
-            diagnosticosSeleccionados = diagnosticosSeleccionados.filter(d => d.codigo !== codigo);
-            document.querySelector(`[data-codigo="${codigo}"]`)?.remove();
+        function removeDiagnostico(uid, btn) {
+            // Quitar de array (por código si tiene, o por uid de texto libre)
+            diagnosticosSeleccionados = diagnosticosSeleccionados.filter(d => {
+                const dUid = d.codigo || ('libre_' + d._uid);
+                return dUid !== uid && d.codigo !== uid;
+            });
+            // Quitar del DOM: subir al .diagnostic-card
+            const card = btn ? btn.closest('.diagnostic-card') : document.querySelector(`[data-codigo="${uid}"]`);
+            if (card) card.remove();
             document.getElementById('diagnosticosCount').textContent = diagnosticosSeleccionados.length;
         }
 
@@ -2365,57 +2380,58 @@ M.P. 6306 · M.N. 158.838
                         
                         cie10Dropdown.innerHTML = '';
                         
+                        // Siempre mostrar botón Agregar si hay texto (permite texto libre)
+                        btnAgregarDiag.style.display = 'inline-block';
+
                         if (resultados.length > 0) {
                             resultados.forEach(resultado => {
                                 const div = document.createElement('div');
                                 div.className = 'cie10-item';
-                                div.style.cssText = `
-                                    padding: 12px 10px;
-                                    border-bottom: 1px solid #f0f0f0;
-                                    cursor: pointer;
-                                    transition: background 0.2s;
-                                `;
+                                div.style.cssText = `padding: 12px 10px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.2s;`;
                                 div.innerHTML = `
-                                    <div style="font-weight: 700; color: #0066cc; font-size: 13px; margin-bottom: 4px;">
-                                        ${resultado.codigo}
-                                    </div>
-                                    <div style="font-size: 12px; color: #666; margin-bottom: 4px;">
-                                        ${resultado.descripcion.substring(0, 60)}${resultado.descripcion.length > 60 ? '...' : ''}
-                                    </div>
-                                    <div style="font-size: 11px; color: #999;">
-                                        📁 ${resultado.capitulo || 'Sin categoría'}
-                                    </div>
+                                    <div style="font-weight: 700; color: #0066cc; font-size: 13px; margin-bottom: 4px;">${resultado.codigo}</div>
+                                    <div style="font-size: 12px; color: #666; margin-bottom: 4px;">${resultado.descripcion.substring(0, 60)}${resultado.descripcion.length > 60 ? '...' : ''}</div>
+                                    <div style="font-size: 11px; color: #999;">📁 ${resultado.capitulo || 'Sin categoría'}</div>
                                 `;
-                                
-                                div.onmouseover = () => {
-                                    div.style.background = '#f9f9f9';
-                                };
-                                div.onmouseout = () => {
-                                    div.style.background = 'white';
-                                };
-                                
+                                div.onmouseover = () => div.style.background = '#f9f9f9';
+                                div.onmouseout  = () => div.style.background = 'white';
                                 div.onclick = () => {
-                                    // Guardar datos en el input
                                     cie10Input.dataset.codigo = resultado.codigo;
                                     cie10Input.dataset.descripcion = resultado.descripcion;
                                     cie10Input.dataset.capitulo = resultado.capitulo;
                                     cie10Input.value = resultado.codigo + ' - ' + resultado.descripcion.substring(0, 40);
-                                    
-                                    // Mostrar botón Agregar
                                     btnAgregarDiag.style.display = 'inline-block';
-                                    
-                                    // Cerrar dropdown
                                     cie10Dropdown.style.display = 'none';
-                                    console.log(`✅ Seleccionado: ${resultado.codigo}`);
                                 };
-                                
                                 cie10Dropdown.appendChild(div);
                             });
+                            // Agregar opción de texto libre al final
+                            const divLibre = document.createElement('div');
+                            divLibre.style.cssText = `padding: 10px; cursor: pointer; color: #444; font-size: 12px; background: #f8f9fa; border-top: 1px solid #e9ecef;`;
+                            divLibre.innerHTML = `✏️ Agregar como texto libre: "<strong>${query}</strong>"`;
+                            divLibre.onmouseover = () => divLibre.style.background = '#e9ecef';
+                            divLibre.onmouseout  = () => divLibre.style.background = '#f8f9fa';
+                            divLibre.onclick = () => {
+                                cie10Input.dataset.codigo = '';
+                                cie10Input.dataset.descripcion = query;
+                                cie10Input.dataset.capitulo = '';
+                                cie10Dropdown.style.display = 'none';
+                            };
+                            cie10Dropdown.appendChild(divLibre);
                             cie10Dropdown.style.display = 'block';
                         } else {
-                            cie10Dropdown.innerHTML = '<div style="padding: 10px; text-align: center; color: #999;">Sin resultados</div>';
+                            cie10Dropdown.innerHTML = `
+                                <div style="padding: 10px; color: #999; font-size: 12px; text-align:center;">Sin resultados en CIE-10</div>
+                                <div id="opcionLibre" style="padding: 10px; cursor: pointer; color: #444; font-size: 12px; background: #f8f9fa; border-top: 1px solid #e9ecef;">
+                                    ✏️ Agregar como texto libre: "<strong>${query}</strong>"
+                                </div>`;
+                            document.getElementById('opcionLibre').onclick = () => {
+                                cie10Input.dataset.codigo = '';
+                                cie10Input.dataset.descripcion = query;
+                                cie10Input.dataset.capitulo = '';
+                                cie10Dropdown.style.display = 'none';
+                            };
                             cie10Dropdown.style.display = 'block';
-                            btnAgregarDiag.style.display = 'none';
                         }
                     } catch (error) {
                         console.error('❌ Error buscando CIE-10:', error);
@@ -2429,6 +2445,14 @@ M.P. 6306 · M.N. 158.838
             document.addEventListener('click', function(e) {
                 if (!cie10Input.contains(e.target) && !cie10Dropdown.contains(e.target)) {
                     cie10Dropdown.style.display = 'none';
+                }
+            });
+
+            // Enter agrega el diagnóstico directamente
+            cie10Input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    agregarDiagnostico();
                 }
             });
         }
