@@ -261,6 +261,7 @@
             <label for="filtroEstado">Estado</label>
             <select id="filtroEstado" class="form-select">
               <option value="">Todos los estados</option>
+              <option value="PENDIENTE" selected>Pendiente</option>
             </select>
           </div>
         </div>
@@ -448,7 +449,12 @@
           const dataSol = await respSol.json();
           window._solicitudesActivas = dataSol.success ? dataSol.data : [];
         } catch(e) { window._solicitudesActivas = []; }
-        mostrarTurnos(turnosGlobales);
+        // Mostrar solo PENDIENTES por defecto (si no hay filtro activo)
+        const filtroEstadoEl = document.getElementById('filtroEstado');
+        if (filtroEstadoEl && !filtroEstadoEl.value) {
+          filtroEstadoEl.value = 'PENDIENTE';
+        }
+        filtrarTurnos();
       } catch (err) {
         console.error('Error:', err);
         error.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${err.message}`;
@@ -917,7 +923,8 @@
               option.textContent = estado.nombre.replace(/_/g, ' ');
               selectEstado.appendChild(option);
             });
-            selectEstado.value = optionActual;
+            // Mantener PENDIENTE como default si no hay filtro activo
+            selectEstado.value = optionActual || 'PENDIENTE';
             console.log('✅ Select de filtros actualizado');
           }
         } else {
