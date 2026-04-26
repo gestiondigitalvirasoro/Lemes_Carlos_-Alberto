@@ -1,4 +1,4 @@
-la <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -370,7 +370,8 @@ la <!DOCTYPE html>
       <li><span class="check">✅</span> Un flujo completo de recuperación de contraseña para todos los usuarios del sistema (doctores, secretarias y administradores).</li>
       <li><span class="check">✅</span> El sistema envía un email automático con un enlace seguro y de uso único al correo registrado del usuario.</li>
       <li><span class="check">✅</span> El usuario puede establecer una nueva contraseña de forma segura sin intervención del administrador.</li>
-      <li><span class="check">✅</span> El enlace de recuperación expira automáticamente por seguridad (tiempo configurado en Supabase, por defecto 1 hora).</li>
+      <li><span class="check">✅</span> El <strong>enlace de recuperación</strong> (el del email) expira en 1 hora por seguridad. Esto aplica <em>solo al link de cambio de contraseña</em>.</li>
+      <li><span class="check">✅</span> La <strong>sesión del sistema no expira</strong>. El usuario permanece logueado indefinidamente hasta que haga clic en "Cerrar Sesión". El token se renueva automáticamente.</li>
       <li><span class="check">✅</span> La funcionalidad se integra nativamente con Supabase Auth, que es la única fuente de verdad de autenticación del sistema.</li>
     </ul>
   </div>
@@ -676,6 +677,19 @@ la <!DOCTYPE html>
 
   <p>La implementación incorpora múltiples capas de seguridad para proteger el proceso de recuperación:</p>
 
+  <div class="note-box" style="margin-bottom:24px;">
+    <div class="icon">ℹ️</div>
+    <p>
+      <strong>Importante — Diferencia entre link de recuperación y sesión de usuario:</strong><br><br>
+      El <strong>link de recuperación de contraseña</strong> (el que llega por email) expira en <strong>1 hora</strong> y es de uso único.
+      Esto aplica <em>solo al proceso de cambio de contraseña</em>, no al acceso al sistema.<br><br>
+      La <strong>sesión del usuario logueado</strong> <u>no expira automáticamente</u>. Una vez que el usuario inicia sesión,
+      permanece activo indefinidamente hasta que él mismo haga clic en <strong>"Cerrar Sesión"</strong>.
+      El sistema renueva el token de acceso automáticamente en segundo plano, por lo que el usuario nunca es
+      desconectado por inactividad ni por el paso del tiempo.
+    </p>
+  </div>
+
   <div class="security-grid">
     <div class="security-item">
       <div class="sec-icon">🎟️</div>
@@ -684,8 +698,13 @@ la <!DOCTYPE html>
     </div>
     <div class="security-item">
       <div class="sec-icon">⏱️</div>
-      <h4>Expiración Automática</h4>
-      <p>El token expira automáticamente (1 hora por defecto). Pasado ese tiempo, el enlace deja de funcionar.</p>
+      <h4>Link de Recuperación: 1 hora</h4>
+      <p>El <em>link del email</em> expira en 1 hora. Solo aplica al proceso de cambio de contraseña, no a la sesión del sistema.</p>
+    </div>
+    <div class="security-item">
+      <div class="sec-icon">🔄</div>
+      <h4>Sesión sin Expiración</h4>
+      <p>La sesión del usuario logueado no expira. El sistema renueva el token automáticamente. Solo se cierra al hacer "Cerrar Sesión".</p>
     </div>
     <div class="security-item">
       <div class="sec-icon">🤐</div>
