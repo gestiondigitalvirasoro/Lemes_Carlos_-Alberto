@@ -324,28 +324,6 @@
       </div>
     </div>
     
-    <!-- Pendientes de días anteriores -->
-    <div class="turnos-section" id="seccionPendientesAnteriores" style="display:none; margin-top:24px; border-left: 4px solid #dc3545;">
-      <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        <span style="color:#dc3545;"><i class="fas fa-exclamation-triangle"></i> Pendientes de Días Anteriores</span>
-        <span id="contadorPendientesAnt" style="background:#dc3545;color:#fff;padding:3px 12px;border-radius:20px;font-size:0.8rem;font-weight:700;"></span>
-      </div>
-      <p style="color:#888;font-size:0.85rem;margin:0 0 12px 0;">Turnos PENDIENTE de fechas pasadas que no fueron iniciados ni cancelados.</p>
-      <div class="table-responsive">
-        <table class="table" id="tablaPendientesAnt">
-          <thead>
-            <tr>
-              <th>Persona</th>
-              <th>Fecha</th>
-              <th>Hora</th>
-              <th>Motivo</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="bodyPendientesAnt"></tbody>
-        </table>
-      </div>
-    </div>
 
     <!-- Contenedores para modales -->
     <div id="detalleModalContainer"></div>
@@ -651,8 +629,6 @@
         </tr>`;
       }).join('');
 
-      // Mostrar pendientes de días anteriores usando TODOS los turnos cargados
-      mostrarPendientesAnteriores(turnosGlobales);
     }
 
     function mostrarModalSinHC(turnoId, turno) {
