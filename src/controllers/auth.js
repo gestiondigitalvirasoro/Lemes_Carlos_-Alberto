@@ -423,7 +423,7 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    const appUrl = `${req.protocol}://${req.get('host')}`;
+    const appUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
     const redirectTo = `${appUrl}/reset-password`;
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {

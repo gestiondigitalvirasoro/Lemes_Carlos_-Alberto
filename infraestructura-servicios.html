@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infraestructura y Servicios — LEMES Medical System</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --verde:#1a3a3a;--verde2:#5CAEA3;--rosa:#D97F7F;
+  --azul:#3b82f6;--gris:#f5f7fa;--text:#1a1a2e;
+}
+body{font-family:'Inter',sans-serif;color:var(--text);background:#fff;font-size:13px;line-height:1.6;}
+
+.seccion{padding:55px 90px;}
+.sec-header{display:flex;align-items:center;gap:20px;margin-bottom:35px;padding-bottom:20px;border-bottom:3px solid var(--verde2);}
+.sec-num{
+  background:linear-gradient(135deg,var(--verde),var(--verde2));
+  color:white;width:52px;height:52px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;font-weight:800;flex-shrink:0;box-shadow:0 4px 12px rgba(26,58,58,0.3);
+}
+.sec-header h2{font-size:1.7rem;font-weight:800;color:var(--verde);}
+.sec-header p{font-size:0.82rem;color:#999;margin-top:2px;}
+
+h3{
+  font-size:0.95rem;font-weight:700;color:var(--verde);
+  margin:28px 0 14px;padding:8px 14px;
+  border-left:4px solid var(--rosa);background:#fdfafa;border-radius:0 6px 6px 0;
+}
+h4{font-size:0.88rem;font-weight:700;color:var(--verde2);margin:16px 0 8px;}
+p{color:#555;margin-bottom:10px;font-size:0.88rem;}
+
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:0.83rem;border-radius:8px;overflow:hidden;}
+th{background:var(--verde);color:white;padding:11px 14px;text-align:left;font-weight:600;}
+td{padding:9px 14px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:middle;}
+tr:nth-child(even) td{background:#fafafa;}
+
+.alerta{border-radius:8px;padding:13px 16px;margin:14px 0;font-size:0.84rem;display:flex;gap:10px;align-items:flex-start;}
+.alerta-info{background:#eff6ff;border-left:4px solid #3b82f6;color:#1e40af;}
+.alerta-warn{background:#fffbeb;border-left:4px solid #f59e0b;color:#92400e;}
+.alerta-ok{background:#f0fdf4;border-left:4px solid #22c55e;color:#166534;}
+
+.chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;gap:4px;}
+.ch-v{background:#dcfce7;color:#166534;}
+.ch-a{background:#fef9c3;color:#854d0e;}
+
+.footer{
+  text-align:center;color:#bbb;font-size:0.72rem;
+  padding:24px 0;margin-top:40px;border-top:2px solid #f0f0f0;
+}
+.footer strong{color:#5CAEA3;}
+
+.btn-imprimir{
+  position:fixed;bottom:24px;right:24px;z-index:9999;
+  background:linear-gradient(135deg,#1a3a3a,#5CAEA3);
+  color:white;border:none;border-radius:50px;padding:13px 24px;
+  font-size:0.88rem;font-weight:700;cursor:pointer;
+  box-shadow:0 6px 20px rgba(0,0,0,0.25);
+  display:flex;align-items:center;gap:8px;font-family:'Inter',sans-serif;
+}
+.btn-imprimir:hover{transform:translateY(-2px);}
+
+@media print{
+  .no-print{display:none!important;}
+  .seccion{padding:30px 50px;}
+  body{font-size:11px;}
+}
+</style>
+</head>
+<body>
+
+<button class="btn-imprimir no-print" onclick="window.print()">🖨️ Exportar PDF</button>
+
+<div class="seccion">
+  <div class="sec-header">
+    <div><h2>Infraestructura y Servicios</h2><p>Plataformas utilizadas, límites y costos</p></div>
+  </div>
+
+  <p>El sistema utiliza tres servicios externos para funcionar: uno para alojar el servidor, uno para la base de datos y uno para el almacenamiento de archivos.</p>
+
+  <!-- RAILWAY -->
+  <h3>🚂 Railway — Servidor / Hosting</h3>
+  <p><strong>URL del sistema:</strong> <code style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;">https://lemescarlos-alberto-production.up.railway.app</code></p>
+  <p>Railway es la plataforma donde corre el servidor Node.js. Cada vez que se hace un push a GitHub, el sistema se actualiza automáticamente.</p>
+
+  <table>
+    <tr><th>Plan actual</th><th>Incluye</th><th>Costo</th></tr>
+    <tr><td><strong>Hobby</strong> <span class="chip ch-v">✅ ACTIVO</span></td><td>1 servicio activo, deploys automáticos desde GitHub, disponibilidad continua</td><td style="font-weight:700;color:#166534;">USD $5/mes</td></tr>
+  </table>
+
+  <div class="alerta alerta-ok">
+    ✅ El doctor ya abona <strong>USD $5/mes</strong> en Railway. El sistema corre sin interrupciones. El pago se realiza con tarjeta directamente en <strong>railway.app</strong>.
+  </div>
+
+  <!-- SUPABASE -->
+  <h3>🗄️ Supabase — Base de Datos</h3>
+  <p>Supabase aloja la base de datos PostgreSQL donde se guardan todos los datos: pacientes, turnos, historias clínicas, usuarios, etc.</p>
+
+  <table>
+    <tr><th>Plan actual</th><th>Incluye</th><th>Límite</th></tr>
+    <tr><td><strong>Free</strong></td><td>1 proyecto activo, 500 MB de base de datos</td><td>El proyecto se pausa si no hay actividad por 7 días</td></tr>
+    <tr><td>Pro</td><td>8 GB de base de datos, sin pausas automáticas</td><td>USD $25/mes</td></tr>
+  </table>
+
+  <div class="alerta alerta-warn">
+    ⚠️ <strong>Plan gratuito:</strong> Si el sistema no recibe visitas por 7 días seguidos, Supabase pausa el proyecto automáticamente. La primera consulta después de la pausa tarda unos segundos en responder.
+  </div>
+
+  <h4>¿Qué pagar en Supabase?</h4>
+  <table>
+    <tr><th>Opción</th><th>Costo</th><th>Cuándo conviene</th></tr>
+    <tr><td><strong>Free</strong></td><td>$0</td><td>Suficiente para el consultorio por ahora — <span class="chip ch-v">ACTUAL</span></td></tr>
+    <tr><td>Pro</td><td>USD $25/mes</td><td>Si la base de datos supera 500 MB o se necesita garantía de disponibilidad 24/7</td></tr>
+  </table>
+
+  <!-- CLOUDINARY -->
+  <h3>🖼️ Cloudinary — Almacenamiento de Archivos e Imágenes</h3>
+  <p>Cloudinary almacena los archivos que se adjuntan en las Historias Clínicas: resultados de estudios, imágenes, documentos PDF, etc. Los archivos se suben a la nube y se acceden desde el sistema con un enlace seguro.</p>
+
+  <table>
+    <tr><th>Plan actual</th><th>Incluye</th><th>Límite</th></tr>
+    <tr><td><strong>Free</strong></td><td>25 créditos mensuales, 25 GB de almacenamiento</td><td>25 GB de archivos almacenados y 25 GB de transferencia mensual</td></tr>
+    <tr><td>Plus</td><td>225 créditos, 225 GB</td><td>USD $89/mes</td></tr>
+  </table>
+
+  <div class="alerta alerta-ok">
+    ✅ El plan gratuito de Cloudinary es suficiente para el consultorio durante mucho tiempo. 25 GB equivalen a miles de archivos de estudios médicos y documentos PDF.
+  </div>
+
+  <!-- RESUMEN -->
+  <h3>💰 Resumen de Costos Mensuales</h3>
+  <table>
+    <tr><th>Servicio</th><th>Función</th><th>Plan actual</th><th>Costo mensual</th></tr>
+    <tr><td>🚂 Railway</td><td>Servidor — aloja y corre el sistema</td><td>Hobby</td><td style="font-weight:700;color:#166534;">USD $5</td></tr>
+    <tr><td>🗄️ Supabase</td><td>Base de datos — guarda todos los datos</td><td>Free</td><td style="font-weight:700;color:#166534;">$0</td></tr>
+    <tr><td>🖼️ Cloudinary</td><td>Archivos adjuntos de la Historia Clínica</td><td>Free</td><td style="font-weight:700;color:#166534;">$0</td></tr>
+    <tr style="background:#f0fdf4;">
+      <td colspan="3"><strong>Total mensual actual</strong></td>
+      <td style="font-weight:800;color:#166534;font-size:1rem;">USD $5/mes</td>
+    </tr>
+  </table>
+
+  <h3>📈 Si el sistema crece — costos futuros</h3>
+  <table>
+    <tr><th>Situación</th><th>Servicio a actualizar</th><th>Plan</th><th>Costo adicional</th></tr>
+    <tr><td>Base de datos supera 500 MB o necesita disponibilidad garantizada 24/7</td><td>Supabase → Pro</td><td>Pro</td><td>USD $25/mes</td></tr>
+    <tr><td>Mayor velocidad de servidor o más tráfico simultáneo</td><td>Railway → Pro</td><td>Pro</td><td>USD $20/mes</td></tr>
+    <tr><td>Almacenamiento de archivos supera 25 GB</td><td>Cloudinary → Plus</td><td>Plus</td><td>USD $89/mes</td></tr>
+    <tr style="background:#fef9c3;">
+      <td colspan="3"><strong>Costo máximo estimado (sistema crecido)</strong></td>
+      <td style="font-weight:800;color:#854d0e;">USD $134/mes</td>
+    </tr>
+  </table>
+
+  <div class="alerta alerta-info">
+    💡 Para un consultorio de uso diario normal, el costo de <strong>USD $5/mes</strong> en Railway es suficiente durante mucho tiempo. Supabase gratuito soporta hasta ~5.000 pacientes con todos sus datos sin inconvenientes.
+  </div>
+
+  <hr style="border:none;border-top:3px solid var(--verde2);margin:40px 0 30px;">
+
+  <div class="sec-header" style="border-bottom:3px solid var(--verde2);margin-bottom:30px;">
+    <div><h2>Acuerdo de Desarrollo y Mantenimiento</h2><p>Inversión inicial y condiciones para cambios futuros</p></div>
+  </div>
+
+  <p>Esta sección detalla el acuerdo económico entre el consultorio L y L y el desarrollador del sistema, incluyendo los costos del proyecto inicial y las condiciones para modificaciones y mejoras futuras.</p>
+
+  <h3>💻 Desarrollo del Sistema — Proyecto Inicial</h3>
+  <p>El desarrollo completo del sistema LEMES Medical System — incluyendo todos los módulos (turnos, historia clínica, pacientes, notificaciones, roles), el diseño, la integración con las plataformas externas, las correcciones de errores y los ajustes realizados durante el proyecto — fue acordado por un total de:</p>
+
+  <table>
+    <tr><th>Concepto</th><th>Monto</th><th>Estado</th></tr>
+    <tr>
+      <td><strong>Adelanto — inicio del proyecto</strong></td>
+      <td style="font-weight:700;color:#166534;">$250.000 ARS</td>
+      <td><span class="chip ch-v">✅ Pagado</span></td>
+    </tr>
+    <tr>
+      <td><strong>Saldo — entrega del sistema terminado</strong></td>
+      <td style="font-weight:700;color:#1e40af;">$250.000 ARS</td>
+      <td><span class="chip ch-a">⏳ Pendiente de pago</span></td>
+    </tr>
+    <tr style="background:#f0fdf4;">
+      <td><strong>Total del proyecto</strong></td>
+      <td style="font-weight:800;color:#166534;font-size:1rem;">$500.000 ARS</td>
+      <td></td>
+    </tr>
+  </table>
+
+  <div class="alerta alerta-warn">
+    ⚠️ El saldo de <strong>$250.000 ARS</strong> corresponde a la entrega del sistema en condiciones de uso completo, incluyendo todos los módulos desarrollados, las correcciones realizadas y las mejoras incorporadas durante el proyecto.
+  </div>
+
+  <h3>🔧 Modificaciones y Mejoras Futuras</h3>
+  <p>Cualquier cambio, corrección o mejora solicitada después de la entrega del sistema se cobra por separado, según la complejidad de la tarea:</p>
+
+  <table>
+    <tr><th>Tipo de trabajo</th><th>Ejemplos</th><th>Precio</th></tr>
+    <tr>
+      <td><strong>Cambios simples</strong></td>
+      <td>Cambiar un título o texto, ajustar un color, modificar un mensaje del sistema, reordenar un campo, pequeñas correcciones visuales</td>
+      <td style="font-weight:700;color:#1a3a3a;">Desde $15.000 ARS</td>
+    </tr>
+    <tr>
+      <td><strong>Cambios medios</strong></td>
+      <td>Agregar un campo nuevo, modificar la lógica de un formulario, ajustar un reporte, cambiar el comportamiento de un botón o función existente</td>
+      <td style="font-weight:700;color:#1a3a3a;">Desde $30.000 ARS</td>
+    </tr>
+    <tr>
+      <td><strong>Módulos o funcionalidades nuevas</strong></td>
+      <td>Un módulo nuevo (ej: facturación, estadísticas, calendario), integración con un servicio externo, rediseño de una sección</td>
+      <td style="font-weight:700;color:#1a3a3a;">A convenir — desde $30.000 ARS</td>
+    </tr>
+  </table>
+
+  <div class="alerta alerta-info">
+    💡 <strong>¿Cómo se define el precio?</strong> Antes de hacer cualquier trabajo, el desarrollador evalúa lo que se necesita y acuerda el costo con el consultorio. No se realiza ningún trabajo sin confirmación previa del precio.
+  </div>
+
+  <div class="alerta alerta-warn">
+    ⚠️ Los precios indicados son valores de referencia en pesos argentinos y pueden actualizarse según el contexto económico. Siempre se informará el costo antes de iniciar cualquier tarea.
+  </div>
+
+  <h3>📋 Resumen del Acuerdo</h3>
+  <table>
+    <tr><th>Concepto</th><th>Detalle</th></tr>
+    <tr><td>Desarrollo inicial completo</td><td>$500.000 ARS — $250k adelanto + $250k a la entrega</td></tr>
+    <tr><td>Alojamiento mensual</td><td>USD $5/mes — pago directo del consultorio a Railway</td></tr>
+    <tr><td>Cambios simples post-entrega</td><td>Desde $15.000 ARS según la tarea</td></tr>
+    <tr><td>Nuevos módulos o funcionalidades</td><td>A convenir, desde $30.000 ARS</td></tr>
+    <tr><td>Bugs o errores del sistema original</td><td>Sin costo adicional durante el período de entrega</td></tr>
+  </table>
+
+  <div class="footer">
+    <strong>LEMES Medical System</strong> · Infraestructura y Servicios · Abril 2026 · L y L Consultorio Privado<br>
+    Desarrollado con Node.js · Express · Prisma ORM · Supabase PostgreSQL · Alojado en Railway
+  </div>
+</div>
+
+</body>
+</html>

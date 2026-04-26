@@ -371,9 +371,8 @@ tr:nth-child(even) td{background:#fafafa;}
   <div class="toc-item"><span class="toc-num">6</span><span class="toc-title">Gestión de Pacientes</span><span class="toc-dots"></span><span class="toc-page">12</span></div>
   <div class="toc-item"><span class="toc-num">7</span><span class="toc-title">Notificaciones y Alertas</span><span class="toc-dots"></span><span class="toc-page">13</span></div>
   <div class="toc-sub"><span class="toc-num">7.1</span><span class="toc-title">Solicitudes de Turno</span></div>
-  <div class="toc-sub"><span class="toc-num">7.2</span><span class="toc-title">Próximas Visitas</span></div>
-  <div class="toc-sub"><span class="toc-num">7.3</span><span class="toc-title">Alertas Clínicas</span></div>
-  <div class="toc-sub"><span class="toc-num">7.4</span><span class="toc-title">Alertas Administrativas</span></div>
+  <div class="toc-sub"><span class="toc-num">7.2</span><span class="toc-title">Alertas Clínicas</span></div>
+  <div class="toc-sub"><span class="toc-num">7.3</span><span class="toc-title">Alertas Administrativas</span></div>
   <div class="toc-item"><span class="toc-num">8</span><span class="toc-title">Roles y Permisos</span><span class="toc-dots"></span><span class="toc-page">15</span></div>
   <div class="toc-item"><span class="toc-num">9</span><span class="toc-title">Procedimientos Frecuentes</span><span class="toc-dots"></span><span class="toc-page">16</span></div>
 </div>
@@ -749,12 +748,21 @@ tr:nth-child(even) td{background:#fafafa;}
   </ul>
 
   <h3>5.4 Diagnósticos y Tratamiento</h3>
-  <h4>Cargar un Diagnóstico</h4>
+  <h4>Cargar un Diagnóstico desde el catálogo CIE-10</h4>
   <ul class="pasos">
     <li class="paso"><span class="paso-n">1</span><span class="paso-t">En modo edición, hacé clic en <strong>"+ Agregar Diagnóstico"</strong></span></li>
     <li class="paso"><span class="paso-n">2</span><span class="paso-t">Escribí el nombre o código CIE-10 para buscar en la base de datos</span></li>
-    <li class="paso"><span class="paso-n">3</span><span class="paso-t">Seleccioná el diagnóstico y confirmá</span></li>
+    <li class="paso"><span class="paso-n">3</span><span class="paso-t">Seleccioná el diagnóstico de la lista y confirmá</span></li>
   </ul>
+  <h4>Cargar un Diagnóstico por texto libre (no en catálogo)</h4>
+  <p>Si el diagnóstico no aparece en el catálogo CIE-10, podés escribirlo manualmente:</p>
+  <ul class="pasos">
+    <li class="paso"><span class="paso-n">1</span><span class="paso-t">Escribí el diagnóstico en el campo de búsqueda — si no hay resultados, aparece la opción <strong>"Usar texto libre"</strong></span></li>
+    <li class="paso"><span class="paso-n">2</span><span class="paso-t">Seleccioná esa opción para agregar el diagnóstico tal como fue escrito</span></li>
+    <li class="paso"><span class="paso-n">3</span><span class="paso-t">El sistema pregunta si querés <strong>guardar ese diagnóstico en el catálogo</strong> para usarlo en el futuro</span></li>
+    <li class="paso"><span class="paso-n">4</span><span class="paso-t">Confirmá <strong>"Sí, guardar"</strong> para agregarlo al catálogo, o <strong>"No"</strong> para usarlo solo esta vez</span></li>
+  </ul>
+  <div class="alerta alerta-info">💡 Los diagnósticos guardados como texto libre quedan disponibles en búsquedas futuras dentro del mismo consultorio.</div>
   <h4>Cargar Tratamiento / Medicamento</h4>
   <ul class="pasos">
     <li class="paso"><span class="paso-n">1</span><span class="paso-t">Hacé clic en <strong>"+ Agregar Medicamento"</strong></span></li>
@@ -882,7 +890,6 @@ tr:nth-child(even) td{background:#fafafa;}
       <div style="font-size:0.72rem;color:#888;margin-bottom:16px;">Centro de alertas y seguimiento</div>
       <div class="mock-tabs">
         <div class="mock-tab active">Solicitudes de Turno <span style="background:#ef4444;color:white;border-radius:10px;padding:1px 7px;font-size:0.65rem;margin-left:6px;">1</span></div>
-        <div class="mock-tab">Próximas Visitas</div>
         <div class="mock-tab">Alertas Clínicas</div>
         <div class="mock-tab">Administrativas</div>
       </div>
@@ -924,18 +931,16 @@ tr:nth-child(even) td{background:#fafafa;}
   </table>
 
   <div class="alerta alerta-info">💡 El sistema procesa automáticamente las solicitudes pendientes a las <strong>08:00</strong> y <strong>14:00 hs (ARG)</strong>.</div>
+  <div class="alerta alerta-info">🔍 El buscador está disponible en todas las tabs de Notificaciones para localizar rápidamente a un paciente por nombre o DNI.</div>
 
-  <h3>7.2 Próximas Visitas</h3>
-  <p>Incidencias de seguimiento: pacientes que deben volver en una fecha determinada según indicación médica. Se muestran con fecha sugerida y nivel de urgencia.</p>
-
-  <h3>7.3 Alertas Clínicas</h3>
+  <h3>7.2 Alertas Clínicas</h3>
   <p>Pacientes con situaciones clínicas que requieren atención:</p>
   <ul style="margin-left:20px;color:#555;font-size:0.86rem;line-height:2;">
     <li>Signos vitales fuera de rango registrados recientemente</li>
     <li>Diagnósticos activos marcados como de seguimiento</li>
   </ul>
 
-  <h3>7.4 Alertas Administrativas</h3>
+  <h3>7.3 Alertas Administrativas</h3>
   <table>
     <tr><th>Categoría</th><th>Descripción</th><th>Doctor</th><th>Secretaria</th></tr>
     <tr>
@@ -1090,114 +1095,6 @@ tr:nth-child(even) td{background:#fafafa;}
   </div>
 </div>
 
-<!-- ══════════ 10. INFRAESTRUCTURA ══════════ -->
-<div class="seccion">
-  <div class="sec-header">
-    <div class="sec-num">10</div>
-    <div><h2>Infraestructura y Servicios</h2><p>Plataformas utilizadas, límites y costos</p></div>
-  </div>
-
-  <p>El sistema utiliza tres servicios externos para funcionar: uno para alojar el servidor, uno para la base de datos y uno para el almacenamiento de archivos.</p>
-
-  <!-- RAILWAY -->
-  <h3>🚂 Railway — Servidor / Hosting</h3>
-  <p><strong>URL del sistema:</strong> <code style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;">https://lemescarlos-alberto-production.up.railway.app</code></p>
-  <p>Railway es la plataforma donde corre el servidor Node.js. Cada vez que se hace un push a GitHub, el sistema se actualiza automáticamente.</p>
-
-  <table>
-    <tr><th>Plan actual</th><th>Incluye</th><th>Límite</th></tr>
-    <tr><td><strong>Hobby ($5/mes)</strong></td><td>1 servicio activo, deploys desde GitHub</td><td>$5 de crédito mensual (~500hs de ejecución)</td></tr>
-    <tr><td>Trial (gratis)</td><td>$5 de crédito inicial</td><td>Se agota en ~10 días de uso continuo</td></tr>
-  </table>
-
-  <div class="alerta alerta-warn">
-    ⚠️ <strong>Atención:</strong> En la imagen del panel de Railway dice <strong>"10 days or $3.97 left"</strong>. Esto significa que el crédito está próximo a agotarse. Si no se recarga, el sistema se apaga automáticamente.
-  </div>
-
-  <h4>¿Qué pagar en Railway?</h4>
-  <table>
-    <tr><th>Opción</th><th>Costo</th><th>Cuándo conviene</th></tr>
-    <tr><td><strong>Plan Hobby</strong></td><td>USD $5/mes</td><td>Para uso diario del consultorio — <span class="chip ch-v">RECOMENDADO</span></td></tr>
-    <tr><td>Plan Pro</td><td>USD $20/mes</td><td>Si se necesitan múltiples servicios o mayor performance</td></tr>
-  </table>
-
-  <div class="alerta alerta-ok">
-    ✅ Con <strong>USD $5/mes</strong> el sistema corre sin interrupciones. Se paga con tarjeta de crédito/débito internacional directamente en <strong>railway.app</strong>.
-  </div>
-
-  <!-- SUPABASE -->
-  <h3>🗄️ Supabase — Base de Datos</h3>
-  <p>Supabase aloja la base de datos PostgreSQL donde se guardan todos los datos: pacientes, turnos, historias clínicas, usuarios, etc.</p>
-
-  <table>
-    <tr><th>Plan actual</th><th>Incluye</th><th>Límite</th></tr>
-    <tr><td><strong>Free</strong></td><td>1 proyecto activo, 500 MB de base de datos</td><td>El proyecto se pausa si no hay actividad por 7 días</td></tr>
-    <tr><td>Pro</td><td>8 GB de base de datos, sin pausas automáticas</td><td>USD $25/mes</td></tr>
-  </table>
-
-  <div class="alerta alerta-warn">
-    ⚠️ <strong>Plan gratuito:</strong> Si el sistema no recibe visitas por 7 días seguidos, Supabase pausa el proyecto automáticamente. La primera consulta después de la pausa tarda unos segundos en responder.
-  </div>
-
-  <h4>¿Qué pagar en Supabase?</h4>
-  <table>
-    <tr><th>Opción</th><th>Costo</th><th>Cuándo conviene</th></tr>
-    <tr><td><strong>Free</strong></td><td>$0</td><td>Suficiente para el consultorio por ahora — <span class="chip ch-v">ACTUAL</span></td></tr>
-    <tr><td>Pro</td><td>USD $25/mes</td><td>Si la base de datos supera 500 MB o se necesita garantía de disponibilidad 24/7</td></tr>
-  </table>
-
-  <!-- CLOUDINARY -->
-  <h3>🖼️ Cloudinary — Almacenamiento de Archivos e Imágenes</h3>
-  <p>Cloudinary almacena los archivos que se adjuntan en las Historias Clínicas: resultados de estudios, imágenes, documentos PDF, etc. Los archivos se suben a la nube y se acceden desde el sistema con un enlace seguro.</p>
-
-  <table>
-    <tr><th>Plan actual</th><th>Incluye</th><th>Límite</th></tr>
-    <tr><td><strong>Free</strong></td><td>25 créditos mensuales, 25 GB de almacenamiento</td><td>25 GB de archivos almacenados y 25 GB de transferencia mensual</td></tr>
-    <tr><td>Plus</td><td>225 créditos, 225 GB</td><td>USD $89/mes</td></tr>
-  </table>
-
-  <div class="alerta alerta-ok">
-    ✅ El plan gratuito de Cloudinary es suficiente para el consultorio durante mucho tiempo. 25 GB equivalen a miles de archivos de estudios médicos y documentos PDF.
-  </div>
-
-  <!-- RESUMEN -->
-  <h3>💰 Resumen de Costos Mensuales</h3>
-  <table>
-    <tr><th>Servicio</th><th>Función</th><th>Plan actual</th><th>Costo mensual</th></tr>
-    <tr><td>🚂 Railway</td><td>Servidor — aloja y corre el sistema</td><td>Hobby</td><td style="font-weight:700;color:#166534;">USD $5</td></tr>
-    <tr><td>🗄️ Supabase</td><td>Base de datos — guarda todos los datos</td><td>Free</td><td style="font-weight:700;color:#166534;">$0</td></tr>
-    <tr><td>🖼️ Cloudinary</td><td>Archivos adjuntos de la Historia Clínica</td><td>Free</td><td style="font-weight:700;color:#166534;">$0</td></tr>
-    <tr style="background:#f0fdf4;">
-      <td colspan="3"><strong>Total mensual actual</strong></td>
-      <td style="font-weight:800;color:#166534;font-size:1rem;">USD $5/mes</td>
-    </tr>
-  </table>
-
-  <div class="alerta alerta-warn">
-    ⚠️ <strong>Atención Railway:</strong> El panel muestra <strong>"10 days or $3.97 left"</strong>. El crédito está próximo a agotarse. Si no se recarga, el sistema se apaga automáticamente. Para evitarlo, cargar el plan <strong>Hobby ($5/mes)</strong> en <a href="https://railway.app" style="color:#92400e;">railway.app</a>.
-  </div>
-
-  <h3>📈 Si el sistema crece — costos futuros</h3>
-  <table>
-    <tr><th>Situación</th><th>Servicio a actualizar</th><th>Plan</th><th>Costo adicional</th></tr>
-    <tr><td>Base de datos supera 500 MB o necesita disponibilidad garantizada 24/7</td><td>Supabase → Pro</td><td>Pro</td><td>USD $25/mes</td></tr>
-    <tr><td>Mayor velocidad de servidor o más tráfico simultáneo</td><td>Railway → Pro</td><td>Pro</td><td>USD $20/mes</td></tr>
-    <tr><td>Almacenamiento de archivos supera 25 GB</td><td>Cloudinary → Plus</td><td>Plus</td><td>USD $89/mes</td></tr>
-    <tr style="background:#fef9c3;">
-      <td colspan="3"><strong>Costo máximo estimado (sistema crecido)</strong></td>
-      <td style="font-weight:800;color:#854d0e;">USD $134/mes</td>
-    </tr>
-  </table>
-
-  <div class="alerta alerta-info">
-    💡 Para un consultorio de uso diario normal, el costo de <strong>USD $5/mes</strong> en Railway es suficiente durante mucho tiempo. Supabase gratuito soporta hasta ~5.000 pacientes con todos sus datos sin inconvenientes.
-  </div>
-
-  <div class="footer">
-    <strong>LEMES Medical System</strong> · Manual de Usuario v1.0 · Abril 2026 · L y L Consultorio Privado<br>
-    Desarrollado con Node.js · Express · Prisma ORM · Supabase PostgreSQL · Alojado en Railway
-  </div>
-</div>
 
 </body>
 </html>
