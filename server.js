@@ -1990,10 +1990,22 @@ app.get('/api/doctor-todos-turnos', requireAuth, async (req, res) => {
 
     const medicoId = req.user.role === 'secretaria' ? null : BigInt(req.user.medicoId);
 
-    // Obtener todos los turnos del doctor (SIN filtro de fecha)
-    // Si es secretaria, trae todos los turnos sin filtrar por médico
+    // Filtro por estado desde query param (?estado=PENDIENTE)
+    // Por defecto solo trae PENDIENTES para no saturar
+    const estadoFiltro = req.query.estado?.toUpperCase() || 'PENDIENTE';
+
+    // Buscar el estado en la BD para obtener su ID
+    let estadoWhere = {};
+    if (estadoFiltro !== 'TODOS') {
+      const estadoDB = await prisma.estadoTurno.findFirst({ where: { nombre: estadoFiltro } });
+      if (estadoDB) estadoWhere = { estado_id: estadoDB.id };
+    }
+
     const turnos = await prisma.turno.findMany({
-      where: medicoId ? { medico_id: medicoId } : {},
+      where: {
+        ...(medicoId ? { medico_id: medicoId } : {}),
+        ...estadoWhere
+      },
       include: {
         persona: {
           select: {

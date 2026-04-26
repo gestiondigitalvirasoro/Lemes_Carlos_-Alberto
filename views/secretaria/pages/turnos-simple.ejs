@@ -260,7 +260,7 @@
           <div class="filter-group">
             <label for="filtroEstado">Estado</label>
             <select id="filtroEstado" class="form-select">
-              <option value="">Todos los estados</option>
+              <option value="TODOS">Todos los estados</option>
               <option value="PENDIENTE" selected>Pendiente</option>
             </select>
           </div>
@@ -429,7 +429,11 @@
       tabla.innerHTML = '';
 
       try {
-        const response = await fetch('/api/doctor-todos-turnos', {
+        // Leer el estado seleccionado en el filtro y pedirlo al servidor
+        const estadoSeleccionado = document.getElementById('filtroEstado')?.value || 'PENDIENTE';
+        const estadoParam = estadoSeleccionado ? estadoSeleccionado : 'PENDIENTE';
+
+        const response = await fetch(`/api/doctor-todos-turnos?estado=${encodeURIComponent(estadoParam)}`, {
           credentials: 'include'
         });
         if (!response.ok) throw new Error('Error al cargar turnos');
@@ -449,11 +453,6 @@
           const dataSol = await respSol.json();
           window._solicitudesActivas = dataSol.success ? dataSol.data : [];
         } catch(e) { window._solicitudesActivas = []; }
-        // Mostrar solo PENDIENTES por defecto (si no hay filtro activo)
-        const filtroEstadoEl = document.getElementById('filtroEstado');
-        if (filtroEstadoEl && !filtroEstadoEl.value) {
-          filtroEstadoEl.value = 'PENDIENTE';
-        }
         filtrarTurnos();
       } catch (err) {
         console.error('Error:', err);
@@ -916,14 +915,13 @@
           const selectEstado = document.getElementById('filtroEstado');
           if (selectEstado) {
             const optionActual = selectEstado.value;
-            selectEstado.innerHTML = '<option value="">Todos los estados</option>';
+            selectEstado.innerHTML = '<option value="TODOS">Todos los estados</option>';
             estadosTurnos.forEach(estado => {
               const option = document.createElement('option');
               option.value = estado.nombre;
               option.textContent = estado.nombre.replace(/_/g, ' ');
               selectEstado.appendChild(option);
             });
-            // Mantener PENDIENTE como default si no hay filtro activo
             selectEstado.value = optionActual || 'PENDIENTE';
             console.log('✅ Select de filtros actualizado');
           }
@@ -944,7 +942,8 @@
       const filtroFecha = document.getElementById('filtroFecha');
 
       if (filtroNombre) filtroNombre.addEventListener('input', filtrarTurnos);
-      if (filtroEstado) filtroEstado.addEventListener('change', filtrarTurnos);
+      // Estado llama al servidor para traer solo los del estado pedido
+      if (filtroEstado) filtroEstado.addEventListener('change', () => cargarTurnos());
       if (filtroFecha) filtroFecha.addEventListener('change', filtrarTurnos);
 
       console.log('✅ Event listeners de filtros inicializados');
