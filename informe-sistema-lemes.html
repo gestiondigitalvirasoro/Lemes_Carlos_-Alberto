@@ -185,11 +185,26 @@
     .portada { page-break-after: always; }
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 768px) {
+    .portada { padding: 48px 20px 40px; }
+    .portada .logo { font-size: 52px; }
+    .portada h1 { font-size: 28px; letter-spacing: 1px; }
+    .portada h2 { font-size: 15px; }
+    .portada .badge { font-size: 12px; padding: 6px 14px; }
+    .container { padding: 24px 14px; }
+    .seccion { padding: 20px 16px; }
+    .seccion-header { flex-direction: column; align-items: flex-start; gap: 10px; }
     .roles-grid { grid-template-columns: 1fr; }
     .acciones-grid { grid-template-columns: 1fr; }
     .indice { grid-template-columns: 1fr; }
     .mock-sidebar { display: none; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .flujo { flex-direction: column; align-items: flex-start; }
+  }
+  @media (max-width: 480px) {
+    .portada h1 { font-size: 22px; }
+    .seccion h2 { font-size: 17px; }
+    .paso { flex-direction: column; gap: 8px; }
   }
 </style>
 </head>

@@ -323,6 +323,27 @@
     .flow-step:not(:last-child)::after { display: none; }
     @page { margin: 20mm; }
   }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .cover { padding: 40px 24px; }
+    .cover h1 { font-size: 2rem; }
+    .cover h2 { font-size: 1.1rem; }
+    .page { padding: 32px 20px; }
+    .screens-grid { grid-template-columns: 1fr; }
+    .screen-card.full-width { grid-column: 1; }
+    .security-grid { grid-template-columns: repeat(2, 1fr); }
+    .flow-step:not(:last-child)::after { display: none; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .section-title { font-size: 1.3rem; }
+    .email-mockup { overflow-x: auto; }
+  }
+  @media (max-width: 480px) {
+    .security-grid { grid-template-columns: 1fr; }
+    .cover h1 { font-size: 1.6rem; }
+    .flow-step { flex-direction: column; gap: 10px; }
+    .step-number { width: 42px; height: 42px; font-size: 1rem; }
+  }
 </style>
 </head>
 <body>
