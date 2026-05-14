@@ -434,7 +434,7 @@ tr:nth-child(even) td{background:#fafafa;}
         </div>
         <div class="mock-field">
           <label class="mock-label">Email</label>
-          <div class="mock-input" style="color:#bbb;">doctor@lemes.com</div>
+          <div class="mock-input" style="color:#bbb;">carlosalemes2@gmail.com</div>
         </div>
         <div class="mock-field">
           <label class="mock-label">Contraseña</label>
@@ -489,8 +489,8 @@ tr:nth-child(even) td{background:#fafafa;}
     <li class="paso"><span class="paso-n">2</span><span class="paso-t">El sistema elimina la sesión y redirige al login automáticamente</span></li>
   </ul>
 
-  <div class="alerta alerta-warn">
-    ⚠️ <strong>Sesión expirada:</strong> La sesión expira automáticamente por seguridad. Si ves "Token expirado", ingresá nuevamente con tus credenciales.
+  <div class="alerta alerta-ok">
+    ✅ <strong>Sesión permanente:</strong> La sesión <strong>no expira automáticamente</strong>. Una vez que iniciás sesión, el sistema te mantiene conectado indefinidamente. La única forma de cerrar la sesión es haciendo clic en <strong>"Cerrar Sesión"</strong> en el sidebar.
   </div>
 </div>
 
@@ -524,8 +524,8 @@ tr:nth-child(even) td{background:#fafafa;}
         <div class="mock-nav-item"><span class="icon">📅</span> Turnos</div>
         <div class="mock-nav-item"><span class="icon">🔔</span> Notificaciones <span class="mock-nav-badge">1</span></div>
         <div style="margin-top:auto;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);margin-top:30px;">
-          <div style="font-size:0.72rem;color:rgba(255,255,255,0.6);">Carlos Lemes</div>
-          <div style="font-size:0.62rem;color:rgba(255,255,255,0.35);">doctor@lemes.com</div>
+          <div style="font-size:0.72rem;color:rgba(255,255,255,0.6);">Carlos Lemes Alberto</div>
+          <div style="font-size:0.62rem;color:rgba(255,255,255,0.35);">carlosalemes2@gmail.com</div>
           <div style="display:inline-block;background:rgba(255,255,255,0.15);color:white;font-size:0.6rem;padding:2px 8px;border-radius:4px;margin-top:6px;">DOCTOR</div>
         </div>
       </div>
@@ -648,6 +648,8 @@ tr:nth-child(even) td{background:#fafafa;}
     <li class="paso"><span class="paso-n">5</span><span class="paso-t">Hacé clic en <strong>"Confirmar Turno"</strong></span></li>
   </ul>
   <div class="alerta alerta-warn">⚠️ Si el horario ya tiene un turno asignado, el sistema avisa y no permite la superposición.</div>
+
+  <div class="alerta alerta-info">💡 <strong>Carga inteligente:</strong> Al abrir la página de Turnos, el sistema carga <strong>solo los turnos PENDIENTES</strong> por defecto para mayor velocidad. Para ver otros estados (Finalizados, Cancelados, Todos), seleccioná el estado en el filtro — recién ahí el sistema los trae del servidor.</div>
 
   <h3>4.2 Iniciar una Consulta</h3>
   <ul class="pasos">
@@ -919,18 +921,21 @@ tr:nth-child(even) td{background:#fafafa;}
       <div style="font-size:1.1rem;font-weight:800;color:#1a3a3a;margin-bottom:4px;">🔔 Notificaciones</div>
       <div style="font-size:0.72rem;color:#888;margin-bottom:16px;">Centro de alertas y seguimiento</div>
       <div class="mock-tabs">
-        <div class="mock-tab active">Solicitudes de Turno <span style="background:#ef4444;color:white;border-radius:10px;padding:1px 7px;font-size:0.65rem;margin-left:6px;">1</span></div>
+        <div class="mock-tab active">Solicitudes de Turno <span style="background:#ef4444;color:white;border-radius:10px;padding:1px 7px;font-size:0.65rem;margin-left:6px;">2</span></div>
         <div class="mock-tab">Alertas Clínicas</div>
         <div class="mock-tab">Administrativas</div>
       </div>
+      <div style="background:#f8f9fa;border-radius:6px;padding:7px 12px;margin-bottom:10px;display:flex;gap:8px;align-items:center;">
+        <input style="border:1px solid #e5e7eb;border-radius:5px;padding:5px 10px;font-size:0.72rem;color:#bbb;flex:1;" value="🔍 Buscar por nombre o DNI..." readonly>
+      </div>
       <div class="notif-card">
-        <div class="notif-avatar">RV</div>
+        <div class="notif-avatar">AS</div>
         <div class="notif-info">
-          <div class="notif-name">Rosana Noemi Vallejos</div>
-          <div class="notif-detail">📅 29/03/2026 · Control · <em>"probando"</em></div>
+          <div class="notif-name">Aaron Almada Silva</div>
+          <div class="notif-detail">📅 Sugerido: 15/04/2026 · Ficha médica</div>
           <div style="margin-top:5px;display:flex;gap:6px;">
             <span class="chip ch-a">Pendiente</span>
-            <span style="font-size:0.7rem;color:#888;">DNI: 29429422</span>
+            <span style="font-size:0.7rem;color:#888;">DNI: 52881058</span>
           </div>
         </div>
         <div class="notif-btns">
@@ -939,11 +944,14 @@ tr:nth-child(even) td{background:#fafafa;}
           <div class="notif-btn nb-red">✕ Cancelar</div>
         </div>
       </div>
-      <div style="background:white;border-radius:10px;padding:14px 16px;border-left:4px solid #dc2626;display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <div style="font-weight:700;font-size:0.82rem;color:#1a3a3a;">📅 29/03/2026 — Control</div>
-          <div style="font-size:0.72rem;color:#888;margin-top:3px;">Fecha vencida sin turno asignado</div>
-          <span class="chip ch-r" style="margin-top:5px;">Vencida</span>
+      <div class="notif-card" style="border-left:4px solid #dc2626;">
+        <div class="notif-info">
+          <div class="notif-name">Laura Gomez</div>
+          <div class="notif-detail">📅 Sugerido: 01/04/2026 · Control</div>
+          <div style="margin-top:5px;display:flex;gap:6px;">
+            <span class="chip ch-r">Vencida</span>
+            <span style="font-size:0.7rem;color:#888;">DNI: 10000010</span>
+          </div>
         </div>
         <div class="notif-btn nb-red">✕ Cancelar</div>
       </div>
