@@ -389,15 +389,17 @@ tr:nth-child(even) td{background:#fafafa;}
   <div class="toc-item"><span class="toc-num">3</span><span class="toc-title">Panel de Inicio — Doctor</span><span class="toc-dots"></span><span class="toc-page">5</span></div>
   <div class="toc-item"><span class="toc-num">4</span><span class="toc-title">Gestión de Turnos</span><span class="toc-dots"></span><span class="toc-page">7</span></div>
   <div class="toc-sub"><span class="toc-num">4.1</span><span class="toc-title">Agendar un turno</span></div>
-  <div class="toc-sub"><span class="toc-num">4.2</span><span class="toc-title">Iniciar una consulta</span></div>
-  <div class="toc-sub"><span class="toc-num">4.3</span><span class="toc-title">Finalizar / Cancelar</span></div>
+  <div class="toc-sub"><span class="toc-num">4.2</span><span class="toc-title">Notificar al paciente — WhatsApp y Email</span></div>
+  <div class="toc-sub"><span class="toc-num">4.4</span><span class="toc-title">Iniciar una consulta</span></div>
+  <div class="toc-sub"><span class="toc-num">4.5</span><span class="toc-title">Estados de un turno</span></div>
   <div class="toc-item"><span class="toc-num">5</span><span class="toc-title">Historia Clínica</span><span class="toc-dots"></span><span class="toc-page">9</span></div>
   <div class="toc-sub"><span class="toc-num">5.1</span><span class="toc-title">Nueva consulta y selector de historial</span></div>
   <div class="toc-sub"><span class="toc-num">5.2</span><span class="toc-title">Signos Vitales</span></div>
   <div class="toc-sub"><span class="toc-num">5.3</span><span class="toc-title">Anamnesis y Antecedentes</span></div>
   <div class="toc-sub"><span class="toc-num">5.4</span><span class="toc-title">Diagnósticos y Tratamiento</span></div>
-  <div class="toc-sub"><span class="toc-num">5.5</span><span class="toc-title">Estudios, Adjuntos e Impresión</span></div>
-  <div class="toc-sub"><span class="toc-num">5.6</span><span class="toc-title">Solicitud de próxima visita</span></div>
+  <div class="toc-sub"><span class="toc-num">5.5</span><span class="toc-title">Receta, Orden Médica y Certificado</span></div>
+  <div class="toc-sub"><span class="toc-num">5.6</span><span class="toc-title">Estudios, Adjuntos e Impresión</span></div>
+  <div class="toc-sub"><span class="toc-num">5.7</span><span class="toc-title">Solicitud de próxima visita</span></div>
   <div class="toc-item"><span class="toc-num">6</span><span class="toc-title">Gestión de Pacientes</span><span class="toc-dots"></span><span class="toc-page">12</span></div>
   <div class="toc-item"><span class="toc-num">7</span><span class="toc-title">Notificaciones y Alertas</span><span class="toc-dots"></span><span class="toc-page">13</span></div>
   <div class="toc-sub"><span class="toc-num">7.1</span><span class="toc-title">Solicitudes de Turno</span></div>
@@ -651,7 +653,63 @@ tr:nth-child(even) td{background:#fafafa;}
 
   <div class="alerta alerta-info">💡 <strong>Carga inteligente:</strong> Al abrir la página de Turnos, el sistema carga <strong>solo los turnos PENDIENTES</strong> por defecto para mayor velocidad. Para ver otros estados (Finalizados, Cancelados, Todos), seleccioná el estado en el filtro — recién ahí el sistema los trae del servidor.</div>
 
-  <h3>4.2 Iniciar una Consulta</h3>
+  <h3>4.2 Notificar al Paciente — WhatsApp y Email</h3>
+  <p>Al hacer clic en <strong>"📤 Notificar"</strong> en cualquier turno, el sistema abre un panel para avisar al paciente por WhatsApp o Email con los datos del turno.</p>
+
+  <div class="mockup">
+    <div class="mock-topbar">
+      <div class="mock-dots">
+        <div class="mock-dot" style="background:#ff5f57"></div>
+        <div class="mock-dot" style="background:#febc2e"></div>
+        <div class="mock-dot" style="background:#28c840"></div>
+      </div>
+      <div class="mock-url">Modal: Notificar turno al paciente</div>
+    </div>
+    <div style="background:#f5f7fa;padding:24px;display:flex;justify-content:center;">
+      <div style="background:white;border-radius:14px;padding:24px;width:100%;max-width:400px;box-shadow:0 4px 20px rgba(0,0,0,0.12);">
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:36px;">✅</div>
+          <div style="font-weight:800;font-size:1rem;color:#1a3a3a;margin:8px 0 2px;">¡Turno Confirmado!</div>
+          <div style="font-size:0.75rem;color:#888;">¿Querés notificar al paciente?</div>
+        </div>
+        <div style="background:#f0fdf4;border-left:4px solid #10b981;border-radius:6px;padding:12px;margin-bottom:14px;font-size:0.78rem;color:#333;">
+          <div style="font-weight:700;">Marcela Natalia Alvarez</div>
+          <div>📅 06/04/2026 &nbsp; 🕐 18:40 &nbsp; 👨‍⚕️ Dr. Lemes</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-size:0.7rem;font-weight:600;color:#555;margin-bottom:5px;">📱 WhatsApp del paciente</div>
+          <div style="display:flex;gap:8px;">
+            <div style="flex:1;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:0.75rem;color:#bbb;">3756 451027</div>
+            <div style="padding:8px 12px;background:#25D366;color:white;border-radius:6px;font-size:0.72rem;font-weight:700;">💬 WhatsApp</div>
+          </div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-size:0.7rem;font-weight:600;color:#555;margin-bottom:5px;">📧 Email del paciente</div>
+          <div style="display:flex;gap:8px;">
+            <div style="flex:1;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:0.75rem;color:#bbb;">marcela@email.com</div>
+            <div style="padding:8px 12px;background:#3b82f6;color:white;border-radius:6px;font-size:0.72rem;font-weight:700;">📧 Email</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <tr><th>Canal</th><th>Cómo funciona</th><th>Qué recibe el paciente</th></tr>
+    <tr>
+      <td><strong>💬 WhatsApp</strong></td>
+      <td>Abre WhatsApp Web con un mensaje preescrito con los datos del turno. La secretaria solo hace clic en enviar.</td>
+      <td>Mensaje con fecha, hora, médico y datos del consultorio</td>
+    </tr>
+    <tr>
+      <td><strong>📧 Email</strong></td>
+      <td>El sistema envía automáticamente un email al paciente con los datos del turno.</td>
+      <td>Email con confirmación del turno, fecha, hora y médico</td>
+    </tr>
+  </table>
+  <div class="alerta alerta-info">💡 Si el paciente no tiene teléfono o email registrado, los campos aparecen vacíos. Se pueden completar en el momento antes de enviar.</div>
+
+  <h3>4.4 Iniciar una Consulta</h3>
   <ul class="pasos">
     <li class="paso"><span class="paso-n">1</span><span class="paso-t">Localizá el turno con estado <span class="chip ch-a">Pendiente</span></span></li>
     <li class="paso"><span class="paso-n">2</span><span class="paso-t">Hacé clic en <strong>"Historia"</strong> o doble clic en la fila del turno</span></li>
@@ -659,7 +717,7 @@ tr:nth-child(even) td{background:#fafafa;}
     <li class="paso"><span class="paso-n">4</span><span class="paso-t">Se abre la Historia Clínica en <strong>pestaña nueva</strong> con formulario en blanco</span></li>
   </ul>
 
-  <h3>4.3 Estados de un Turno</h3>
+  <h3>4.5 Estados de un Turno</h3>
   <table>
     <tr><th>Estado</th><th>Descripción</th><th>Acciones disponibles</th></tr>
     <tr><td><span class="chip ch-a">● Pendiente</span></td><td>Turno agendado, no iniciado</td><td>Iniciar consulta, Cancelar</td></tr>
@@ -803,7 +861,35 @@ tr:nth-child(even) td{background:#fafafa;}
     <li class="paso"><span class="paso-n">4</span><span class="paso-t">Podés generar una <strong>receta</strong> desde el botón "📄 Receta"</span></li>
   </ul>
 
-  <h3>5.5 Estudios y Adjuntos</h3>
+  <h3>5.5 Receta, Orden Médica y Certificado</h3>
+  <p>Desde la Historia Clínica el doctor puede generar e imprimir (o enviar por email) tres tipos de documentos oficiales:</p>
+  <table>
+    <tr><th>Documento</th><th>Cómo generarlo</th><th>Incluye</th></tr>
+    <tr>
+      <td><strong>📄 Receta Médica</strong></td>
+      <td>Sección Tratamiento → botón <strong>"📄 Receta"</strong></td>
+      <td>Datos del doctor (MP/MN), datos del paciente, medicamentos con dosis y frecuencia, fecha y firma</td>
+    </tr>
+    <tr>
+      <td><strong>🧪 Orden Médica</strong></td>
+      <td>Sección Estudios → botón <strong>"Orden médica"</strong></td>
+      <td>Estudios solicitados, datos del paciente, médico y fecha</td>
+    </tr>
+    <tr>
+      <td><strong>📋 Certificado Médico</strong></td>
+      <td>Botón <strong>"Certificado"</strong> en la barra superior de la HC</td>
+      <td>Certificación de atención o reposo según indicación médica</td>
+    </tr>
+  </table>
+  <h4>Enviar Receta por Email</h4>
+  <ul class="pasos">
+    <li class="paso"><span class="paso-n">1</span><span class="paso-t">Desde la sección Tratamiento, hacé clic en <strong>"📄 Receta"</strong></span></li>
+    <li class="paso"><span class="paso-n">2</span><span class="paso-t">En el modal de receta, hacé clic en <strong>"📧 Enviar por email"</strong></span></li>
+    <li class="paso"><span class="paso-n">3</span><span class="paso-t">El sistema genera la receta como PDF y la envía automáticamente al email del paciente</span></li>
+  </ul>
+  <div class="alerta alerta-ok">✅ La receta se genera con membrete oficial del Dr. Carlos Alberto Lemes incluyendo matrícula provincial (MP 6306) y nacional (MN 158.838).</div>
+
+  <h3>5.6 Estudios, Adjuntos e Impresión</h3>
   <table>
     <tr><th>Sección</th><th>Contenido</th><th>Formatos</th></tr>
     <tr><td><strong>Estudios</strong></td><td>Pedidos de laboratorio, imágenes u otros estudios diagnósticos</td><td>Registro en sistema</td></tr>
@@ -811,7 +897,7 @@ tr:nth-child(even) td{background:#fafafa;}
     <tr><td><strong>Impresión</strong></td><td>Resumen clínico, conclusión de la consulta</td><td>Texto libre</td></tr>
   </table>
 
-  <h3>5.6 Solicitud de Próxima Visita</h3>
+  <h3>5.7 Solicitud de Próxima Visita</h3>
   <ul class="pasos">
     <li class="paso"><span class="paso-n">1</span><span class="paso-t">Al final de la HC, ir a la sección <strong>"Solicitud de Turno"</strong></span></li>
     <li class="paso"><span class="paso-n">2</span><span class="paso-t">Hacé clic en <strong>"+ Registrar solicitud de turno"</strong></span></li>
@@ -971,6 +1057,23 @@ tr:nth-child(even) td{background:#fafafa;}
   <div class="alerta alerta-info">💡 El sistema procesa automáticamente las solicitudes pendientes a las <strong>08:00</strong> y <strong>14:00 hs (ARG)</strong>.</div>
   <div class="alerta alerta-info">🔍 El buscador está disponible en todas las tabs de Notificaciones para localizar rápidamente a un paciente por nombre o DNI.</div>
 
+  <h4>Cómo notificar una solicitud al paciente</h4>
+  <p>Al hacer clic en <strong>"🔔 Notificar"</strong> sobre una solicitud pendiente, el sistema pregunta cómo contactar al paciente:</p>
+  <table>
+    <tr><th>Canal</th><th>Qué hace el sistema</th><th>Mensaje enviado</th></tr>
+    <tr>
+      <td><strong>💬 WhatsApp</strong></td>
+      <td>Abre WhatsApp Web con número y mensaje prellenado. Solo hay que presionar Enviar.</td>
+      <td>"Hola [Nombre]! Le recordamos que el Dr. Lemes le ha sugerido una consulta para el [fecha]. Motivo: [motivo]…"</td>
+    </tr>
+    <tr>
+      <td><strong>📧 Email</strong></td>
+      <td>Envía automáticamente un email con el recordatorio al correo del paciente.</td>
+      <td>Email con fecha sugerida, motivo y datos del consultorio</td>
+    </tr>
+  </table>
+  <div class="alerta alerta-warn">⚠️ Para enviar por WhatsApp el paciente debe tener <strong>teléfono registrado</strong>. Para email debe tener <strong>email registrado</strong>. Si falta alguno, aparece el aviso y se puede cargar en el momento.</div>
+
   <h3>7.2 Alertas Clínicas</h3>
   <p>Pacientes con situaciones clínicas que requieren atención:</p>
   <ul style="margin-left:20px;color:#555;font-size:0.86rem;line-height:2;">
@@ -1113,6 +1216,32 @@ tr:nth-child(even) td{background:#fafafa;}
     <li class="paso"><span class="paso-n">2</span><span class="paso-t">En la sección <strong>"Sin Historia Clínica"</strong>, localizar al paciente</span></li>
     <li class="paso"><span class="paso-n">3</span><span class="paso-t">Hacer clic en <strong>"Crear Historia Clínica"</strong></span></li>
     <li class="paso"><span class="paso-n">4</span><span class="paso-t">Se abre el formulario de nueva HC en pestaña nueva — completar y guardar</span></li>
+  </ul>
+
+  <h3>💬 Notificar a un paciente por WhatsApp o Email (Secretaria)</h3>
+  <h4>Desde Turnos:</h4>
+  <ul class="pasos">
+    <li class="paso"><span class="paso-n">1</span><span class="paso-t">En la lista de Turnos, hacer clic en <strong>"📤 Notificar"</strong> en el turno deseado</span></li>
+    <li class="paso"><span class="paso-n">2</span><span class="paso-t">Aparece el panel con los datos del turno y dos opciones: <strong>💬 WhatsApp</strong> o <strong>📧 Email</strong></span></li>
+    <li class="paso"><span class="paso-n">3a</span><span class="paso-t"><strong>WhatsApp:</strong> Verificar el número → hacer clic en "💬 WhatsApp" → se abre WhatsApp Web con el mensaje listo → presionar Enviar</span></li>
+    <li class="paso"><span class="paso-n">3b</span><span class="paso-t"><strong>Email:</strong> Verificar el email → hacer clic en "📧 Email" → el sistema envía automáticamente la confirmación</span></li>
+  </ul>
+  <h4>Desde Notificaciones (Solicitudes de Turno):</h4>
+  <ul class="pasos">
+    <li class="paso"><span class="paso-n">1</span><span class="paso-t">Ir a <strong>Notificaciones → Solicitudes de Turno</strong></span></li>
+    <li class="paso"><span class="paso-n">2</span><span class="paso-t">Localizar la solicitud pendiente del paciente</span></li>
+    <li class="paso"><span class="paso-n">3</span><span class="paso-t">Hacer clic en <strong>"🔔 Notificar"</strong> — el sistema pregunta si enviar por WhatsApp o Email</span></li>
+    <li class="paso"><span class="paso-n">4</span><span class="paso-t">La solicitud cambia a estado <span class="chip ch-t">Notificado</span> automáticamente</span></li>
+  </ul>
+  <div class="alerta alerta-info">💡 El mensaje de WhatsApp incluye nombre del paciente, fecha sugerida, motivo y datos del consultorio. Solo hay que presionar Enviar en WhatsApp Web.</div>
+
+  <h3>📄 Generar y enviar Receta Médica (Doctor)</h3>
+  <ul class="pasos">
+    <li class="paso"><span class="paso-n">1</span><span class="paso-t">Abrir la Historia Clínica del paciente y cargar el Tratamiento</span></li>
+    <li class="paso"><span class="paso-n">2</span><span class="paso-t">En la sección Tratamiento, hacer clic en <strong>"📄 Receta"</strong></span></li>
+    <li class="paso"><span class="paso-n">3</span><span class="paso-t">Se genera la receta con membrete del doctor (MP 6306 · MN 158.838)</span></li>
+    <li class="paso"><span class="paso-n">4a</span><span class="paso-t"><strong>Imprimir:</strong> hacer clic en "🖨️ Imprimir" para imprimir en papel</span></li>
+    <li class="paso"><span class="paso-n">4b</span><span class="paso-t"><strong>Enviar por email:</strong> hacer clic en "📧 Enviar por email" — el sistema genera un PDF y lo envía al email del paciente</span></li>
   </ul>
 
   <h3>📅 Consultar historial de consultas anteriores</h3>
