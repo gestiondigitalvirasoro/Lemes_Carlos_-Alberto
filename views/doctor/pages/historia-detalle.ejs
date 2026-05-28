@@ -491,6 +491,16 @@
                 <div class="patient-info">
                     <div><%= paciente?.edad || 'N/A' %> años · <%= paciente?.sexo === 'M' ? 'M' : 'F' %> · <%= paciente?.fecha_nacimiento || 'N/A' %></div>
                     <div style="color: #007bff; font-weight: 700; font-size: 13px;">#<%= paciente?.dni || 'N/A' %></div>
+                    <% if (paciente?.obra_social && paciente.obra_social !== 'N/A' && paciente.obra_social.trim() !== '') { %>
+                        <div style="margin-top:5px; font-size:11px; color:rgba(255,255,255,0.75);">
+                            🏥 <%= paciente.obra_social %>
+                            <% if (paciente?.numero_afiliado && paciente.numero_afiliado !== 'N/A' && paciente.numero_afiliado.trim() !== '') { %>
+                                <span style="color:rgba(255,255,255,0.5);"> · #<%= paciente.numero_afiliado %></span>
+                            <% } %>
+                        </div>
+                    <% } else { %>
+                        <div style="margin-top:5px; font-size:11px; color:rgba(255,255,255,0.4); font-style:italic;">Sin obra social registrada</div>
+                    <% } %>
                 </div>
             </div>
 

@@ -4759,7 +4759,8 @@ app.get('/doctor/pacientes/:paciente_id', requireAuth, requireRole(['doctor', 'a
         dni: paciente.persona?.dni || '',
         email: paciente.persona?.email || '',
         telefono: paciente.persona?.telefono || '',
-        obra_social: paciente.obra_social || ''
+        obra_social: paciente.obra_social || '',
+        numero_afiliado: paciente.numero_afiliado || ''
       },
       historia: historia ? {
         id: historia.id.toString(),
