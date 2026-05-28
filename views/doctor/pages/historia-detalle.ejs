@@ -495,7 +495,7 @@
                         <div style="margin-top:5px; font-size:11px; color:rgba(255,255,255,0.75);">
                             🏥 <%= paciente.obra_social %>
                             <% if (paciente?.numero_afiliado && paciente.numero_afiliado !== 'N/A' && paciente.numero_afiliado.trim() !== '') { %>
-                                <span style="color:rgba(255,255,255,0.5);"> · #<%= paciente.numero_afiliado %></span>
+                                <span style="color:rgba(255,255,255,0.5);"> · <%= paciente.numero_afiliado %></span>
                             <% } %>
                         </div>
                     <% } else { %>
